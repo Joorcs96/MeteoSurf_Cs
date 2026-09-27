@@ -324,3 +324,68 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 
 .day-badge-watch { position: absolute; top: -6px; right: -6px; background: #ffd23c; color: #3a2600; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 .day { position: relative; overflow: visible; }
+/* =========================================
+   Añadidos para Gaps 1, 2, 5, 10, 15
+   ========================================= */
+
+/* Gap 1: Cifra de ola Hero */
+.now .hero-wave { font-size: 42px; font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+.now .hero-wave small { font-size: 18px; font-weight: 700; margin-left: 2px; }
+.now .v-sec { font-size: 19px; font-weight: 700; }
+
+/* Gap 5: Overlay en cámara (HUD) */
+.cam-data-pill {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+/* Reutilizamos colores de rating pill si la clase rX está presente, pero asegurando legibilidad */
+.cam-data-pill[class*="r"] { color: #0b1b2b; }
+.cam-data-pill.r1, .cam-data-pill.r5, .cam-data-pill.r6, .cam-data-pill.r7 { color: #fff; }
+
+/* Gap 10: Scrubbing táctil de la gráfica */
+.chart-scrubber {
+  stroke: var(--brand);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+}
+.chart-tip {
+  position: absolute;
+  top: 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* Gap 15: Chips de match óptimo en la brújula */
+.chip-match {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.chip-match.on {
+  background: #1ad64c;
+  color: #0b2a12;
+}
+.chip-match.off {
+  background: var(--surface-2);
+  color: var(--text-3);
+}

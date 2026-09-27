@@ -222,6 +222,12 @@ function renderSpot(id) {
     let maxR = -1;
     f.days.forEach((d, i) => { if (d.rating > maxR) { maxR = d.rating; bestDayIdx = i; } });
   }
+  
+  const isSwellOpt = h && h.swells[0] && (() => {
+    let a = norm360(spot.swellWindow[0]), b = norm360(spot.swellWindow[1]), d = norm360(h.swells[0].dir);
+    return a <= b ? (d >= a && d <= b) : (d >= a || d <= b);
+  })();
+  const isWindOpt = h && (h.wind.key === 'offshore' || h.wind.key === 'crossoff');
 
   view.innerHTML = `
     <a class="back" href="#/">${ICON.back} Costa de Castellón</a>
@@ -234,8 +240,12 @@ function renderSpot(id) {
       <a href="#s-tendencia" data-jump="s-tendencia">16 días</a><a href="#s-spot" data-jump="s-spot">Spot</a>
     </nav>
     <div class="spot-layout">
-      <div class="a-cam">
+      <div class="a-cam" style="position:relative">
         <div class="cam" id="cam"></div>
+        ${h ? `<div class="cam-overlay-hud" style="position:absolute;bottom:10px;left:10px;pointer-events:none;display:flex;gap:6px;z-index:10">
+          <span class="cam-data-pill ${ratingCls(h.rating)}">${range(h.surf)} m</span>
+          <span class="cam-data-pill">${Math.round(h.windSpeed)} km/h ${dirArrow(h.windDir)}</span>
+        </div>` : ''}
         ${cams.length > 1 ? `<div class="cam-switch">${cams.map((c, i) => `<button data-cam="${i}" class="${i === state.camIdx ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
         <div class="cam-source" id="cam-source"></div>
       </div>
@@ -265,6 +275,10 @@ function renderSpot(id) {
         <div class="card pad compass-card">
           ${compassSVG(spot, { swellDir: h?.swells[0]?.dir, windDir: h?.windDir })}
           <div class="legend">
+            <div class="match-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              ${isSwellOpt ? '<span class="chip-match on">Mar dentro de ventana</span>' : '<span class="chip-match off">Mar fuera de ventana</span>'}
+              ${isWindOpt ? '<span class="chip-match on">Viento terral</span>' : ''}
+            </div>
             <div><i style="background:rgba(0,163,196,.6)"></i>Mar útil: ${compass(spot.swellWindow[0])} a ${compass(spot.swellWindow[1])} (${Math.round(norm360(spot.swellWindow[0]))}°–${Math.round(norm360(spot.swellWindow[1]))}°)</div>
             <div><i style="background:rgba(26,214,76,.6)"></i>Terral: ${compass(spot.facing + 135)} a ${compass(spot.facing + 225)}</div>
             <div><i style="background:#c9a46a"></i>Línea de costa, mira al ${compass(spot.facing)}</div>
@@ -331,21 +345,21 @@ function nowPanel(spot, f, h) {
   const next = ex[0];
   return `<div class="now">
     <div class="wide" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-      <div><div class="k">Ahora · ${h.hour}:00</div><div class="v num">${range(h.surf)}<small> m</small></div>
+      <div><div class="k">Ahora · ${h.hour}:00</div><div class="hero-wave num">${range(h.surf)}<small> m</small></div>
         <div class="d">${surfWords(h.surf.mid)}</div></div>
       <span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>
     </div>
     <div class="wide"><div class="k">Mar de fondo</div>
       ${h.swells.slice(0, 3).map((s, i) => `<div class="swell-line num"><span class="dot s${i + 1}"></span>${m(s.h)} m · ${s.t ? s.t.toFixed(0) : '–'} s · ${compass(s.dir)} ${Math.round(s.dir)}° ${dirArrow(s.dir)} <span class="faint" style="font-weight:500">${s.kind}</span></div>`).join('') || '<div class="muted">Sin mar de fondo</div>'}
     </div>
-    <div><div class="k">Viento</div><div class="v num">${Math.round(h.windSpeed)}<small> km/h</small></div>
+    <div><div class="k">Viento</div><div class="v-sec num">${Math.round(h.windSpeed)}<small> km/h</small></div>
       <div class="d">${dirArrow(h.windDir)} ${compass(h.windDir)} · rachas ${Math.round(h.windGust)}</div>
       <div class="d"><span class="wind-tag wind-${h.wind.key}">${h.wind.label}</span></div></div>
-    <div><div class="k">Marea</div><div class="v num">${h.tide != null ? (h.tide >= 0 ? '+' : '') + h.tide.toFixed(2) : '–'}<small> m</small></div>
+    <div><div class="k">Marea</div><div class="v-sec num">${h.tide != null ? (h.tide >= 0 ? '+' : '') + h.tide.toFixed(2) : '–'}<small> m</small></div>
       <div class="d">${next ? `${next.type === 'high' ? 'Pleamar' : 'Bajamar'} a las ${next.hour}:00` : ''}</div></div>
-    <div><div class="k">Agua</div><div class="v num">${h.sst != null ? Math.round(h.sst) : '–'}<small> °C</small></div>
+    <div><div class="k">Agua</div><div class="v-sec num">${h.sst != null ? Math.round(h.sst) : '–'}<small> °C</small></div>
       <div class="d">${wetsuit(h.sst)}</div></div>
-    <div><div class="k">Aire · sol</div><div class="v num">${h.temp != null ? Math.round(h.temp) : '–'}<small> °C</small></div>
+    <div><div class="k">Aire · sol</div><div class="v-sec num">${h.temp != null ? Math.round(h.temp) : '–'}<small> °C</small></div>
       <div class="d">Sol ${today.sunrise ?? '–'} – ${today.sunset ?? '–'}</div></div>
   </div>`;
 }
@@ -379,6 +393,46 @@ function drawDay(spot, f) {
   // Centrar la columna de la hora actual sin mover la página
   const wrap = $('#ftable'), nowCell = wrap.querySelector('.nowc');
   wrap.scrollLeft = nowCell ? Math.max(0, nowCell.offsetLeft - 120) : 0;
+  
+  // Scrubbing táctil en la gráfica
+  const svg = $('#chart').querySelector('svg');
+  if (svg) {
+    const tip = document.createElement('div');
+    tip.className = 'chart-tip hidden';
+    svg.parentNode.style.position = 'relative';
+    svg.parentNode.appendChild(tip);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('class', 'chart-scrubber hidden');
+    line.setAttribute('y1', 0);
+    line.setAttribute('y2', svg.getAttribute('viewBox').split(' ')[3]);
+    svg.appendChild(line);
+    
+    const w = parseFloat(svg.getAttribute('viewBox').split(' ')[2]);
+    const padL = 28, padR = 4;
+    const bw = (w - padL - padR) / day.hours.length;
+    
+    const onMove = (e) => {
+      const rect = svg.getBoundingClientRect();
+      let x = e.clientX || (e.touches && e.touches[0].clientX);
+      if (x === undefined) return;
+      x -= rect.left;
+      let i = Math.floor((x - padL) / bw);
+      if (i < 0) i = 0;
+      if (i >= day.hours.length) i = day.hours.length - 1;
+      const h = day.hours[i];
+      line.setAttribute('x1', padL + i * bw + bw / 2);
+      line.setAttribute('x2', padL + i * bw + bw / 2);
+      line.classList.remove('hidden');
+      tip.innerHTML = `<b>${h.hour}:00</b><br>${range(h.surf)} m · ${h.swells[0]?.t ? Math.round(h.swells[0].t)+'s' : '–'} · ${Math.round(h.windSpeed)} km/h · ${h.tide != null ? h.tide.toFixed(2)+' m' : '–'}`;
+      tip.classList.remove('hidden');
+      tip.style.left = Math.max(70, Math.min(w - 70, padL + i * bw + bw / 2)) + 'px';
+    };
+    svg.addEventListener('pointerdown', (e) => { svg.setPointerCapture(e.pointerId); onMove(e); });
+    svg.addEventListener('pointermove', (e) => { if (svg.hasPointerCapture(e.pointerId)) onMove(e); });
+    const hide = () => { line.classList.add('hidden'); tip.classList.add('hidden'); };
+    svg.addEventListener('pointerup', (e) => { if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId); setTimeout(hide, 1800); });
+    svg.addEventListener('pointercancel', hide);
+  }
 }
 
 function barChart(W, hours, nowH, day) {
@@ -386,7 +440,7 @@ function barChart(W, hours, nowH, day) {
   const maxV = Math.max(1, ...hours.map((h) => h.surf.max)) * 1.1;
   const bw = (W - pad.l - pad.r) / hours.length;
   const y = (v) => pad.t + (H - pad.t - pad.b) * (1 - v / maxV);
-  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="height:${H}px" role="img" aria-label="Altura por horas">`;
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="height:${H}px; touch-action: pan-y;" role="img" aria-label="Altura por horas">`;
   // Noche sombreada
   const [sr, ss] = [day.sunrise, day.sunset].map((t) => (t ? +t.slice(0, 2) + +t.slice(3) / 60 : null));
   if (sr != null) {
@@ -396,6 +450,14 @@ function barChart(W, hours, nowH, day) {
   for (let v = 0; v <= maxV; v += maxV > 2.5 ? 1 : 0.5) {
     s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/>`;
     s += `<text x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--text-3)">${v.toFixed(1)}</text>`;
+  }
+  // Marea
+  const tidePts = hours.filter(h => h.tide != null);
+  if (tidePts.length) {
+    const minT = Math.min(...tidePts.map(h => h.tide)), maxT = Math.max(...tidePts.map(h => h.tide));
+    const ty = (v) => pad.t + (H - pad.t - pad.b) * (1 - (v - minT) / (maxT - minT || 1));
+    const path = tidePts.map((h, i) => `${i ? 'L' : 'M'}${pad.l + i * bw + bw/2} ${ty(h.tide)}`).join(' ');
+    s += `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.6"/>`;
   }
   hours.forEach((h, i) => {
     const x = pad.l + i * bw + 1.5, w = bw - 3;

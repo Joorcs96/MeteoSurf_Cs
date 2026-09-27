@@ -605,7 +605,7 @@ async function renderMap() {
 // ---------- Todas las camaras ----------
 let camZone = 'all';
 function renderCams() {
-  document.title = 'Camaras · MeteoSurf_Cs';
+  document.title = 'Cámaras · MeteoSurf_Cs';
   const zones = [['all', 'Todas'], ...ZONES.map((z) => [z.id, z.name])];
   const allWithCams = ordered()
     .map((s) => ({ s, cams: camsForSpot(s) }))
@@ -615,8 +615,8 @@ function renderCams() {
   const PLAY_SVG = '<svg viewBox="0 0 48 48" width="56" height="56" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/><polygon points="19,14 38,24 19,34" fill="white"/></svg>';
 
   view.innerHTML = `
-    <div class="region-head"><div><h1>Camaras en directo</h1>
-      <p>${allWithCams.length} spots con camara</p></div></div>
+    <div class="region-head"><div><h1>Cámaras en directo</h1>
+      <p>${allWithCams.length} spots con cámara</p></div></div>
     <div class="chips" role="tablist" style="margin-bottom:14px">
       ${zones.map(([id, n]) => `<button class="chip btn ${camZone === id ? 'on' : ''}" data-camzone="${id}">${n}</button>`).join('')}
     </div>
@@ -648,7 +648,7 @@ function renderCams() {
             </div>
           </div>
           <div class="cam-card-footer">
-            <a href="#/spot/${encodeURIComponent(s.id)}" class="cam-forecast-link">Ver prevision</a>
+            <a href="#/spot/${encodeURIComponent(s.id)}" class="cam-forecast-link">Ver previsión</a>
             <span class="faint" style="font-size:12px;font-weight:600">${esc(c.credit || '')}</span>
           </div>
         </div>`;
@@ -666,11 +666,11 @@ function renderCams() {
   view.querySelectorAll('[data-camspot]').forEach((el) => el.addEventListener('click', () => {
     const placeholder = el.querySelector('.cam-placeholder');
     if (!placeholder) return; // ya reproduciendo
-    // Parar todas las demas
+    // Parar las demás y devolverles su portada para poder volver a reproducirlas
     view.querySelectorAll('[data-camspot]').forEach((other) => {
-      if (other !== el) stopCam(other);
+      if (other !== el && other.dataset.ph) { stopCam(other); other.innerHTML = other.dataset.ph; delete other.dataset.ph; }
     });
-    // Quitar placeholder y reproducir
+    el.dataset.ph = el.innerHTML;
     placeholder.remove();
     const spot = SPOTS.find((s) => s.id === el.dataset.camspot);
     playCam(el, camsForSpot(spot)[0]);

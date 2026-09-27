@@ -547,7 +547,9 @@ function tideChart(day) {
   let s = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
   s += `<path d="${path} L${x(pts.at(-1).hour)} ${H - 22} L${x(pts[0].hour)} ${H - 22} Z" fill="color-mix(in srgb, var(--accent) 22%, transparent)"/>`;
   s += `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
-  tideExtremes(pts).forEach((e) => {
+  // Extremos separados al menos 4 h para que las etiquetas no se pisen
+  const ext = tideExtremes(pts).filter((e, i, a) => i === 0 || e.hour - a[i - 1].hour >= 4);
+  ext.forEach((e) => {
     s += `<circle cx="${x(e.hour)}" cy="${y(e.tide)}" r="3.5" fill="var(--accent)"/>`;
     s += `<text x="${x(e.hour)}" y="${y(e.tide) + (e.type === 'high' ? -7 : 15)}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-2)">${e.hour}h ${e.tide.toFixed(2)}</text>`;
   });

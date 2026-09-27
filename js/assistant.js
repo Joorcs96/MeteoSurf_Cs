@@ -8,6 +8,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 const stripAccents = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '');
 const norm = (s) => stripAccents(s).toLowerCase().trim();
 const p = (text) => `<p>${esc(text)}</p>`;
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
 const DOW = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const DOW_NORM = DOW.map(norm);
@@ -40,19 +41,19 @@ const topSwell = (h) => h?.swells?.[0] ?? null;
 
 // Traje según temperatura del agua
 function wetsuitFor(t) {
-  if (t == null) return 'neopreno según la época';
-  if (t >= 24) return 'bañador o licra';
-  if (t >= 21) return 'neopreno 2 mm o shorty';
-  if (t >= 18) return 'neopreno 3/2 mm';
-  if (t >= 15) return 'neopreno 4/3 mm';
-  return 'neopreno 5/4 mm con escarpines';
+  if (t == null) return 'neopreno según época';
+  if (t >= 24) return 'licra';
+  if (t >= 21) return 'shorty (2 mm)';
+  if (t >= 18) return '3/2 mm';
+  if (t >= 15) return '4/3 mm';
+  return '5/4 mm con escarpines';
 }
 // Tabla recomendada según el tamaño del día
 function boardFor(maxSize) {
-  if (maxSize == null) return 'la tabla que suelas usar';
-  if (maxSize < 0.5) return 'una tabla evolutiva o un tablón: hay poco tamaño y flotar ayuda a coger las olas';
-  if (maxSize < 1) return 'una evolutiva, o una shortboard con algo de volumen si vas suelto';
-  return 'una tabla corta: hay tamaño de sobra para que rinda';
+  if (maxSize == null) return 'habitual';
+  if (maxSize < 0.5) return 'evolutiva o tablón';
+  if (maxSize < 1) return 'evolutiva o shortboard con volumen';
+  return 'tabla corta';
 }
 
 // Etiqueta de viento más repetida en un grupo de horas
@@ -213,13 +214,18 @@ export function bestWindows(fc, spots, { days = 4, minRating = 3 } = {}) {
 
 // ---------- Parte regional ----------
 
-function describeWindEvolution(morning, afternoon) {
+function describeWindShort(morning, afternoon) {
   const avg = (hs) => (hs.length ? Math.round(hs.reduce((a, h) => a + h.windSpeed, 0) / hs.length) : null);
   const mLabel = dominantWindLabel(morning), aLabel = dominantWindLabel(afternoon);
   const mSpeed = avg(morning), aSpeed = avg(afternoon);
   if (!morning.length || !afternoon.length) return '';
-  if (mLabel === aLabel) return `El viento se mantiene ${mLabel.toLowerCase()} durante todo el día, entre ${mSpeed} y ${aSpeed} km/h.`;
-  return `Por la mañana el viento es ${mLabel.toLowerCase()} (${mSpeed} km/h) y por la tarde pasa a ${aLabel.toLowerCase()} (${aSpeed} km/h).`;
+  const fmt = (lbl, spd) => {
+    if (lbl === 'Calma') return 'calma';
+    if (spd != null && spd < 12) return `${lbl.toLowerCase()} flojo`;
+    return spd != null ? `${lbl.toLowerCase()} ${spd} km/h` : lbl.toLowerCase();
+  };
+  if (mLabel === aLabel) return fmt(mLabel, mSpeed);
+  return `${fmt(mLabel, mSpeed)} mañana, ${fmt(aLabel, aSpeed)} tarde`;
 }
 
 function daySummaryParagraph(fc, spots, dayIdx, label) {
@@ -232,18 +238,20 @@ function daySummaryParagraph(fc, spots, dayIdx, label) {
   if (!best) return '';
   const { s, day } = best;
   const sw = topSwell(day.best);
+  const swTxt = sw?.dir != null && sw?.t != null ? ` ${compass(sw.dir)} ${Math.round(sw.t)} s` : '';
   const morning = day.hours.filter((h) => h.hour >= 7 && h.hour < 13);
   const afternoon = day.hours.filter((h) => h.hour >= 13 && h.hour <= 20);
-  const windEvo = describeWindEvolution(morning, afternoon);
+  const windTxt = describeWindShort(morning, afternoon);
   const windows = bestWindows(fc, spots, { days: dayIdx + 1, minRating: 3 }).filter((w) => w.date === day.date);
-  let windowTxt = 'No se espera una ventana clara con calidad Regular o mejor durante el día.';
+  let windowTxt = 'Sin ventanas claras.';
   if (windows.length) {
     const names = [...new Set(windows.slice(0, 2).map((w) => spots.find((x) => x.id === w.spotId)?.name ?? w.spotId))];
-    windowTxt = `La ventana más aprovechable será de ${windows[0].from} a ${windows[0].to} h, sobre todo en ${names.join(' y ')}.`;
+    windowTxt = `Mejor ${windows[0].from}–${windows[0].to} h en ${esc(names.join(' y '))}.`;
+  } else if (day.rating >= 3) {
+    windowTxt = `Mejor sobre las ${day.best.hour}:00 en ${esc(s.name)}.`;
   }
-  return `<p><b>${label}</b> el mar de fondo dominante ronda ${fmtM(sw?.h)} m a ${sw?.t ? Math.round(sw.t) : '–'} s del ${compass(sw?.dir)}, ` +
-    `con el mejor momento en ${esc(s.name)} (${esc(s.zoneName)}) sobre las ${day.best.hour}:00: ${fmtRange(day.surfMin, day.surfMax)} m, calidad ${esc(ratingWord(day.rating))}. ` +
-    `${windEvo} ${windowTxt}</p>`;
+  const windPart = windTxt ? `, ${windTxt}. ` : '. ';
+  return `<p><b>${label}:</b> ${fmtRange(day.surfMin, day.surfMax)} m${swTxt}${windPart}${windowTxt}</p>`;
 }
 
 function nextDaysParagraph(fc, spots, idxs) {
@@ -255,32 +263,29 @@ function nextDaysParagraph(fc, spots, idxs) {
       if (!best || day.rating > best.day.rating) best = { s, day };
     }
     if (!best) return null;
-    return `${esc(dayLabel(best.day.date, i))}: ${fmtRange(best.day.surfMin, best.day.surfMax)} m, ${esc(ratingWord(best.day.rating))} (mejor en ${esc(best.s.name)})`;
+    return `${esc(dayLabel(best.day.date, i))} ${fmtRange(best.day.surfMin, best.day.surfMax)} m en ${esc(best.s.name)} (${esc(ratingWord(best.day.rating))})`;
   }).filter(Boolean);
-  return bits.length ? `<p><b>Próximos días.</b> ${bits.join('; ')}.</p>` : '';
+  return bits.length ? `<p><b>Próximos días:</b> ${bits.join('; ')}.</p>` : '';
 }
 
 function trendParagraph(fc, spots, idxs, ref) {
   const peaks = idxs.map((i) => ({ i, day: ref.days[i] })).filter(({ day }) => day && (day.rating >= 5 || day.surfMax >= 0.8));
-  const reliability = idxs.some((i) => i >= 7)
-    ? ' A partir del séptimo día la fiabilidad del modelo baja bastante, así que estos datos son solo orientativos y conviene revisarlos según se acerque la fecha.'
-    : '';
   if (!peaks.length) {
     const mins = idxs.map((i) => ref.days[i]?.surfMin).filter((v) => v != null);
     const maxs = idxs.map((i) => ref.days[i]?.surfMax).filter((v) => v != null);
     const range = mins.length ? fmtRange(Math.min(...mins), Math.max(...maxs)) : '–';
-    return `<p><b>Tendencia hasta 15 días.</b> No se ven repuntes claros de mar de fondo en el resto del periodo; se mantienen tamaños pequeños, en torno a ${range} m.${reliability}</p>`;
+    return `<p><b>Tendencia:</b> Sin repuntes claros (${range} m).</p>`;
   }
-  const txt = peaks.slice(0, 3).map(({ i, day }) => `${esc(dayLabel(day.date, i))} (${fmtRange(day.surfMin, day.surfMax)} m)`).join(', ');
-  return `<p><b>Tendencia hasta 15 días.</b> Se esperan repuntes de mar de fondo sobre todo ${txt}.${reliability}</p>`;
+  const txt = peaks.slice(0, 2).map(({ i, day }) => `${esc(dayLabel(day.date, i))} (${fmtRange(day.surfMin, day.surfMax)} m)`).join(', ');
+  return `<p><b>Tendencia:</b> Repuntes probables ${txt}.</p>`;
 }
 
 // Parte escrito para toda la costa: hoy, mañana, próximos días y tendencia a 15 días
 export function regionReport(fc, spots) {
   const withData = spots.filter((s) => fc.spots[s.id]);
-  if (!withData.length) return p('Todavía no hay previsión cargada.');
+  if (!withData.length) return p('Sin previsión cargada.');
   const ref = fc.spots[withData[0].id];
-  const parts = [`<p class="faint" style="margin:0 0 10px">Parte del forecaster · ${esc(dayFull(ref.days[0].date, 0))}</p>`];
+  const parts = [];
   parts.push(daySummaryParagraph(fc, withData, 0, 'Hoy'));
   if (ref.days[1]) parts.push(daySummaryParagraph(fc, withData, 1, 'Mañana'));
   const nextIdxs = [2, 3].filter((i) => ref.days[i]);
@@ -295,7 +300,7 @@ export function regionReport(fc, spots) {
 // Parte escrito de un spot: mejores ventanas, tabla recomendada y traje
 export function spotReport(f) {
   const { spot, days } = f;
-  if (!days.length) return p('Todavía no hay previsión cargada.');
+  if (!days.length) return p('Sin previsión cargada.');
   const wrap = { spots: { [spot.id]: f } };
   // Las cinco mejores franjas de los próximos 4 días, en orden de fecha
   const windows = bestWindows(wrap, [spot], { days: Math.min(4, days.length), minRating: 3 })
@@ -303,35 +308,34 @@ export function spotReport(f) {
     .slice(0, 5)
     .sort((a, b) => (a.date === b.date ? a.from - b.from : (a.date < b.date ? -1 : 1)));
   const windowsHtml = windows.length
-    ? `<ul class="win-list">${windows.map((w) => `<li><span class="rating-pill r${w.rating}">${esc(ratingWord(w.rating))}</span> ${esc(dayFull(w.date, dayIndexOf(f, w.date)))}, de ${w.from} a ${w.to} h · ${fmtRange(w.surfMin, w.surfMax)} m · viento ${esc(w.windLabel.toLowerCase())}</li>`).join('')}</ul>`
-    : '<p>No se ve una ventana clara con calidad Regular o mejor en los próximos días.</p>';
+    ? `<ul class="win-list">${windows.map((w) => `<li><span class="rating-pill r${w.rating}">${esc(ratingWord(w.rating))}</span> <b>${esc(cap(dayLabel(w.date, dayIndexOf(f, w.date))))} ${w.from}–${w.to} h</b> · ${fmtRange(w.surfMin, w.surfMax)} m · ${esc(w.windLabel.toLowerCase())}</li>`).join('')}</ul>`
+    : '<p>Sin ventanas claras en 4 días.</p>';
 
   const today = days[0];
   const sst = today.hours.find((h) => h.sst != null)?.sst ?? null;
+  const trajeTxt = sst != null ? ` Traje: ${wetsuitFor(sst)} (${Math.round(sst)} °C).` : '';
   return `<h3>Mejores ventanas · próximos 4 días</h3>${windowsHtml}` +
     `<h3 style="margin-top:12px">Recomendación</h3>` +
-    `<p>Con ${fmtRange(today.surfMin, today.surfMax)} m hoy en ${esc(spot.name)}, lo suyo es llevar ${boardFor(today.surfMax)}. ` +
-    `${sst != null ? `El agua está sobre los ${Math.round(sst)} °C, así que toca ${wetsuitFor(sst)}.` : ''}</p>`;
+    `<p>Tabla: ${boardFor(today.surfMax)}.${trajeTxt}</p>`;
 }
 
 // ---------- Respuestas puntuales del chat ----------
 
 function answerCompare(spotA, spotB, fc, dayInfo) {
   const fa = fc.spots[spotA.id], fb = fc.spots[spotB.id];
-  if (!fa || !fb) return p('Me falta previsión de alguno de los dos spots.');
+  if (!fa || !fb) return p('Faltan datos de algún spot.');
   const idx = resolveDayIdx(fa.days, dayInfo, 0);
   const da = fa.days[idx], db = fb.days[idx];
-  if (!da || !db) return p('No tengo previsión para ese día.');
+  if (!da || !db) return p('Sin previsión para ese día.');
   const winner = da.rating !== db.rating ? (da.rating > db.rating ? spotA : spotB) : (da.surfMax >= db.surfMax ? spotA : spotB);
-  return `<p>${esc(dayFull(da.date, idx))}: <b>${esc(spotA.name)}</b> ${fmtRange(da.surfMin, da.surfMax)} m ` +
-    `(${esc(ratingWord(da.rating))}, ${esc(da.best.wind.label.toLowerCase())} ${Math.round(da.best.windSpeed)} km/h) frente a ` +
-    `<b>${esc(spotB.name)}</b> ${fmtRange(db.surfMin, db.surfMax)} m (${esc(ratingWord(db.rating))}, ${esc(db.best.wind.label.toLowerCase())} ${Math.round(db.best.windSpeed)} km/h). ` +
-    `Mejor opción: <b>${esc(winner.name)}</b>.</p>`;
+  return `<p><b>${esc(cap(dayLabel(da.date, idx)))}:</b> Mejor <b>${esc(winner.name)}</b>.<br>` +
+    `<b>${esc(spotA.name)}:</b> ${fmtRange(da.surfMin, da.surfMax)} m, ${esc(ratingWord(da.rating))}, ${esc(da.best.wind.label.toLowerCase())} ${Math.round(da.best.windSpeed)} km/h.<br>` +
+    `<b>${esc(spotB.name)}:</b> ${fmtRange(db.surfMin, db.surfMax)} m, ${esc(ratingWord(db.rating))}, ${esc(db.best.wind.label.toLowerCase())} ${Math.round(db.best.windSpeed)} km/h.</p>`;
 }
 
 function answerBestSpot(fc, spots, dayInfo) {
   const ref = firstAvailable(fc, spots);
-  if (!ref) return p('Todavía no tengo previsión cargada.');
+  if (!ref) return p('Sin previsión cargada.');
   const idx = resolveDayIdx(ref.days, dayInfo, 0);
   let best = null;
   for (const s of spots) {
@@ -339,15 +343,15 @@ function answerBestSpot(fc, spots, dayInfo) {
     if (!day) continue;
     if (!best || day.rating > best.day.rating || (day.rating === best.day.rating && day.surfMax > best.day.surfMax)) best = { s, day };
   }
-  if (!best) return p('No tengo datos para ese día.');
+  if (!best) return p('Sin datos para ese día.');
   const { s, day } = best;
-  return `<p>${esc(dayFull(day.date, idx))} el mejor spot es <b>${esc(s.name)}</b> (${esc(s.zoneName)}): ${fmtRange(day.surfMin, day.surfMax)} m, ` +
-    `calidad ${esc(ratingWord(day.rating))}, con el mejor momento sobre las ${day.best.hour}:00 (${esc(day.best.wind.label.toLowerCase())} ${Math.round(day.best.windSpeed)} km/h).</p>`;
+  return `<p><b>${esc(cap(dayLabel(day.date, idx)))}:</b> Mejor spot <b>${esc(s.name)}</b> (${esc(s.zoneName)}).<br>` +
+    `${fmtRange(day.surfMin, day.surfMax)} m, ${esc(ratingWord(day.rating))}. Mejor a las ${day.best.hour}:00 (${esc(day.best.wind.label.toLowerCase())} ${Math.round(day.best.windSpeed)} km/h).</p>`;
 }
 
 function answerWhen(fc, targetSpots, dayInfo) {
   const ref = firstAvailable(fc, targetSpots);
-  if (!ref) return p('Todavía no tengo previsión cargada para responder.');
+  if (!ref) return p('Sin previsión cargada.');
   const range = resolveDayRange(ref.days, dayInfo);
   let windows = bestWindows(fc, targetSpots, { days: Math.min(ref.days.length, range[1] + 1), minRating: 3 })
     .filter((w) => { const i = dayIndexOf(ref, w.date); return i >= range[0] && i <= range[1]; });
@@ -355,10 +359,9 @@ function answerWhen(fc, targetSpots, dayInfo) {
   if (!windows.length) {
     const further = bestWindows(fc, targetSpots, { days: ref.days.length, minRating: 3 })
       .filter((w) => dayIndexOf(ref, w.date) > range[1]);
-    if (further.length) { windows = [further[0]]; note = 'No hay una ventana clara en las fechas pedidas. '; }
+    if (further.length) { windows = [further[0]]; note = 'Sin ventanas en esas fechas. Próxima opción:'; }
   }
-  if (!windows.length) return p('No se ve una ventana clara de olas surfeables (calidad Regular o mejor) en los próximos días con los datos actuales.');
-  // Las mejores primero; la misma franja en varios spots se agrupa; luego se muestran en orden de fecha
+  if (!windows.length) return p('Sin ventanas claras en los próximos días.');
   const nameOf = (id) => targetSpots.find((s) => s.id === id)?.name ?? id;
   const groups = new Map();
   for (const w of windows) {
@@ -373,83 +376,84 @@ function answerWhen(fc, targetSpots, dayInfo) {
     .slice(0, 4)
     .sort((a, b) => (a.date === b.date ? a.from - b.from : (a.date < b.date ? -1 : 1)));
   const spotsTxt = (n) => (n.length <= 3 ? n.join(', ') : `${n.slice(0, 3).join(', ')} y ${n.length - 3} más`);
-  const items = top.map((w) => `<li>${esc(dayFull(w.date, dayIndexOf(ref, w.date)))}, de ${w.from} a ${w.to} h en <b>${esc(spotsTxt(w.names))}</b>: ` +
-    `${fmtRange(w.surfMin, w.surfMax)} m, ${esc(ratingWord(w.rating))}, viento ${esc(w.windLabel.toLowerCase())}.</li>`).join('');
-  const head = note ? `${note}El próximo día con opciones sería:` : 'Estas son las mejores ventanas que veo:';
-  return `<p>${head}</p><ul>${items}</ul>`;
+  const items = top.map((w) => `<li><b>${esc(cap(dayLabel(w.date, dayIndexOf(ref, w.date))))} ${w.from}–${w.to} h:</b> ` +
+    `${esc(spotsTxt(w.names))} · ${fmtRange(w.surfMin, w.surfMax)} m · ${esc(ratingWord(w.rating))} · ${esc(w.windLabel.toLowerCase())}</li>`).join('');
+  const head = note || 'Mejores ventanas:';
+  return `<p>${esc(head)}</p><ul>${items}</ul>`;
 }
 
 function answerWetsuit(fc, spot, dayInfo) {
   const f = fc.spots[spot.id];
-  if (!f) return p(`No tengo previsión cargada para ${spot.name} todavía.`);
+  if (!f) return p(`Sin datos para ${spot.name}.`);
   const idx = resolveDayIdx(f.days, dayInfo, 0);
   const day = f.days[idx];
   const sst = day?.hours.find((h) => h.sst != null)?.sst ?? null;
-  return `<p>${esc(dayLabel(day?.date ?? '', idx))} el agua en <b>${esc(spot.name)}</b> está ` +
-    `${sst != null ? `sobre los ${Math.round(sst)} °C` : 'sin dato de temperatura'}: toca ${esc(wetsuitFor(sst))}.</p>`;
+  const tempTxt = sst != null ? `Agua a ${Math.round(sst)} °C.` : 'Sin dato de temperatura.';
+  return `<p><b>${esc(spot.name)} (${esc(dayLabel(day?.date ?? '', idx))}):</b> ${tempTxt} Traje: ${esc(wetsuitFor(sst))}.</p>`;
 }
 
 function answerWind(fc, spot, dayInfo, franja) {
   const f = fc.spots[spot.id];
-  if (!f) return p(`No tengo previsión cargada para ${spot.name} todavía.`);
+  if (!f) return p(`Sin datos para ${spot.name}.`);
   const idx = resolveDayIdx(f.days, dayInfo, 0);
   const day = f.days[idx];
-  if (!day) return p('No tengo previsión para ese día.');
+  if (!day) return p('Sin previsión para ese día.');
   let hours = franja ? day.hours.filter((h) => h.hour >= franja.from && h.hour <= franja.to) : day.hours;
   if (!hours.length) hours = day.hours;
   const offshore = hours.filter((h) => h.wind.key === 'offshore' || h.wind.key === 'crossoff');
   if (!offshore.length) {
     const dominant = hours[Math.floor(hours.length / 2)].wind;
-    return `<p>${esc(dayLabel(day.date, idx))} en <b>${esc(spot.name)}</b> no sopla terral; el viento predominante es ${esc(dominant.label.toLowerCase())}.</p>`;
+    return `<p><b>${esc(spot.name)} (${esc(dayLabel(day.date, idx))}):</b> Sin terral; viento dominante ${esc(dominant.label.toLowerCase())}.</p>`;
   }
   const from = offshore[0].hour, to = offshore.at(-1).hour + 1;
   const avgSpeed = Math.round(offshore.reduce((a, h) => a + h.windSpeed, 0) / offshore.length);
-  return `<p>Sí, ${esc(dayLabel(day.date, idx))} sopla terral en <b>${esc(spot.name)}</b> de ${from} a ${to} h, con ${avgSpeed} km/h de media.</p>`;
+  return `<p><b>${esc(spot.name)} (${esc(dayLabel(day.date, idx))}):</b> Terral de ${from} a ${to} h (${avgSpeed} km/h).</p>`;
 }
 
 function answerTide(fc, spot, dayInfo) {
   const f = fc.spots[spot.id];
-  if (!f) return p(`No tengo previsión cargada para ${spot.name} todavía.`);
+  if (!f) return p(`Sin datos para ${spot.name}.`);
   const idx = resolveDayIdx(f.days, dayInfo, 0);
   const day = f.days[idx];
-  if (!day) return p('No tengo previsión para ese día.');
+  if (!day) return p('Sin previsión para ese día.');
   const ex = tideExtremes(day.hours);
-  if (!ex.length) return p('No tengo datos de marea suficientes para ese día.');
-  const txt = ex.map((e) => `${e.type === 'high' ? 'pleamar' : 'bajamar'} a las ${e.hour}:00 (${e.tide >= 0 ? '+' : ''}${e.tide.toFixed(2)} m)`).join(' y ');
-  return `<p>${esc(dayLabel(day.date, idx))} en <b>${esc(spot.name)}</b>: ${txt}. En el Mediterráneo la marea astronómica solo mueve unos centímetros; el viento y la presión pesan más.</p>`;
+  if (!ex.length) return p('Sin datos de marea para ese día.');
+  const txt = ex.map((e) => `${e.type === 'high' ? 'Pleamar' : 'Bajamar'} ${e.hour}:00 (${e.tide >= 0 ? '+' : ''}${e.tide.toFixed(2)} m)`).join(', ');
+  return `<p><b>${esc(spot.name)} (${esc(dayLabel(day.date, idx))}):</b> ${txt}.</p>`;
 }
 
 function answerSpotStatus(fc, spot, dayInfo, franja, wantNow) {
   const f = fc.spots[spot.id];
-  if (!f) return p(`No tengo previsión cargada para ${spot.name} todavía.`);
+  if (!f) return p(`Sin datos para ${spot.name}.`);
 
   if (wantNow && !dayInfo) {
     const h = f.hours[nowIndex(f.hours)];
     const sw = topSwell(h);
-    return `<p><b>${esc(spot.name)}</b> ahora mismo (${h.hour}:00): ${fmtRange(h.surf.min, h.surf.max)} m, calidad ${esc(ratingWord(h.rating))}. ` +
-      `Mar ${sw ? `de ${fmtM(sw.h)} m y ${sw.t ? Math.round(sw.t) : '–'} s del ${compass(sw.dir)}` : 'sin mar de fondo relevante'}, ` +
-      `viento ${esc(h.wind.label.toLowerCase())} ${Math.round(h.windSpeed)} km/h del ${compass(h.windDir)}.</p>`;
+    const swTxt = sw ? `${fmtM(sw.h)} m ${sw.t ? Math.round(sw.t) : '–'} s ${compass(sw.dir)}` : 'sin mar de fondo';
+    const windTxt = `${esc(h.wind.label.toLowerCase())} ${Math.round(h.windSpeed)} km/h ${compass(h.windDir)}`;
+    return `<p><b>${esc(spot.name)} ahora (${h.hour}:00):</b> ${fmtRange(h.surf.min, h.surf.max)} m, ${esc(ratingWord(h.rating))}.<br>` +
+      `Swell ${swTxt}. Viento ${windTxt}.</p>`;
   }
 
   const idx = resolveDayIdx(f.days, dayInfo, 0);
   const day = f.days[idx];
-  if (!day) return p('No tengo previsión para ese día.');
+  if (!day) return p('Sin previsión para ese día.');
   let hours = franja ? day.hours.filter((h) => h.hour >= franja.from && h.hour <= franja.to) : day.hours;
   if (!hours.length) hours = day.hours;
   const best = hours.reduce((a, b) => (b.rating > a.rating || (b.rating === a.rating && b.surf.mid > a.surf.mid) ? b : a));
   const sw = topSwell(best);
+  const swTxt = sw ? `${fmtM(sw.h)} m ${sw.t ? Math.round(sw.t) : '–'} s ${compass(sw.dir)}` : 'sin mar de fondo';
+  const windTxt = `${esc(best.wind.label.toLowerCase())} ${Math.round(best.windSpeed)} km/h ${compass(best.windDir)}`;
   const franjaTxt = franja ? (franja.exact ? ` a las ${franja.from}:00` : ` de ${hours[0].hour} a ${hours.at(-1).hour} h`) : '';
-  return `<p><b>${esc(spot.name)}</b> ${esc(dayLabel(day.date, idx))}${franjaTxt}: ` +
-    `${fmtRange(Math.min(...hours.map((h) => h.surf.min)), Math.max(...hours.map((h) => h.surf.max)))} m, calidad ${esc(ratingWord(best.rating))}. ` +
-    `Mar ${sw ? `de ${fmtM(sw.h)} m y ${sw.t ? Math.round(sw.t) : '–'} s del ${compass(sw.dir)}` : 'sin mar de fondo relevante'}, ` +
-    `viento ${esc(best.wind.label.toLowerCase())} ${Math.round(best.windSpeed)} km/h del ${compass(best.windDir)}.</p>`;
+  return `<p><b>${esc(spot.name)}</b> (${esc(dayLabel(day.date, idx))}${franjaTxt}): ${fmtRange(Math.min(...hours.map((h) => h.surf.min)), Math.max(...hours.map((h) => h.surf.max)))} m, ${esc(ratingWord(best.rating))}.<br>` +
+    `Swell ${swTxt}. Viento ${windTxt}.</p>`;
 }
 
 // Responde una pregunta libre en español sobre la previsión. Nunca inventa datos: todo sale de fc.
 export function answer(question, fc, spots, ctx = {}) {
   const raw = String(question ?? '').trim();
-  if (!raw) return suggestionsHtml('Pregúntame algo sobre la previsión, por ejemplo:');
-  if (!fc || !fc.spots) return p('Todavía no hay previsión cargada.');
+  if (!raw) return suggestionsHtml('Prueba con:');
+  if (!fc || !fc.spots) return p('Sin previsión cargada.');
 
   const q = norm(raw);
   const detected = detectSpots(raw, spots);
@@ -468,21 +472,21 @@ export function answer(question, fc, spots, ctx = {}) {
   }
   if (/traje|neopreno|licra|wetsuit/.test(q)) {
     const spot = detected[0] || ctxSpot || spots[0];
-    return spot ? answerWetsuit(fc, spot, day) : suggestionsHtml('No tengo spots para responder. Prueba con:');
+    return spot ? answerWetsuit(fc, spot, day) : suggestionsHtml('Elige un spot:');
   }
   if (/terral|viento|racha/.test(q)) {
     const spot = detected[0] || ctxSpot || spots[0];
-    return spot ? answerWind(fc, spot, day, franja) : suggestionsHtml('No tengo spots para responder. Prueba con:');
+    return spot ? answerWind(fc, spot, day, franja) : suggestionsHtml('Elige un spot:');
   }
   if (/marea|pleamar|bajamar/.test(q)) {
     const spot = detected[0] || ctxSpot || spots[0];
-    return spot ? answerTide(fc, spot, day) : suggestionsHtml('No tengo spots para responder. Prueba con:');
+    return spot ? answerTide(fc, spot, day) : suggestionsHtml('Elige un spot:');
   }
 
   const spot = detected[0] || ctxSpot;
   if (spot) return answerSpotStatus(fc, spot, day, franja, wantNow);
 
-  return suggestionsHtml('No he entendido bien la pregunta. Prueba con:');
+  return suggestionsHtml('Prueba con:');
 }
 
 // Preguntas sugeridas para el chat, según si el usuario está viendo un spot o la portada

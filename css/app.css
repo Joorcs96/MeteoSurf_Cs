@@ -389,3 +389,164 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
   background: var(--surface-2);
   color: var(--text-3);
 }
+
+/* =========================================
+   TAREA A — Pagina Camaras: cam-card
+   ========================================= */
+
+/* Cabecera de la tarjeta de camara */
+.cam-card { display: flex; flex-direction: column; }
+.cam-card-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 8px; padding: 10px 2px 6px;
+}
+.cam-card-name { font-weight: 800; font-size: 16px; letter-spacing: -.01em; color: var(--text); }
+.cam-card-zone { font-size: 12px; font-weight: 600; color: var(--text-3); margin-top: 1px; }
+.cam-card-surf { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.cam-card-height { font-size: 20px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.cam-card-height small { font-size: 12px; font-weight: 600; color: var(--text-2); }
+
+/* Placeholder antes de reproducir: degradado azul oscuro */
+.cam-placeholder {
+  position: absolute; inset: 0;
+  background: linear-gradient(160deg, #04101c 0%, #0b2540 55%, #123357 100%);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.cam-placeholder-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0.32; display: block;
+}
+.cam-placeholder-overlay {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.cam-live-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.12); color: #fff;
+  font-size: 11px; font-weight: 800; padding: 3px 10px;
+  border-radius: 6px; letter-spacing: .06em; border: 1px solid rgba(255,255,255,0.2);
+}
+.cam-live-badge::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: #ff3b3b; box-shadow: 0 0 0 3px rgba(255,59,59,.3);
+}
+.cam-placeholder-overlay svg { display: block; filter: drop-shadow(0 2px 8px rgba(0,0,0,.5)); }
+.cam-short-name {
+  font-size: 13px; font-weight: 700; color: rgba(207,224,240,0.9);
+  text-align: center; max-width: 160px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Footer de la tarjeta */
+.cam-card-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 2px 0;
+}
+.cam-forecast-link {
+  font-size: 13px; font-weight: 700; color: var(--brand);
+}
+.cam-forecast-link:hover { text-decoration: underline; }
+
+/* =========================================
+   TAREA B — Modo oscuro: correcciones de contraste
+   ========================================= */
+
+/* --- Tarjetas spot --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .spot-card {
+    border-color: var(--line);
+  }
+  :root:not([data-theme="light"]) .spot-card::before {
+    opacity: 0.85;
+  }
+}
+:root[data-theme="dark"] .spot-card { border-color: var(--line); }
+:root[data-theme="dark"] .spot-card::before { opacity: 0.85; }
+
+/* --- Bloque .now --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .now > div { background: var(--surface); border-color: var(--line); }
+}
+:root[data-theme="dark"] .now > div { background: var(--surface); border-color: var(--line); }
+
+/* --- Tabla ftable: cabecera sticky, columna lbl, celdas hcX y wcell-* --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ftable thead th { background: var(--surface-2); color: var(--text-2); }
+  :root:not([data-theme="light"]) .ftable th.lbl,
+  :root:not([data-theme="light"]) .ftable td.lbl { background: var(--surface); color: var(--text-2); box-shadow: 3px 0 6px -2px rgba(0,0,0,.5); }
+  /* hc0-hc1 en oscuro: texto necesita ser claro porque el fondo ya es oscuro */
+  :root:not([data-theme="light"]) .hc0,
+  :root:not([data-theme="light"]) .hc1 { color: var(--text-2); }
+  /* hc2-hc6 ya tienen color:#fff en la regla general */
+  :root:not([data-theme="light"]) .hc2 { color: var(--text); }
+  /* wcell-* ya usan color-mix con vars, OK */
+}
+:root[data-theme="dark"] .ftable thead th { background: var(--surface-2); color: var(--text-2); }
+:root[data-theme="dark"] .ftable th.lbl,
+:root[data-theme="dark"] .ftable td.lbl { background: var(--surface); color: var(--text-2); box-shadow: 3px 0 6px -2px rgba(0,0,0,.5); }
+:root[data-theme="dark"] .hc0,
+:root[data-theme="dark"] .hc1 { color: var(--text-2); }
+:root[data-theme="dark"] .hc2 { color: var(--text); }
+
+/* --- .lr-row: bordes y texto legible --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .lr-row { color: var(--text); }
+  :root:not([data-theme="light"]) .lr-sw, :root:not([data-theme="light"]) .lr-w { color: var(--text-2); }
+}
+:root[data-theme="dark"] .lr-row { color: var(--text); }
+:root[data-theme="dark"] .lr-sw, :root[data-theme="dark"] .lr-w { color: var(--text-2); }
+
+/* --- Brujula: circulo de fondo y tierra --- */
+/* fill="var(--surface-2)" ya funciona; el color de tierra es rgba con hardcode, OK */
+/* Centro blanco con borde: en oscuro mejor fondo de superficie */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .compass-card circle[fill="#fff"],
+  :root:not([data-theme="light"]) .compass-card circle:last-child { fill: var(--surface); }
+}
+:root[data-theme="dark"] .compass-card circle[fill="#fff"],
+:root[data-theme="dark"] .compass-card circle:last-child { fill: var(--surface); }
+
+/* --- Chips --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .chip { background: var(--surface-2); color: var(--text-2); }
+  :root:not([data-theme="light"]) .chip.btn { background: var(--surface); border-color: var(--line); }
+  :root:not([data-theme="light"]) .chip.btn.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+}
+:root[data-theme="dark"] .chip { background: var(--surface-2); color: var(--text-2); }
+:root[data-theme="dark"] .chip.btn { background: var(--surface); border-color: var(--line); }
+:root[data-theme="dark"] .chip.btn.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+/* --- rating-pill: texto legible sobre cada color --- */
+/* r0 (gris claro), r2 (naranja), r3 (amarillo): texto oscuro */
+/* r1 (rojo), r4 (verde claro), r5 (verde oscuro), r6 (morado), r7 (morado oscuro): texto blanco ya marcado */
+/* En modo oscuro r4 (verde vivo) puede necesitar texto oscuro */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .r4.rating-pill { color: #0b2a12; }
+}
+:root[data-theme="dark"] .r4.rating-pill { color: #0b2a12; }
+
+/* --- Mapa: pin y etiqueta --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .map-pin .dot { border-color: var(--surface-2); }
+}
+:root[data-theme="dark"] .map-pin .dot { border-color: var(--surface-2); }
+
+/* --- Asistente .msg --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .msg.bot { background: var(--surface-2); color: var(--text); }
+  :root:not([data-theme="light"]) .msg.bot h3 { color: var(--text-2); }
+  :root:not([data-theme="light"]) .msg.me { background: var(--brand); color: #fff; }
+}
+:root[data-theme="dark"] .msg.bot { background: var(--surface-2); color: var(--text); }
+:root[data-theme="dark"] .msg.bot h3 { color: var(--text-2); }
+:root[data-theme="dark"] .msg.me { background: var(--brand); color: #fff; }
+
+/* --- votar.html: formulario inputs/selects --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tile { background: var(--surface-2); border-color: var(--line); }
+  :root:not([data-theme="light"]) .tile .t-label { color: var(--text); }
+}
+:root[data-theme="dark"] .tile { background: var(--surface-2); border-color: var(--line); }
+:root[data-theme="dark"] .tile .t-label { color: var(--text); }

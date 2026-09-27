@@ -602,20 +602,79 @@ async function renderMap() {
   setTimeout(() => leaflet.invalidateSize(), 50);
 }
 
-// ---------- Todas las cámaras ----------
+// ---------- Todas las camaras ----------
+let camZone = 'all';
 function renderCams() {
-  document.title = 'Cámaras · MeteoSurf_Cs';
-  const withCams = ordered().map((s) => ({ s, c: camsForSpot(s)[0] })).filter((x) => x.c);
-  view.innerHTML = `<div class="region-head"><div><h1>Cámaras en directo</h1><p>${withCams.length} spots con cámara · pulsa para reproducir</p></div></div>
-    <div class="cam-grid">${withCams.map(({ s, c }) => `<div>
-      <div class="cam" data-camspot="${esc(s.id)}">${camThumb(c) ? `<img src="${esc(camThumb(c))}" alt="" loading="lazy" onerror="this.remove()">` : ''}
-        <div class="cam-msg" style="background:rgba(4,16,28,.45);cursor:pointer"><div><b>${esc(s.name)}</b>${esc(c.short || c.name)}</div></div></div>
-      <div class="cam-title"><a href="#/spot/${encodeURIComponent(s.id)}">${esc(s.name)} ›</a><span class="faint" style="font-size:12px;font-weight:600">${esc(c.credit || '')}</span></div></div>`).join('')}</div>${footer()}`;
+  document.title = 'Camaras · MeteoSurf_Cs';
+  const zones = [['all', 'Todas'], ...ZONES.map((z) => [z.id, z.name])];
+  const allWithCams = ordered()
+    .map((s) => ({ s, cams: camsForSpot(s) }))
+    .filter((x) => x.cams.length > 0);
+  const filtered = camZone === 'all' ? allWithCams : allWithCams.filter(({ s }) => s.zone === camZone);
+
+  const PLAY_SVG = '<svg viewBox="0 0 48 48" width="56" height="56" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/><polygon points="19,14 38,24 19,34" fill="white"/></svg>';
+
+  view.innerHTML = `
+    <div class="region-head"><div><h1>Camaras en directo</h1>
+      <p>${allWithCams.length} spots con camara</p></div></div>
+    <div class="chips" role="tablist" style="margin-bottom:14px">
+      ${zones.map(([id, n]) => `<button class="chip btn ${camZone === id ? 'on' : ''}" data-camzone="${id}">${n}</button>`).join('')}
+    </div>
+    <div class="cam-grid">
+      ${filtered.length ? filtered.map(({ s, cams }) => {
+        const c = cams[0];
+        const f = state.fc?.spots[s.id];
+        const h = f ? f.hours[nowIndex(f.hours)] : null;
+        const thumb = camThumb(c);
+        return `<div class="cam-card">
+          <div class="cam-card-head">
+            <div class="cam-card-spot">
+              <div class="cam-card-name">${esc(s.name)}</div>
+              <div class="cam-card-zone">${esc(s.zoneName)}</div>
+            </div>
+            ${h ? `<div class="cam-card-surf">
+              <span class="cam-card-height num">${range(h.surf)}<small> m</small></span>
+              <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span>
+            </div>` : ''}
+          </div>
+          <div class="cam cam-card-video" data-camspot="${esc(s.id)}">
+            <div class="cam-placeholder">
+              ${thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy" class="cam-placeholder-img" onerror="this.remove()">` : ''}
+              <div class="cam-placeholder-overlay">
+                <span class="cam-live-badge">EN DIRECTO</span>
+                ${PLAY_SVG}
+                <span class="cam-short-name">${esc(c.short || c.name)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="cam-card-footer">
+            <a href="#/spot/${encodeURIComponent(s.id)}" class="cam-forecast-link">Ver prevision</a>
+            <span class="faint" style="font-size:12px;font-weight:600">${esc(c.credit || '')}</span>
+          </div>
+        </div>`;
+      }).join('') : `<div class="card pad muted">No hay camaras en esta zona.</div>`}
+    </div>${footer()}`;
+
+  // Chips de zona
+  view.querySelectorAll('[data-camzone]').forEach((b) => b.addEventListener('click', () => {
+    view.querySelectorAll('[data-camspot]').forEach(stopCam);
+    camZone = b.dataset.camzone;
+    renderCams();
+  }));
+
+  // Una sola camara activa a la vez
   view.querySelectorAll('[data-camspot]').forEach((el) => el.addEventListener('click', () => {
-    if (el.dataset.playing) return;
-    el.dataset.playing = '1';
-    playCam(el, camsForSpot(SPOTS.find((s) => s.id === el.dataset.camspot))[0]);
-  }, { once: false }));
+    const placeholder = el.querySelector('.cam-placeholder');
+    if (!placeholder) return; // ya reproduciendo
+    // Parar todas las demas
+    view.querySelectorAll('[data-camspot]').forEach((other) => {
+      if (other !== el) stopCam(other);
+    });
+    // Quitar placeholder y reproducir
+    placeholder.remove();
+    const spot = SPOTS.find((s) => s.id === el.dataset.camspot);
+    playCam(el, camsForSpot(spot)[0]);
+  }));
 }
 
 function footer() {

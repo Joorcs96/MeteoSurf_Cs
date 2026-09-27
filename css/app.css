@@ -305,3 +305,13 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .win-list { list-style: none; padding: 0; margin: 0 0 4px; display: grid; gap: 8px; }
 .win-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; font-weight: 600; }
 .win-list .rating-pill { font-size: 10px; padding: 3px 7px; min-width: 96px; text-align: center; }
+
+/* Parte plegable */
+.report-box > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; }
+.report-box > summary::-webkit-details-marker { display: none; }
+.report-box .rh { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.report-box .rh b { font-size: 15px; }
+.report-box .rh span { font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.report-box .chev { width: 20px; height: 20px; color: var(--text-3); transition: transform .15s; flex: none; }
+.report-box[open] .chev { transform: rotate(180deg); }
+.report-box > .report { padding: 0 14px 14px; border-top: 1px solid var(--line); padding-top: 12px; }

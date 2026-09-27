@@ -79,14 +79,6 @@ function renderHome() {
   const zones = [['all', 'Todos'], ['fav', 'Favoritos'], ...ZONES.map((z) => [z.id, z.name])];
   const spots = ordered().filter((s) => state.zone === 'all' || (state.zone === 'fav' ? favs.has(s.id) : s.zone === state.zone));
 
-  // Mejor spot de hoy
-  let best = null;
-  if (fc) for (const s of SPOTS) {
-    const f = fc.spots[s.id]; if (!f) continue;
-    const d = f.days[0];
-    if (!best || d.rating > best.d.rating || (d.rating === best.d.rating && d.surfMax > best.d.surfMax)) best = { s, d };
-  }
-
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
     <div class="region-head">
@@ -95,12 +87,8 @@ function renderHome() {
         <p>${fc ? `Actualizado ${new Date(fc.fetchedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · ` : ''}${SPOTS.length} spots · previsión a 16 días</p>
       </div>
     </div>
-    ${best ? `<a class="card pad" href="#/spot/${encodeURIComponent(best.s.id)}" style="display:flex;gap:14px;align-items:center;color:inherit;margin-bottom:14px">
-      <div style="flex:1;min-width:0"><div class="faint" style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">Mejor opción hoy</div>
-      <div style="font-weight:800;font-size:18px">${esc(best.s.name)} <span class="faint" style="font-size:13px;font-weight:600">${esc(best.s.zoneName)}</span></div>
-      <div class="muted" style="font-size:13px">${range({ min: best.d.surfMin, max: best.d.surfMax })} m · mejor a las ${best.d.best.hour}:00 · ${best.d.best.wind.label.toLowerCase()} ${Math.round(best.d.best.windSpeed)} km/h</div></div>
-      <span class="rating-pill ${ratingCls(best.d.rating)}">${ratingLabel(best.d.rating)}</span></a>` : ''}
-    <div class="card pad report" id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:70px"></div></div>
+
+    <div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>
     <div class="chips" role="tablist">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
     <div class="section-title">Ahora mismo<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">Próximos 7 días ▸</span></div>
     <div class="spot-grid">${spots.length ? spots.map(spotCard).join('') : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa la estrella de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
@@ -112,9 +100,31 @@ function renderHome() {
     renderHome();
   }));
   bindFavs();
-  if (fc) assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = ai.regionReport(fc, SPOTS) + '<div style="margin-top:10px"><a href="#/asistente">Preguntar al asistente</a></div>'; })
+  if (fc) assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p><a href="#/asistente">Preguntar al asistente</a></p>'); })
     .catch(() => $('#region-report')?.remove());
   else $('#region-report')?.remove();
+}
+
+// Parte plegable: titular de una línea con la mejor ventana y el texto completo al desplegar
+function reportBox(ai, spots, fullHtml) {
+  const fc = state.fc;
+  const wins = ai.bestWindows(fc, spots, { days: 4, minRating: 3 });
+  let head = '<b>Sin ventana clara en 4 días</b><span>Mar pequeño o viento de mar</span>';
+  let pill = '';
+  if (wins.length) {
+    const top = wins[0].rating;
+    const same = wins.filter((w) => w.rating === top)
+      .sort((a, b) => (a.date === b.date ? a.from - b.from : a.date < b.date ? -1 : 1));
+    const w = same[0];
+    const f0 = fc.spots[w.spotId];
+    const di = f0.days.findIndex((d) => d.date === w.date);
+    const names = [...new Set(same.filter((x) => x.date === w.date && x.from === w.from).map((x) => SPOTS.find((s) => s.id === x.spotId)?.name))];
+    const where = spots.length > 1 ? `${names.slice(0, 2).join(', ')}${names.length > 2 ? ` y ${names.length - 2} más` : ''} · ` : '';
+    head = `<b>Mejor ventana: ${dayName(w.date, di)} ${w.from}–${w.to} h</b><span>${esc(where)}${range({ min: w.surfMin, max: w.surfMax })} m · ${esc(w.windLabel.toLowerCase())}</span>`;
+    pill = `<span class="rating-pill ${ratingCls(top)}">${ratingLabel(top)}</span>`;
+  }
+  return `<details class="card report-box"><summary><div class="rh">${head}</div>${pill}<svg class="icon chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="report">${fullHtml}</div></details>`;
 }
 
 // ---------- Asistente ----------
@@ -217,7 +227,7 @@ function renderSpot(id) {
       </div>
       <div class="a-now" id="s-ahora">
         ${h ? nowPanel(spot, f, h) : loadingBlock()}
-        <div class="card pad report" id="spot-report" style="margin-top:12px"><div class="skeleton" style="height:60px"></div></div>
+        <div id="spot-report" style="margin-top:12px"><div class="skeleton" style="height:56px"></div></div>
       </div>
       <div class="a-fc">
         ${f ? `
@@ -271,7 +281,7 @@ function renderSpot(id) {
   }));
   if (f) {
     $('#longrange').innerHTML = longRange(f);
-    assistant().then((ai) => { const el = $('#spot-report'); if (el && ai) el.innerHTML = ai.spotReport(f); })
+    assistant().then((ai) => { const el = $('#spot-report'); if (el && ai) el.innerHTML = reportBox(ai, [spot], ai.spotReport(f)); })
       .catch(() => { $('#spot-report')?.remove(); });
   } else $('#spot-report')?.remove();
 

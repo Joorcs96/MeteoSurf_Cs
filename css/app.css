@@ -255,7 +255,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .ftable-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); }
 .ftable { border-collapse: separate; border-spacing: 0; font-size: 12px; min-width: 100%; }
 .ftable th, .ftable td { padding: 6px 4px; text-align: center; white-space: nowrap; border-bottom: 1px solid var(--line); min-width: 44px; }
-.ftable th.lbl, .ftable td.lbl { position: sticky; left: 0; background: var(--surface); text-align: left; padding-left: 12px; min-width: 104px; font-weight: 700; color: var(--text-2); z-index: 1; border-right: 1px solid var(--line); }
+.ftable th.lbl, .ftable td.lbl { position: sticky; left: 0; background: var(--surface); text-align: left; padding-left: 8px; min-width: 72px !important; max-width: 72px; font-size: 11px; font-weight: 700; color: var(--text-2); z-index: 1; border-right: 1px solid var(--line); box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.15); }
 .ftable thead th { font-weight: 800; color: var(--text-2); background: var(--surface-2); }
 .ftable .daysep { border-left: 2px solid var(--text-3); }
 .ftable td.cell-r { padding: 0; }
@@ -315,3 +315,12 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .report-box .chev { width: 20px; height: 20px; color: var(--text-3); transition: transform .15s; flex: none; }
 .report-box[open] .chev { transform: rotate(180deg); }
 .report-box > .report { padding: 0 14px 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+
+/* Gaps 4, 11 */
+.kj-0 { background: var(--surface-2); color: var(--text-2); }
+.kj-1 { background: #007791; color: #ffffff; font-weight: 700; }
+.kj-2 { background: #0bd674; color: #0b2b18; font-weight: 800; }
+.kj-3 { background: #ff9500; color: #2a1600; font-weight: 800; }
+
+.day-badge-watch { position: absolute; top: -6px; right: -6px; background: #ffd23c; color: #3a2600; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.day { position: relative; overflow: visible; }

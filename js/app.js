@@ -76,8 +76,17 @@ function route() {
 function renderHome() {
   document.title = 'MeteoSurf_Cs · Previsión de surf en Castellón';
   const fc = state.fc;
-  const zones = [['all', 'Todos'], ['fav', 'Favoritos'], ...ZONES.map((z) => [z.id, z.name])];
-  const spots = ordered().filter((s) => state.zone === 'all' || (state.zone === 'fav' ? favs.has(s.id) : s.zone === state.zone));
+  const zones = [['all', 'Todos'], ['fav', 'Favoritos'], ['cams', 'Con cámara'], ['offshore', 'Terral ahora'], ...ZONES.map((z) => [z.id, z.name])];
+  const spots = ordered().filter((s) => {
+    if (state.zone === 'all') return true;
+    if (state.zone === 'fav') return favs.has(s.id);
+    if (state.zone === 'cams') return camsForSpot(s).length > 0;
+    if (state.zone === 'offshore') {
+      const sh = fc?.spots[s.id]?.hours[nowIndex(fc.spots[s.id].hours)];
+      return sh && (sh.wind.key === 'offshore' || sh.wind.key === 'crossoff' || sh.wind.key === 'glassy');
+    }
+    return s.zone === state.zone;
+  });
 
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
@@ -208,6 +217,11 @@ function renderSpot(id) {
   const cams = camsForSpot(spot);
   const ni = f ? nowIndex(f.hours) : 0;
   const h = f?.hours[ni];
+  let bestDayIdx = 0;
+  if (f) {
+    let maxR = -1;
+    f.days.forEach((d, i) => { if (d.rating > maxR) { maxR = d.rating; bestDayIdx = i; } });
+  }
 
   view.innerHTML = `
     <a class="back" href="#/">${ICON.back} Costa de Castellón</a>
@@ -233,6 +247,7 @@ function renderSpot(id) {
         ${f ? `
         <div class="section-title" id="s-prevision">Previsión detallada · próximos 4 días</div>
         <div class="days">${f.days.map((d, i) => `<button class="day ${i === state.dayIdx ? 'on' : ''}" data-day="${i}">
+          ${i === bestDayIdx ? '<span class="day-badge-watch">MEJOR</span>' : ''}
           <div class="dn">${dayName(d.date, i)}</div><div class="dd">${dayShort(d.date)}</div>
           <div class="dh num">${range({ min: d.surfMin, max: d.surfMax })}<small> m</small></div>
           <div class="rating-bar ${ratingCls(d.rating)}"></div></button>`).join('')}</div>
@@ -409,16 +424,21 @@ function hourlyTable(f, dayIdx) {
   let s = '<table class="ftable num"><thead>';
   s += `<tr><th class="lbl"></th>${days.map((d, i) => `<th colspan="${cols.filter((c) => c.d === d).length}" class="daysep">${dayName(d.date, dayIdx + i)} ${dayShort(d.date)}</th>`).join('')}</tr>`;
   s += `<tr><th class="lbl">Hora</th>${cols.map((c) => `<th class="${c.first ? 'daysep' : ''}">${c.h.hour}h</th>`).join('')}</tr></thead><tbody>`;
+  const kjCls = (e) => e == null ? '' : e < 50 ? 'kj-0' : e < 150 ? 'kj-1' : e < 400 ? 'kj-2' : 'kj-3';
   s += row('Calidad', (c, i) => td(c, i, `<div class="${ratingCls(c.h.rating)}" title="${ratingLabel(c.h.rating)}"></div>`, 'cell-r'));
   s += row('Surf (m)', (c, i) => td(c, i, range(c.h.surf), `big hcell ${hClass(c.h.surf.mid)}`));
   s += row('Mar total', (c, i) => td(c, i, `${m(c.h.waveHeight)}`));
-  s += row('Energía (kJ)', (c, i) => td(c, i, c.h.energy || '–'));
-  s += row('Periodo (s)', (c, i) => td(c, i, c.h.wavePeriod ? c.h.wavePeriod.toFixed(0) : '–'));
-  s += row('Dirección mar', (c, i) => td(c, i, `${dirArrow(c.h.swells[0]?.dir ?? c.h.waveDir)}<br>${compass(c.h.swells[0]?.dir ?? c.h.waveDir)}`));
-  s += row('Viento (km/h)', (c, i) => td(c, i, `<b>${Math.round(c.h.windSpeed)}</b><br><span class="faint">${Math.round(c.h.windGust)}</span>`, `wcell-${c.h.wind.key}`));
-  s += row('Dir. viento', (c, i) => td(c, i, `${dirArrow(c.h.windDir)}<br>${compass(c.h.windDir)}`, `wcell-${c.h.wind.key}`));
-  s += row('Estado viento', (c, i) => td(c, i, `<span style="font-size:10px;font-weight:700">${c.h.wind.label}</span>`, `wcell-${c.h.wind.key}`));
-  s += row('Marea (m)', (c, i) => td(c, i, c.h.tide != null ? c.h.tide.toFixed(2) : '–'));
+  s += row('Energía', (c, i) => td(c, i, c.h.energy || '–', kjCls(c.h.energy)));
+  s += row('Periodo', (c, i) => td(c, i, c.h.wavePeriod ? c.h.wavePeriod.toFixed(0) : '–'));
+  s += row('Dir. mar', (c, i) => td(c, i, `${dirArrow(c.h.swells[0]?.dir ?? c.h.waveDir)}<br>${compass(c.h.swells[0]?.dir ?? c.h.waveDir)}`));
+  s += row('Viento', (c, i) => td(c, i,
+    `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+       <span>${dirArrow(c.h.windDir)} <b>${Math.round(c.h.windSpeed)}</b></span>
+       <span class="faint" style="font-size:10px">r.${Math.round(c.h.windGust)}</span>
+       <span class="wind-tag wind-${c.h.wind.key}" style="font-size:9px;padding:1px 4px">${c.h.wind.label}</span>
+     </div>`,
+    `wcell-${c.h.wind.key}`));
+  s += row('Marea', (c, i) => td(c, i, c.h.tide != null ? c.h.tide.toFixed(2) : '–'));
   s += row('Aire °C', (c, i) => td(c, i, c.h.temp != null ? Math.round(c.h.temp) : '–'));
   return s + '</tbody></table>';
 }

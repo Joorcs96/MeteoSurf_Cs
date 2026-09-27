@@ -20,6 +20,10 @@ const store = {
 const favs = new Set(store.get('favs', []));
 const toggleFav = (id) => { favs.has(id) ? favs.delete(id) : favs.add(id); store.set('favs', [...favs]); };
 
+// Planetario siempre primero; el resto en el orden de la costa
+const DEFAULT_SPOT = 'Planetario';
+const ordered = () => [...SPOTS].sort((a, b) => (b.id === DEFAULT_SPOT) - (a.id === DEFAULT_SPOT));
+
 // ---------- Formato ----------
 const m = (x) => (x == null ? '–' : x < 0.95 ? x.toFixed(1) : x.toFixed(1));
 const range = (s) => {
@@ -73,7 +77,7 @@ function renderHome() {
   document.title = 'MeteoSurf_Cs · Previsión de surf en Castellón';
   const fc = state.fc;
   const zones = [['all', 'Todos'], ['fav', 'Favoritos'], ...ZONES.map((z) => [z.id, z.name])];
-  const spots = SPOTS.filter((s) => state.zone === 'all' || (state.zone === 'fav' ? favs.has(s.id) : s.zone === state.zone));
+  const spots = ordered().filter((s) => state.zone === 'all' || (state.zone === 'fav' ? favs.has(s.id) : s.zone === state.zone));
 
   // Mejor spot de hoy
   let best = null;
@@ -500,7 +504,7 @@ async function renderMap() {
 // ---------- Todas las cámaras ----------
 function renderCams() {
   document.title = 'Cámaras · MeteoSurf_Cs';
-  const withCams = SPOTS.map((s) => ({ s, c: camsForSpot(s)[0] })).filter((x) => x.c);
+  const withCams = ordered().map((s) => ({ s, c: camsForSpot(s)[0] })).filter((x) => x.c);
   view.innerHTML = `<div class="region-head"><div><h1>Cámaras en directo</h1><p>${withCams.length} spots con cámara · pulsa para reproducir</p></div></div>
     <div class="cam-grid">${withCams.map(({ s, c }) => `<div>
       <div class="cam" data-camspot="${esc(s.id)}">${camThumb(c) ? `<img src="${esc(camThumb(c))}" alt="" loading="lazy" onerror="this.remove()">` : ''}

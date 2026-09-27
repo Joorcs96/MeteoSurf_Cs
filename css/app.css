@@ -147,7 +147,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .spot-card .height { font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
 .spot-card .height small { font-size: 13px; color: var(--text-2); font-weight: 600; margin-right: 6px; }
 .spot-card .height .rating { font-size: 11px; }
-.spot-card .mini-compass svg { width: 64px; height: 64px; display: block; }
+.spot-card .mini-compass svg { width: 52px; height: 52px; display: block; }
 .spot-card .fav-btn { background: none; color: var(--text-3); width: 32px; height: 32px; margin: -4px -4px 0 0; }
 .spot-card .fav-btn.on { color: #f5b800; }
 .spot-card .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--text-2); font-size: 13px; font-weight: 600; margin-top: 8px; }
@@ -192,14 +192,14 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .lr-day { display: flex; flex-direction: column; line-height: 1.2; }
 .lr-day span { font-size: 11px; }
 .lr-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-.lr-bars div { height: 8px; border-radius: 3px; background: var(--rc); }
+.lr-bars div { height: 12px; border-radius: 3px; background: var(--rc); }
 .lr-sw, .lr-w { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 560px) {
   .lr-head, .lr-row { grid-template-columns: 64px 52px 1fr 1fr; }
   .lr-head span:nth-child(4), .lr-head span:nth-child(6), .lr-sw, .lr-c { display: none; }
 }
 
-.cam { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; aspect-ratio: 16/9; }
+.cam { position: relative; background: linear-gradient(135deg, #04101c, #12314f); border-radius: var(--radius); overflow: hidden; aspect-ratio: 16/9; }
 .cam iframe, .cam video, .cam img { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; object-fit: cover; }
 .cam .cam-overlay { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; z-index: 2; pointer-events: none; }
 .cam .cam-msg { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #cfe0f0; padding: 20px; font-size: 14px; background: radial-gradient(circle at 50% 40%, #12314f, #04101c); }
@@ -209,8 +209,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .cam-switch button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
 .cam-source { font-size: 12px; color: var(--text-3); margin-top: 6px; }
 
-.now { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); }
-.now > div { background: var(--surface); padding: 14px; min-width: 0; }
+.now { display: grid; grid-template-columns: 1fr 1fr; gap: 0; background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); }
+.now > div { background: var(--surface); padding: 14px; min-width: 0; border-bottom: 1px solid var(--line); }
 .now .k { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
 .now .v { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin-top: 2px; }
 .now .v small { font-size: 13px; font-weight: 600; color: var(--text-2); }
@@ -227,11 +227,11 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .wind-crosson { background: var(--w-crosson); color: #3a2000; }
 .wind-onshore { background: var(--w-onshore); }
 
-.compass-card { display: grid; grid-template-columns: 170px 1fr; gap: 14px; align-items: center; }
-.compass-card svg { width: 170px; height: 170px; }
+.compass-card { display: grid; grid-template-columns: 130px 1fr; gap: 14px; align-items: center; }
+.compass-card svg { width: 130px; height: 130px; }
 .legend { display: grid; gap: 6px; font-size: 13px; color: var(--text-2); }
 .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
-@media (max-width: 420px) { .compass-card { grid-template-columns: 1fr; justify-items: center; } }
+@media (max-width: 420px) { .compass-card { grid-template-columns: 130px 1fr; gap: 8px; } .compass-card .legend { font-size: 12px; } }
 
 .tide svg { width: 100%; height: 120px; display: block; }
 .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; font-size: 13px; }

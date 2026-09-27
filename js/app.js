@@ -50,6 +50,8 @@ const ICON = {
   cam: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>'
 };
 
+const WIND_SHORT = { glassy: 'Calma', offshore: 'Terral', crossoff: 'T.cruz', cross: 'Cruz', crosson: 'M.cruz', onshore: 'Mar' };
+
 function toast(t) {
   const el = document.createElement('div');
   el.className = 'toast'; el.textContent = t;
@@ -184,7 +186,7 @@ function spotCard(s) {
         <div style="min-width:0;flex:1">
           <div class="name">${esc(s.name)}${cam ? ' <span class="cam-dot" title="Cámara en directo">' + ICON.cam + '</span>' : ''}</div>
           <div class="zone">${esc(s.zoneName)}</div>
-          ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span></div>` : '<div class="skeleton" style="height:28px;margin-top:6px"></div>'}
+          ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span></div>` : '<div class="skeleton" style="height:28px;margin-top:6px"></div>'}
         </div>
         <div class="mini-compass">${compassSVG(s, { swellDir: sw?.dir, windDir: h?.windDir, mini: true })}</div>
         <button class="fav-btn fav ${favs.has(s.id) ? 'on' : ''}" data-fav="${esc(s.id)}" aria-label="Favorito">${ICON.star}</button>
@@ -232,7 +234,7 @@ function renderSpot(id) {
   view.innerHTML = `
     <a class="back" href="#/">${ICON.back} Costa de Castellón</a>
     <div class="spot-head">
-      <div><h1>${esc(spot.name)}</h1><div class="sub">${esc(spot.zoneName)} · playa orientada al ${compass(spot.facing)} (${Math.round(spot.facing)}°)</div></div>
+      <div><h1>${esc(spot.name)}</h1><div class="sub">${esc(spot.zoneName)}</div></div>
       <button class="fav-btn ${favs.has(id) ? 'on' : ''}" data-fav="${esc(id)}" style="background:var(--surface-2);color:var(--text-2)" aria-label="Favorito">${ICON.star}</button>
     </div>
     <nav class="subnav" aria-label="Secciones del spot">
@@ -463,6 +465,7 @@ function barChart(W, hours, nowH, day) {
     const path = tidePts.map((h, i) => `${i ? 'L' : 'M'}${pad.l + i * bw + bw/2} ${ty(h.tide)}`).join(' ');
     s += `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.6"/>`;
   }
+  s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${H - 28}" y2="${H - 28}" stroke="var(--line)"/>`;
   hours.forEach((h, i) => {
     const x = pad.l + i * bw + 1.5, w = bw - 3;
     const color = RATINGS[h.rating].color;
@@ -501,7 +504,7 @@ function hourlyTable(f, dayIdx) {
     `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
        <span>${dirArrow(c.h.windDir)} <b>${Math.round(c.h.windSpeed)}</b></span>
        <span class="faint" style="font-size:10px">r.${Math.round(c.h.windGust)}</span>
-       <span class="wind-tag wind-${c.h.wind.key}" style="font-size:9px;padding:1px 4px">${c.h.wind.label}</span>
+       <span class="wind-tag wind-${c.h.wind.key}" style="font-size:9px;padding:1px 4px">${WIND_SHORT[c.h.wind.key] || c.h.wind.label}</span>
      </div>`,
     `wcell-${c.h.wind.key}`));
   s += row('Marea', (c, i) => td(c, i, c.h.tide != null ? c.h.tide.toFixed(2) : '–'));

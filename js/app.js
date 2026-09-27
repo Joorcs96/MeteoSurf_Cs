@@ -240,12 +240,14 @@ function renderSpot(id) {
       <a href="#s-tendencia" data-jump="s-tendencia">16 días</a><a href="#s-spot" data-jump="s-spot">Spot</a>
     </nav>
     <div class="spot-layout">
-      <div class="a-cam" style="position:relative">
+      <div class="a-cam">
+        <div style="position:relative">
         <div class="cam" id="cam"></div>
         ${h ? `<div class="cam-overlay-hud" style="position:absolute;bottom:10px;left:10px;pointer-events:none;display:flex;gap:6px;z-index:10">
           <span class="cam-data-pill ${ratingCls(h.rating)}">${range(h.surf)} m</span>
           <span class="cam-data-pill">${Math.round(h.windSpeed)} km/h ${dirArrow(h.windDir)}</span>
         </div>` : ''}
+        </div>
         ${cams.length > 1 ? `<div class="cam-switch">${cams.map((c, i) => `<button data-cam="${i}" class="${i === state.camIdx ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
         <div class="cam-source" id="cam-source"></div>
       </div>
@@ -455,7 +457,9 @@ function barChart(W, hours, nowH, day) {
   const tidePts = hours.filter(h => h.tide != null);
   if (tidePts.length) {
     const minT = Math.min(...tidePts.map(h => h.tide)), maxT = Math.max(...tidePts.map(h => h.tide));
-    const ty = (v) => pad.t + (H - pad.t - pad.b) * (1 - (v - minT) / (maxT - minT || 1));
+    // Marea en la franja inferior (30 % de alto) para no competir con las barras
+    const band = (H - pad.t - pad.b) * 0.3, base = H - pad.b - 4;
+    const ty = (v) => base - band * ((v - minT) / (maxT - minT || 1));
     const path = tidePts.map((h, i) => `${i ? 'L' : 'M'}${pad.l + i * bw + bw/2} ${ty(h.tide)}`).join(' ');
     s += `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.6"/>`;
   }

@@ -69,7 +69,8 @@ function writeCache(data) {
 // Devuelve { fetchedAt, stale, spots: { [id]: SpotForecast } }
 export async function loadForecast({ force = false } = {}) {
   const cached = readCache();
-  if (!force && cached && Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_MAX_AGE) {
+  const sameDay = cached && new Date(cached.fetchedAt).toDateString() === new Date().toDateString();
+  if (!force && cached && sameDay && Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_MAX_AGE) {
     return { ...cached, spots: processAll(cached.raw), stale: false };
   }
   try {

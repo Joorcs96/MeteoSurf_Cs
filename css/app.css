@@ -346,7 +346,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 /* Reutilizamos colores de rating pill si la clase rX está presente, pero asegurando legibilidad */
-.cam-data-pill[class*="r"] { color: #0b1b2b; }
+.cam-data-pill[class*=" r"] { background: var(--rc); color: #0b1b2b; font-size: 13px; }
 .cam-data-pill.r1, .cam-data-pill.r5, .cam-data-pill.r6, .cam-data-pill.r7 { color: #fff; }
 
 /* Gap 10: Scrubbing táctil de la gráfica */

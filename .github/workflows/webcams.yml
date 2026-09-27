@@ -1,0 +1,46 @@
+name: MeteoSurf_Cs · Verificación de Webcams
+
+on:
+  schedule:
+    # Cada 30 minutos
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions en GitHub
+
+permissions:
+  contents: write
+
+concurrency:
+  group: webcams
+  cancel-in-progress: false
+
+jobs:
+  verificar:
+    name: MeteoSurf_Cs · Verificar y Actualizar Catálogo de Webcams
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Ejecutar verificación de webcams
+        run: |
+          python backend/actualizar_webcams.py
+
+      - name: Guardar cambios en el catálogo de webcams
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add webcams.json
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto: verificación periódica de webcams [skip ci]"
+            git push
+          else
+            echo "Sin cambios pendientes en webcams.json."
+          fi

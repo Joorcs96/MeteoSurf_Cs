@@ -1,35 +1,38 @@
-# MASTER CONTEXT: SURF FORECAST AI LOCAL
+# MASTER CONTEXT: MeteoSurf_Cs
 
 ## 1. OBJETIVO Y RESTRICCIONES (INMUTABLE)
-*   **Misión:** Construir una plataforma de previsión de surf local para Castellón (estilo Surfline) con alertas automáticas y cámaras en directo.
+*   **Misión:** Construir una plataforma de previsión de surf (MeteoSurf_Cs) para la costa de Castellón, con estética y funciones al estilo Surfline/Surf-Forecast, alertas automáticas y cámaras en directo.
 *   **Restricción Estricta:** Coste 0€. Prohibido el uso de servidores 24/7 (VPS, Raspberry), bases de datos de pago o APIs que requieran tarjeta de crédito (ej. Meta Cloud API). Todo debe ser *Serverless* y usar "Free Tiers".
 
 ## 2. HISTORIAL DE DECISIONES Y CONTEXTO (RESUMEN DEL CHAT)
 *Esta sección resume la evolución del proyecto para que cualquier IA entienda el "por qué" de la arquitectura sin leer todo el historial previo.*
-*   **Origen:** El sistema partió de un bot de Telegram con base en Google Apps Script y Google Sheets (versión v50.0). 
+*   **Origen:** El sistema partió de un bot de Telegram con base en Google Apps Script y Google Sheets (versión v50.0).
 *   **Evolución Serverless:** Se descartó Google Sheets para evitar cuotas y problemas de mantenimiento. Se optó por almacenar los datos en un simple CSV alojado en GitHub, actualizado automáticamente por GitHub Actions.
 *   **WhatsApp sin coste:** Se rechazaron soluciones oficiales de Meta (piden tarjeta) y librerías tipo Puppeteer (requieren PC encendido). Se eligió **CallMeBot API** por ser 100% gratuita para grupos reducidos mediante peticiones GET.
-*   **Diseño UI:** El usuario solicitó expresamente abandonar los emojis y adoptar una estética profesional usando **Google Material Symbols**.
-*   **Evolución a IA:** Se ideó un sistema donde los usuarios envían feedback de sus sesiones ("Épico", "Normal", "Plato") a través de Netlify Forms. Este feedback alimenta el CSV hasta alcanzar los 14 días, momento en el cual un modelo de Machine Learning (`scikit-learn`) tomará el control para predecir la calidad de forma probabilística.
+*   **Diseño UI:** El usuario solicitó expresamente abandonar los emojis y adoptar una estética profesional.
+*   **Rebranding y frontend nuevo:** El proyecto pasó de llamarse "Surfline Castellón / Surfline CS" a **MeteoSurf_Cs** y se reescribió el frontend por completo: interfaz propia en `index.html` + `css/app.css` + módulos ES en `js/` (`app.js`, `spots.js`, `forecast.js`, `compass.js`, `cams.js`, `assistant.js`), sin Tailwind ni dependencias de build. Se abandonó Netlify (Forms incluido) en favor de GitHub Pages; `votar.html` ahora guarda el reporte en `localStorage` y ofrece enviarlo como issue de GitHub.
+*   **Cálculo en el navegador:** La previsión (física de rompiente, viento, marea, calidad) se calcula en el propio `js/forecast.js` a partir de Open-Meteo, no solo en el backend Python. El backend Python (`backend/motor_fisica.py`) sigue siendo la referencia física para el histórico diario y sus tests.
+*   **Evolución a IA:** Se ideó un sistema donde los usuarios envían feedback de sus sesiones ("Épico", "Bueno", "Plato"...) que alimenta el CSV. En el futuro, un modelo de Machine Learning (`scikit-learn`) podría tomar el control para predecir la calidad de forma probabilística; de momento la calidad es puramente física/heurística.
+*   **Asistente de previsión:** Se añadió `js/assistant.js`, un asistente en español que responde preguntas sobre la previsión calculando localmente en el navegador (sin llamadas a APIs de IA ni claves).
 
 ## 3. ARQUITECTURA Y STACK TECNOLÓGICO
-*   **Frontend (Escaparate):** Netlify (Plan Starter). PWA estática, HTML5, Tailwind CSS, Google Material Symbols. Reproductores incrustados para webcams (YouTube iframe, `hls.js` para `.m3u8`, recarga de JPEG).
-*   **Backend / Automatización (El Vigilante):** GitHub Actions. Ejecución de scripts Python mediante *cron jobs* diarios.
-*   **Base de Datos (Memoria):** Archivo `historico_olas.csv` alojado en el propio repositorio de GitHub.
+*   **Frontend (Escaparate):** **GitHub Pages** (`https://joorcs96.github.io/MeteoSurf_Cs/`, repositorio `Joorcs96/MeteoSurf_Cs`). PWA estática: HTML5, CSS propio con tokens claro/oscuro (`css/app.css`), JavaScript en módulos ES (`js/*.js`), sin frameworks ni build. Reproductores incrustados para webcams (iframe, YouTube, HLS vía `hls.js`/nativo en iOS, MJPEG, JPG con refresco).
+*   **Backend / Automatización (El Vigilante):** GitHub Actions. Dos workflows: `prevision_diaria.yml` (histórico de olas + alerta WhatsApp, diario) y `webcams.yml` (verificación del catálogo de webcams, cada 30 min).
+*   **Base de Datos (Memoria):** Archivo `historico_olas.csv` alojado en el propio repositorio de GitHub. Catálogo `webcams.json` con el estado de cada cámara.
 *   **Alertas:** CallMeBot API (WhatsApp).
-*   **Inteligencia Artificial (Cerebro):** Python con `scikit-learn`.
-*   **Feedback Humano:** Netlify Forms (oculto en la ruta `/votar`).
+*   **Inteligencia Artificial (Cerebro):** Motor físico/heurístico en `backend/motor_fisica.py` (Python) y `js/forecast.js` (JavaScript, ejecutado en el navegador). `scikit-learn` queda como posible evolución futura, no implementada todavía.
+*   **Feedback Humano:** `votar.html`, guardado en `localStorage` del navegador del usuario, con envío opcional como issue de GitHub (no hay backend de formularios).
 
 ## 4. FUENTES DE DATOS Y REFERENCIAS
-*   **API Meteorológica:** `Open-Meteo Marine API` y `Open-Meteo Weather API`. (Lat/Lon: Castellón). Variables: altura de ola, período, dirección, viento (fuerza/ráfagas a 10m).
+*   **API Meteorológica:** `Open-Meteo Marine API` (altura, periodo y dirección de ola total y por componentes de swell, nivel del mar, temperatura del agua) y `Open-Meteo Weather API` (viento a 10 m, ráfagas, temperatura, sol). Modelo `ncep_gfswave016` (GFS-Wave) como respaldo para los días 11–16, donde el modelo marino principal ya no tiene datos.
 *   **API Alertas:** `CallMeBot` (WhatsApp). Formato: `https://api.callmebot.com/whatsapp.php?phone=[NUM]&text=[TXT]&apikey=[KEY]`
-*   **Webs de Referencia (Inspiración UX/UI):** Surfline, Magicseaweed (archivo), Windguru.
+*   **Webs de Referencia (Inspiración UX/UI):** Surfline, Surf-Forecast, Windguru.
 
 ## 5. INSTRUCCIONES PARA EL ENJAMBRE MULTI-IA (ORCA)
-**Directiva del Sistema:** Actúas como un agente especializado en un enjambre de desarrollo. Lee este archivo de contexto. Ejecuta tu tarea sin explicaciones superfluas. Tu salida debe ser código estrictamente funcional. 
+**Directiva del Sistema:** Actúas como un agente especializado en un enjambre de desarrollo. Lee este archivo de contexto. Ejecuta tu tarea sin explicaciones superfluas. Tu salida debe ser código estrictamente funcional.
+*   **No modifiques** el frontend nuevo (`index.html`, `css/app.css`, `js/*.js`, `sw.js`, `manifest.json`, iconos) ni `webcams.json` salvo que tu tarea sea explícitamente esa: otros agentes trabajan en ellos en paralelo.
 *   **Claude / Antigravity:** Encargados de la lógica de backend (Python), traducción matemática del motor costero y automatización (GitHub Actions YAML).
-*   **ChatGPT:** Encargado exclusivamente de generar el frontend (HTML, TailwindCSS, Material Symbols) y la lógica de Netlify Forms.
-*   **Gemini:** Encargado de la estructura de datos (CSV) y el parseo de las APIs (Open-Meteo JSON).
+*   **ChatGPT / Gemini:** Frontend (HTML/CSS/JS de `index.html`, `css/`, `js/`) y estructura de datos (CSV, JSON, parseo de Open-Meteo).
 
 **REGLA DE AUTOCOMPILADO:** Al finalizar tu tarea, debes añadir al final de tu respuesta un bloque exacto con el formato `[MEMORY_UPDATE]`. Este bloque contendrá un resumen técnico de máximo 3 líneas indicando los archivos creados o modificados. El usuario copiará este bloque en la sección "ESTADO ACTUAL" de este documento.
 
@@ -117,6 +120,7 @@ function calcularCalidad(h, p, ws, wd, nombre, presion, visib) {
 }
 
 ## 7. ESTADO ACTUAL
-- Frontend PWA (index.html, app.js, votar.html, manifest.json, sw.js) implementado con caché resiliente en móvil, renderizado instantáneo y sesión local de usuario.
-- Backend (backend/motor_fisica.py, backend/actualizar_prevision.py, backend/test_motor_fisica.py) con 27 tests unitarios pasando y automatización diaria por GitHub Actions (.github/workflows/prevision_diaria.yml).
-- Repositorio organizado en rama `desarrollo-web-surf` con .gitignore estricto para coste 0€.
+- Rebranding a **MeteoSurf_Cs** completado: frontend reescrito (`index.html`, `css/app.css`, `js/app.js`, `js/spots.js`, `js/forecast.js`, `js/compass.js`, `js/cams.js`, `js/assistant.js`, `sw.js`, `manifest.json`, iconos), sin Tailwind ni dependencias de build. Archivos obsoletos de la versión anterior (`app.js` en raíz, `patch_*.py`, `update_*.py`) eliminados.
+- Hosting movido de Netlify a **GitHub Pages** (`https://joorcs96.github.io/MeteoSurf_Cs/`); `votar.html` reescrito con el estilo del frontend nuevo, sin Netlify Forms (guarda en `localStorage` y ofrece enviar un issue de GitHub).
+- Backend (`backend/motor_fisica.py`, `backend/actualizar_prevision.py`, `backend/actualizar_webcams.py`, `backend/test_motor_fisica.py`) con 27 tests unitarios pasando. Automatización por GitHub Actions con dos workflows: `prevision_diaria.yml` (diario) y `webcams.yml` (cada 30 min).
+- Repositorio organizado en rama `main` (renombrado de `desarrollo-web-surf`) con `.gitignore` estricto para coste 0€.

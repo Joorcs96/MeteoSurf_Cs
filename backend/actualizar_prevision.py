@@ -90,7 +90,7 @@ def _http_get_json(url: str, timeout: int = 15) -> Dict[str, Any]:
     """Realiza una petición GET HTTP y parsea la respuesta JSON usando urllib estándar."""
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "SurflineCastellon/1.0 (Open-Source Surf Forecast)"},
+        headers={"User-Agent": "MeteoSurf_Cs/1.0 (Open-Source Surf Forecast)"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as response:
         content = response.read().decode("utf-8")
@@ -278,7 +278,7 @@ def formatear_alerta_whatsapp(
 ) -> str:
     """Prepara el mensaje de resumen y alerta para WhatsApp con formato limpio."""
     if not registros:
-        return "Surfline Castellon: Sin datos de oleaje disponibles."
+        return "MeteoSurf_Cs: Sin datos de oleaje disponibles."
 
     if fecha_filtro is None:
         fecha_filtro = registros[0]["fecha"]
@@ -316,7 +316,7 @@ def formatear_alerta_whatsapp(
     max_altura = float(ranking[0]["altura_m"]) if ranking else 0.0
 
     lineas = [
-        f"*SURFLINE CASTELLON* | Previsión {fecha_filtro}",
+        f"*METEOSURF_CS* | Previsión {fecha_filtro}",
         "------------------------------------",
     ]
 
@@ -339,7 +339,7 @@ def formatear_alerta_whatsapp(
         )
 
     lineas.append("")
-    lineas.append("Valora tu sesion hoy para entrenar el modelo: https://surfline-cs.netlify.app/votar")
+    lineas.append("Valora tu sesion hoy para entrenar el modelo: https://joorcs96.github.io/MeteoSurf_Cs/votar.html")
 
     return "\n".join(lineas)
 
@@ -378,7 +378,7 @@ def enviar_alerta_callmebot(
     try:
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "SurflineCastellon/1.0"},
+            headers={"User-Agent": "MeteoSurf_Cs/1.0"},
         )
         with urllib.request.urlopen(req, timeout=timeout) as response:
             status_code = response.getcode()

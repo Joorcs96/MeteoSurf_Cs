@@ -1,362 +1,305 @@
-<!DOCTYPE html>
-<html lang="es" class="dark">
+<!doctype html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Reportar Condiciones | Surfline Castellón</title>
-  <meta name="description" content="Envía tu reporte de surf para alimentar la IA de predicción de olas en la costa de Castellón.">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reportar sesión · MeteoSurf_Cs</title>
+  <meta name="description" content="Reporta cómo estaban las olas en tu sesión de surf en la costa de Castellón para ayudar a calibrar la previsión de MeteoSurf_Cs.">
+  <meta name="theme-color" content="#0b1b2b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#090d16">
-
-  <!-- Google Material Symbols -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            surf: {
-              950: '#070b12',
-              900: '#0c1322',
-              850: '#111b30',
-              800: '#182442',
-              700: '#233660',
-              accent: '#0284c7',
-              cyan: '#06b6d4',
-              emerald: '#10b981',
-              amber: '#f59e0b',
-              violet: '#8b5cf6'
-            }
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
   <style>
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-      vertical-align: middle;
+    /* Estilos propios del formulario de reporte, sobre los tokens de css/app.css */
+    .votar-main { max-width: 640px; }
+    .field { margin-bottom: 16px; }
+    .field label.field-label {
+      display: block; font-size: 13px; font-weight: 700; color: var(--text-2);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em;
     }
-    .material-symbols-fill {
-      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    .field select, .field input[type="datetime-local"], .field textarea {
+      width: 100%; font: inherit; font-size: 16px; color: var(--text); background: var(--surface-2);
+      border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; appearance: none;
     }
+    .field select:focus, .field input:focus, .field textarea:focus {
+      outline: 2px solid var(--brand); outline-offset: -1px;
+    }
+    .field textarea { resize: vertical; min-height: 76px; font-family: var(--font); }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; }
+    .tile {
+      position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; padding: 12px 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2);
+      cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent;
+    }
+    .tile input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+    .tile .t-label { font-size: 13px; font-weight: 800; color: var(--text); }
+    .tile .t-dot { width: 12px; height: 12px; border-radius: 4px; background: var(--rc, var(--text-3)); }
+    .tile:has(input:checked) { border-color: var(--rc, var(--brand)); background: color-mix(in srgb, var(--rc, var(--brand)) 16%, var(--surface)); box-shadow: 0 0 0 2px var(--rc, var(--brand)) inset; }
+    .q-plato { --rc: var(--r-flat); } .q-malo { --rc: var(--r-poor); } .q-regular { --rc: var(--r-fair); }
+    .q-bueno { --rc: var(--r-good); } .q-epico { --rc: var(--r-epic); }
+    .submit-btn {
+      width: 100%; padding: 14px; border-radius: 12px; background: var(--brand); color: #fff;
+      font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .submit-btn:active { transform: scale(.99); }
+    .session-item { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .session-item:last-child { border-bottom: 0; }
+    .session-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .session-spot { font-weight: 800; font-size: 15px; }
+    .session-date { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+    .session-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .session-note { font-size: 13px; color: var(--text-2); margin-top: 6px; }
+    .session-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+      padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2);
+    }
+    .btn-ghost.danger { color: #ec2b2b; border-color: color-mix(in srgb, #ec2b2b 40%, var(--line)); }
+    .empty-state { padding: 24px 16px; text-align: center; color: var(--text-3); font-size: 13px; }
   </style>
 </head>
-<body class="bg-surf-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-sky-500 selection:text-white">
-
-  <!-- Header -->
-  <header class="sticky top-0 z-40 bg-surf-900/90 backdrop-blur-md border-b border-surf-800">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <a href="index.html" class="flex items-center gap-2 group">
-        <span class="material-symbols-outlined text-sky-400 text-3xl group-hover:scale-110 transition-transform">tsunami</span>
-        <div class="flex flex-col">
-          <div class="flex items-center gap-1.5">
-            <span class="font-black tracking-wider text-white text-lg">SURFLINE</span>
-            <span class="bg-sky-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded tracking-widest uppercase">CS</span>
-          </div>
-          <span class="text-[10px] text-slate-400 font-medium tracking-tight">Castellón Coast Forecast</span>
-        </div>
-      </a>
-
-      <a href="index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surf-850 hover:bg-surf-800 text-slate-300 hover:text-white border border-surf-700 text-xs font-medium transition-colors">
-        <span class="material-symbols-outlined text-sm">arrow_back</span>
-        <span>Volver al Parte</span>
-      </a>
-    </div>
+<body>
+  <header class="topbar">
+    <a class="logo" href="index.html" aria-label="MeteoSurf_Cs, volver a la previsión">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0a66d6"/><path d="M4 21c4 0 5-7 11-7 4 0 5 3 3 4-2 1-4-1-2-3 3-3 9-2 12 2v7H4z" fill="#fff"/><circle cx="24" cy="8" r="3" fill="#ffd23c"/></svg>
+      <span>MeteoSurf<small>_Cs</small></span>
+    </a>
+    <span class="spacer"></span>
+    <a class="icon-btn" href="index.html" aria-label="Volver a la previsión" title="Volver">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
   </header>
 
-  <!-- Main Container -->
-  <main class="flex-grow max-w-2xl w-full mx-auto px-4 py-8">
-
-    <!-- Mensaje de Éxito al Enviar (vía URL param) -->
-    <div id="success-banner" class="hidden mb-6 p-4 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-200">
-      <div class="flex items-start gap-3">
-        <span class="material-symbols-outlined text-emerald-400 text-2xl mt-0.5 material-symbols-fill">check_circle</span>
-        <div>
-          <h3 class="font-bold text-white text-base">¡Reporte recibido con éxito!</h3>
-          <p class="text-sm text-emerald-300 mt-1">
-            Tu valoración ha sido registrada y alimentará el modelo de IA local de Castellón para afinar las futuras predicciones.
-          </p>
-          <a href="index.html" class="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-emerald-400 hover:text-white underline underline-offset-4">
-            Volver a la previsión en directo
-            <span class="material-symbols-outlined text-xs">arrow_forward</span>
-          </a>
-        </div>
+  <main id="view" class="votar-main">
+    <div class="region-head">
+      <div>
+        <h1>Reporte de sesión</h1>
+        <p>Cuéntanos cómo estaban las olas de verdad. Tu reporte se guarda en este dispositivo y puedes enviarlo al registro público para ayudar a calibrar la previsión.</p>
       </div>
     </div>
 
-    <!-- Intro Card -->
-    <div class="bg-surf-900 border border-surf-800 rounded-2xl p-6 mb-8 shadow-xl shadow-black/40">
-      <div class="flex items-center gap-3 mb-3">
-        <div class="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-          <span class="material-symbols-outlined text-2xl">rate_review</span>
-        </div>
-        <div>
-          <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight">Feedback de Sesión de Surf</h1>
-          <p class="text-xs text-slate-400">Entrenamiento del modelo AI Local (Coste 0€ · Netlify Forms)</p>
-        </div>
+    <form id="report-form" class="card pad" novalidate>
+      <div class="field">
+        <label class="field-label" for="f-spot">Spot</label>
+        <select id="f-spot" name="spot" required>
+          <option value="" disabled selected>Selecciona el spot</option>
+        </select>
       </div>
-      <p class="text-sm text-slate-300 leading-relaxed">
-        Ayuda a validar las condiciones reales observadas en el agua frente a las boyas y la física costera. Tu reporte queda almacenado para optimizar el algoritmo.
-      </p>
-    </div>
 
-    <!-- Formulario Netlify Forms -->
-    <form name="surf-feedback" method="POST" data-netlify="true" action="/votar.html?enviado=1" class="space-y-6">
-      <!-- Input oculto obligatorio para Netlify Forms -->
-      <input type="hidden" name="form-name" value="surf-feedback" />
+      <div class="field">
+        <label class="field-label" for="f-datetime">Fecha y hora de la sesión</label>
+        <input type="datetime-local" id="f-datetime" name="datetime" required>
+      </div>
 
-      <!-- Calidad Percibida (Épico, Normal, Plato) -->
-      <div class="bg-surf-900 border border-surf-800 rounded-2xl p-6 shadow-lg">
-        <label class="block text-sm font-bold text-white mb-2 flex items-center justify-between">
-          <span>¿Cómo estaban las olas hoy? <span class="text-sky-400">*</span></span>
-          <span class="text-xs font-normal text-slate-400">Selecciona una</span>
-        </label>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <!-- Opción Épico -->
-          <label class="relative flex flex-col p-4 rounded-xl border border-surf-700 bg-surf-850 hover:bg-surf-800 cursor-pointer transition-all has-[:checked]:border-violet-500 has-[:checked]:bg-violet-950/30 has-[:checked]:ring-2 has-[:checked]:ring-violet-500/50">
-            <input type="radio" name="calidad_feedback" value="Epico" required class="peer sr-only" />
-            <div class="flex items-center justify-between mb-2">
-              <span class="material-symbols-outlined text-violet-400 text-2xl">auto_awesome</span>
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-violet-500/20 text-violet-300">5 / 5</span>
-            </div>
-            <span class="text-base font-black text-white">Épico</span>
-            <span class="text-xs text-slate-400 mt-1 leading-snug">Rompiente perfecta, tubos o pared limpia sin viento picado.</span>
+      <div class="field">
+        <label class="field-label" id="quality-label">Calidad percibida</label>
+        <div class="tiles" role="radiogroup" aria-labelledby="quality-label">
+          <label class="tile q-plato">
+            <input type="radio" name="calidad" value="Plato" required>
+            <span class="t-dot"></span><span class="t-label">Plato</span>
           </label>
-
-          <!-- Opción Normal -->
-          <label class="relative flex flex-col p-4 rounded-xl border border-surf-700 bg-surf-850 hover:bg-surf-800 cursor-pointer transition-all has-[:checked]:border-sky-500 has-[:checked]:bg-sky-950/30 has-[:checked]:ring-2 has-[:checked]:ring-sky-500/50">
-            <input type="radio" name="calidad_feedback" value="Normal" required class="peer sr-only" />
-            <div class="flex items-center justify-between mb-2">
-              <span class="material-symbols-outlined text-sky-400 text-2xl">surfing</span>
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">3 / 5</span>
-            </div>
-            <span class="text-base font-black text-white">Normal</span>
-            <span class="text-xs text-slate-400 mt-1 leading-snug">Surfeable, algo tocada por chopi o secciones intermedias.</span>
+          <label class="tile q-malo">
+            <input type="radio" name="calidad" value="Malo">
+            <span class="t-dot"></span><span class="t-label">Malo</span>
           </label>
-
-          <!-- Opción Plato -->
-          <label class="relative flex flex-col p-4 rounded-xl border border-surf-700 bg-surf-850 hover:bg-surf-800 cursor-pointer transition-all has-[:checked]:border-slate-500 has-[:checked]:bg-slate-800/40 has-[:checked]:ring-2 has-[:checked]:ring-slate-500/50">
-            <input type="radio" name="calidad_feedback" value="Plato" required class="peer sr-only" />
-            <div class="flex items-center justify-between mb-2">
-              <span class="material-symbols-outlined text-slate-400 text-2xl">waves</span>
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-700/50 text-slate-300">0 / 5</span>
-            </div>
-            <span class="text-base font-black text-white">Plato</span>
-            <span class="text-xs text-slate-400 mt-1 leading-snug">Sin olas, orillero inservible o mar completamente calmado.</span>
+          <label class="tile q-regular">
+            <input type="radio" name="calidad" value="Regular">
+            <span class="t-dot"></span><span class="t-label">Regular</span>
+          </label>
+          <label class="tile q-bueno">
+            <input type="radio" name="calidad" value="Bueno">
+            <span class="t-dot"></span><span class="t-label">Bueno</span>
+          </label>
+          <label class="tile q-epico">
+            <input type="radio" name="calidad" value="Épico">
+            <span class="t-dot"></span><span class="t-label">Épico</span>
           </label>
         </div>
       </div>
 
-      <!-- Spot y Horario -->
-      <div class="bg-surf-900 border border-surf-800 rounded-2xl p-6 shadow-lg space-y-4">
-        <!-- Spot Selector -->
-        <div>
-          <label for="spot" class="block text-sm font-bold text-white mb-2 flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-sky-400 text-base">pin_drop</span>
-            Spot de Castellón <span class="text-sky-400">*</span>
-          </label>
-          <div class="relative">
-            <select id="spot" name="spot" required class="w-full bg-surf-850 border border-surf-700 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-sm">
-              <option value="" disabled selected>Selecciona el spot observado...</option>
-              <option value="Planetario">Grao - Planetario</option>
-              <option value="Gurugu">Grao - Gurugú</option>
-              <option value="Piramides">Grao - Pirámides</option>
-              <option value="Voramar">Benicàssim - Voramar</option>
-              <option value="Burriana">Burriana - Arenal / Escollera</option>
-              <option value="Nules">Nules - Espigones</option>
-              <option value="Almenara">Almenara - Casablanca</option>
-              <option value="Peniscola N">Peñíscola - Playa Norte</option>
-              <option value="Vinaros">Vinaròs - El Fortí</option>
-            </select>
-            <span class="material-symbols-outlined absolute right-3 top-3.5 text-slate-400 pointer-events-none">expand_more</span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          <!-- Fecha y Hora -->
-          <div>
-            <label for="fecha_hora" class="block text-sm font-bold text-white mb-2 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-sky-400 text-base">schedule</span>
-              Fecha y Hora de la Sesión
-            </label>
-            <input type="datetime-local" id="fecha_hora" name="fecha_hora" class="w-full bg-surf-850 border border-surf-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-sm" />
-          </div>
-
-          <!-- Tamaño de ola estimado -->
-          <div>
-            <label for="altura_estimada" class="block text-sm font-bold text-white mb-2 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-sky-400 text-base">height</span>
-              Altura real estimada (m)
-            </label>
-            <select id="altura_estimada" name="altura_estimada" class="w-full bg-surf-850 border border-surf-700 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-sm">
-              <option value="0.0 - 0.2">Plato total (< 0.2 m)</option>
-              <option value="0.3 - 0.5">Rodilla / Muslo (0.3 - 0.5 m)</option>
-              <option value="0.5 - 0.8" selected>Cintura / Pecho (0.5 - 0.8 m)</option>
-              <option value="0.8 - 1.2">Pecho / Cabeza (0.8 - 1.2 m)</option>
-              <option value="1.2 - 1.8">Por encima de la cabeza (1.2 - 1.8 m)</option>
-              <option value="2.0+">Temporal / Gran oleaje (> 2.0 m)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Viento percibido -->
-        <div class="pt-2">
-          <label class="block text-sm font-bold text-white mb-2 flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-sky-400 text-base">air</span>
-            Viento en la orilla
-          </label>
-          <div class="grid grid-cols-3 gap-2">
-            <label class="flex items-center justify-center gap-1.5 p-2.5 rounded-lg border border-surf-700 bg-surf-850 hover:bg-surf-800 cursor-pointer text-xs font-medium text-slate-300 has-[:checked]:border-emerald-500 has-[:checked]:text-emerald-300 has-[:checked]:bg-emerald-950/30">
-              <input type="radio" name="viento_tipo" value="Terral_Offshore" class="sr-only">
-              <span>Terral (Offshore)</span>
-            </label>
-            <label class="flex items-center justify-center gap-1.5 p-2.5 rounded-lg border border-surf-700 bg-surf-850 hover:bg-surf-800 cursor-pointer text-xs font-medium text-slate-300 has-[:checked]:border-amber-500 has-[:checked]:text-amber-300 has-[:checked]:bg-amber-950/30">
-              <input type="radio" name="viento_tipo" value="Cruzado" class="sr-only">
-              <span>Cruzado (Cross)</span>
-            </label>
-            <label class="flex items-center justify-center gap-1.5 p-2.5 rounded-lg border border-surf-700 bg-surf-850 hover:bg-surf-800 cursor-pointer text-xs font-medium text-slate-300 has-[:checked]:border-rose-500 has-[:checked]:text-rose-300 has-[:checked]:bg-rose-950/30">
-              <input type="radio" name="viento_tipo" value="Mar_Onshore" class="sr-only">
-              <span>De mar (Onshore)</span>
-            </label>
-          </div>
-        </div>
+      <div class="field">
+        <label class="field-label" for="f-tamano">Tamaño percibido</label>
+        <select id="f-tamano" name="tamano">
+          <option value="Plato (0 m)">Plato (0 m)</option>
+          <option value="Rodilla-muslo (0.3-0.5 m)" selected>Rodilla-muslo (0.3-0.5 m)</option>
+          <option value="Cintura-pecho (0.5-0.8 m)">Cintura-pecho (0.5-0.8 m)</option>
+          <option value="Pecho-cabeza (0.8-1.2 m)">Pecho-cabeza (0.8-1.2 m)</option>
+          <option value="Por encima de la cabeza (1.2-1.8 m)">Por encima de la cabeza (1.2-1.8 m)</option>
+          <option value="Temporal (>2 m)">Temporal (más de 2 m)</option>
+        </select>
       </div>
 
-      <!-- Observaciones y Nombre -->
-      <div class="bg-surf-900 border border-surf-800 rounded-2xl p-6 shadow-lg space-y-4">
-        <div>
-          <label for="notas" class="block text-sm font-bold text-white mb-2 flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-sky-400 text-base">notes</span>
-            Notas / Comentarios sobre el fondo o marea
-          </label>
-          <textarea id="notas" name="notas" rows="3" placeholder="Ej: Mejor con media marea subiendo, barra de arena del espigón abriendo de derechas..." class="w-full bg-surf-850 border border-surf-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-sm resize-none"></textarea>
-        </div>
-
-        <div>
-          <label for="reporter" class="block text-sm font-bold text-white mb-2 flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-sky-400 text-base">badge</span>
-            Tu nombre o alias (opcional)
-          </label>
-          <input type="text" id="reporter" name="reporter" placeholder="Ej: Jordi / Local CS" class="w-full bg-surf-850 border border-surf-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-sm" />
-        </div>
+      <div class="field">
+        <label class="field-label" for="f-comentario">Comentario (opcional)</label>
+        <textarea id="f-comentario" name="comentario" placeholder="Fondo, marea, viento en la orilla, dónde rompía mejor..."></textarea>
       </div>
 
-      <!-- Botón de Envío -->
-      <div class="pt-2">
-        <button type="submit" class="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-slate-950 font-black text-base shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 flex items-center justify-center gap-2 transition-all transform active:scale-[0.99]">
-          <span class="material-symbols-outlined font-bold">send</span>
-          <span>Enviar Reporte para la IA</span>
-        </button>
-        <p class="text-center text-[11px] text-slate-500 mt-2">
-          Procesado automáticamente por Netlify Forms sin servidores externos ni costes.
-        </p>
-      </div>
+      <button type="submit" class="submit-btn">
+        <svg class="icon" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
+        Guardar reporte
+      </button>
     </form>
+
+    <div class="section-title">
+      <span>Tus sesiones</span>
+      <span class="spacer"></span>
+      <button type="button" id="clear-all" class="btn-ghost danger hidden">Borrar todo</button>
+    </div>
+    <div id="history" class="card"></div>
+
+    <p class="footer">MeteoSurf_Cs · Reporte de sesión guardado en este dispositivo (localStorage). Nada se envía a ningún servidor salvo que pulses "Enviar al registro".</p>
   </main>
 
-  <!-- Footer -->
-  <footer class="bg-surf-900 border-t border-surf-800 py-6 px-4 text-center text-xs text-slate-500">
-    <p>Surfline Castellón · Sistema de Predicción Costera Local · Netlify Starter Tier 0€</p>
-  </footer>
+  <script type="module">
+    import { SPOTS } from './js/spots.js';
 
-  <script>
-    // 1. Inicializar fecha y hora actual en el input
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const localDateTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    const fechaInput = document.getElementById('fecha_hora');
-    if (fechaInput) fechaInput.value = localDateTime;
+    const STORAGE_KEY = 'msc_sessions';
+    const REPO_ISSUES_URL = 'https://github.com/Joorcs96/MeteoSurf_Cs/issues/new';
 
-    // 2. Pre-rellenar alias del surfista desde la sesión local
-    const reporterInput = document.getElementById('reporter');
-    try {
-      const userStr = localStorage.getItem('surfline_cs_user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        if (reporterInput && user && user.alias) {
-          reporterInput.value = user.alias;
-        }
+    const spotSelect = document.getElementById('f-spot');
+    const datetimeInput = document.getElementById('f-datetime');
+    const form = document.getElementById('report-form');
+    const historyEl = document.getElementById('history');
+    const clearAllBtn = document.getElementById('clear-all');
+
+    // Poblar selector de spots desde el catálogo real de la app
+    SPOTS.forEach((s) => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.name} (${s.zoneName || s.zone})`;
+      spotSelect.appendChild(opt);
+    });
+
+    // Fecha/hora actual por defecto, en huso horario local
+    (function initDatetime() {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const local = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      datetimeInput.value = local;
+    })();
+
+    function loadSessions() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch { return []; }
+    }
+    function saveSessions(list) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch { /* sin almacenamiento disponible */ }
+    }
+
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    function fmtDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      return d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function spotName(id) {
+      return SPOTS.find((s) => s.id === id)?.name || id;
+    }
+
+    function issueUrl(entry) {
+      const title = `Reporte: ${spotName(entry.spotId)} · ${entry.calidad} · ${entry.datetime ? entry.datetime.slice(0, 10) : ''}`;
+      const body = [
+        `Spot: ${spotName(entry.spotId)}`,
+        `Fecha y hora: ${entry.datetime || '-'}`,
+        `Calidad percibida: ${entry.calidad}`,
+        `Tamaño percibido: ${entry.tamano}`,
+        entry.comentario ? `Comentario: ${entry.comentario}` : null,
+        '',
+        '_Enviado desde el formulario de reporte de MeteoSurf_Cs._'
+      ].filter(Boolean).join('\n');
+      return `${REPO_ISSUES_URL}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+    }
+
+    function qualityClass(calidad) {
+      const map = { Plato: 'r0', Malo: 'r2', Regular: 'r4', Bueno: 'r6', 'Épico': 'r7' };
+      return map[calidad] || 'r0';
+    }
+
+    function renderHistory() {
+      const sessions = loadSessions().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      clearAllBtn.classList.toggle('hidden', sessions.length === 0);
+      if (!sessions.length) {
+        historyEl.innerHTML = '<div class="empty-state">Todavía no has guardado ningún reporte. Rellena el formulario de arriba después de tu próxima sesión.</div>';
+        return;
       }
-    } catch (e) {}
-
-    // 3. Detectar si venimos de enviar el formulario mediante redirección estándar
-    if (window.location.search.includes('enviado=1')) {
-      const banner = document.getElementById('success-banner');
-      if (banner) banner.classList.remove('hidden');
+      historyEl.innerHTML = sessions.map((entry) => `
+        <div class="session-item" data-id="${esc(entry.id)}">
+          <div class="session-top">
+            <span class="session-spot">${esc(spotName(entry.spotId))}</span>
+            <span class="session-date num">${esc(fmtDate(entry.datetime))}</span>
+          </div>
+          <div class="session-meta">
+            <span class="rating-pill ${qualityClass(entry.calidad)}">${esc(entry.calidad)}</span>
+            <span class="chip">${esc(entry.tamano)}</span>
+          </div>
+          ${entry.comentario ? `<div class="session-note">${esc(entry.comentario)}</div>` : ''}
+          <div class="session-actions">
+            <a class="btn-ghost" href="${issueUrl(entry)}" target="_blank" rel="noopener">
+              <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
+              Enviar al registro
+            </a>
+            <button type="button" class="btn-ghost danger" data-del="${esc(entry.id)}">Borrar</button>
+          </div>
+        </div>
+      `).join('');
     }
 
-    // 4. Interceptar envío para evitar bloqueos en el navegador móvil o servidores estáticos
-    const feedbackForm = document.querySelector('form[name="surf-feedback"]');
-    const submitBtn = feedbackForm ? feedbackForm.querySelector('button[type="submit"]') : null;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const calidad = fd.get('calidad');
+      const spot = fd.get('spot');
+      if (!spot || !calidad) {
+        form.reportValidity?.();
+        return;
+      }
+      const entry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        spotId: spot,
+        datetime: fd.get('datetime') || '',
+        calidad,
+        tamano: fd.get('tamano') || '',
+        comentario: (fd.get('comentario') || '').toString().trim(),
+        createdAt: new Date().toISOString()
+      };
+      const sessions = loadSessions();
+      sessions.push(entry);
+      saveSessions(sessions);
+      renderHistory();
+      form.reset();
+      document.querySelectorAll('.tile input[type="radio"]').forEach((r) => { r.checked = false; });
+      spotSelect.value = spot; // conservar el spot seleccionado para la siguiente sesión
+      document.getElementById('history').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 
-    if (feedbackForm) {
-      feedbackForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    historyEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-del]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-del');
+      const sessions = loadSessions().filter((s) => s.id !== id);
+      saveSessions(sessions);
+      renderHistory();
+    });
 
-        // Estado visual del botón
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = `
-            <span class="material-symbols-outlined font-bold animate-spin">refresh</span>
-            <span>Registrando reporte...</span>
-          `;
-        }
+    clearAllBtn.addEventListener('click', () => {
+      if (!confirm('¿Borrar todos tus reportes guardados en este dispositivo?')) return;
+      saveSessions([]);
+      renderHistory();
+    });
 
-        const formData = new FormData(feedbackForm);
-        const reportData = Object.fromEntries(formData.entries());
-        reportData.submittedAt = new Date().toISOString();
-
-        // Guardar siempre copia de seguridad en localStorage
-        try {
-          const queue = JSON.parse(localStorage.getItem('surfline_cs_feedback_queue') || '[]');
-          queue.push(reportData);
-          localStorage.setItem('surfline_cs_feedback_queue', JSON.stringify(queue));
-          console.log('[OK] Reporte almacenado en el almacenamiento local seguro.');
-        } catch (storageErr) {
-          console.warn('No se pudo guardar copia local en storage:', storageErr);
-        }
-
-        // Intentar envío real a Netlify con timeout de 3.5 segundos
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeout = controller ? setTimeout(() => controller.abort(), 3500) : null;
-
-        try {
-          await fetch(feedbackForm.action || window.location.pathname, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(formData).toString(),
-            signal: controller ? controller.signal : undefined
-          });
-          if (timeout) clearTimeout(timeout);
-        } catch (fetchErr) {
-          if (timeout) clearTimeout(timeout);
-          console.log('Envío a red pausado o estático, procesando confirmación local inmediata.');
-        }
-
-        // Mostrar confirmación instantánea sin recarga ni cuelgues
-        const banner = document.getElementById('success-banner');
-        if (banner) {
-          banner.classList.remove('hidden');
-          banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = `
-            <span class="material-symbols-outlined font-bold material-symbols-fill text-emerald-300">check_circle</span>
-            <span>¡Reporte Registrado con Éxito!</span>
-          `;
-          submitBtn.classList.remove('from-sky-500', 'to-cyan-500');
-          submitBtn.classList.add('from-emerald-600', 'to-teal-600');
-        }
-      });
-    }
+    renderHistory();
   </script>
 </body>
 </html>

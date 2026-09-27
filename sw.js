@@ -1,146 +1,26 @@
-// sw.js — Surfline Castellón Service Worker
-// Subir CACHE_NAME en cada cambio del service worker para forzar actualización en móviles con cache vieja
-const CACHE_NAME = 'surfline-cs-v7';
-const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './app.js',
-  './webcams.json',
-  './votar.html',
-  './manifest.json'
-];
+// sw.js — MeteoSurf_Cs. Archivos propios: red primero (siempre la última versión), caché si no hay conexión.
+// Streams de cámaras y APIs externas no se interceptan.
+const CACHE = 'meteosurf-cs-v1';
+const SHELL = ['./', './index.html', './css/app.css', './js/app.js', './js/spots.js', './js/forecast.js',
+  './js/compass.js', './js/cams.js', './js/assistant.js', './webcams.json', './manifest.json', './icon.svg'];
 
-// Dominios/patrones de streaming que NUNCA deben cachearse ni interceptarse
-function isStreamRequest(url) {
-  // HLS playlists y segmentos
-  if (url.pathname.endsWith('.m3u8') || url.pathname.endsWith('.ts')) return true;
-  // MJPEG y streams de vídeo
-  if (url.pathname.includes('mjpg') || url.pathname.includes('mjpeg')) return true;
-  // Dominios de streaming externo
-  if (url.hostname.includes('streaming.comunitatvalenciana.com')) return true;
-  if (url.hostname.includes('voramar.net') && url.port === '445') return true;
-  if (url.hostname.includes('cam1.voramar.net')) return true;
-  if (url.hostname.includes('skylinewebcams.com')) return true;
-  if (url.hostname.includes('surferscastellon.com')) return true;
-  if (url.hostname.includes('aeroclubcastellon.com')) return true;
-  return false;
-}
-
-// Instalar Service Worker y pre-cachear el App Shell
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS.map((u) => new Request(u, { cache: 'no-cache' })));
-    }).then(() => self.skipWaiting())
-  );
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
-// Activar y limpiar cachés anteriores
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
-// Interceptar peticiones de red
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // 0. No interceptar no-GET ni protocolos ajenos
-  if (event.request.method !== 'GET' || !url.protocol.startsWith('http')) {
-    return;
-  }
-
-  // 1. NUNCA interceptar streams, MJPEG, HLS ni dominios de cámara externos
-  //    → dejar pasar directamente a la red sin tocar
-  if (isStreamRequest(url)) {
-    return;
-  }
-
-  // 2. Peticiones a Open-Meteo (Datos de previsión) → Network-First
-  if (url.hostname.includes('open-meteo.com')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(event.request);
-          if (cached) return cached;
-          return new Response(JSON.stringify({ error: 'offline_fallback' }), {
-            headers: { 'Content-Type': 'application/json' }
-          });
-        })
-    );
-    return;
-  }
-
-  // 3. Fuentes y CDN estáticos (hls.js, tailwind, leaflet, chart.js, material-icons)
-  //    → Cache-First (son assets versionados que no cambian)
-  if (
-    url.hostname.includes('fonts.googleapis.com') ||
-    url.hostname.includes('fonts.gstatic.com') ||
-    url.hostname.includes('cdn.tailwindcss.com') ||
-    url.hostname.includes('cdn.jsdelivr.net') ||
-    url.hostname.includes('unpkg.com')
-  ) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        }).catch(() => {
-          return new Response('', { status: 408, statusText: 'CDN Timeout / Offline' });
-        });
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
+  e.respondWith(
+    fetch(e.request, { cache: 'no-cache' })
+      .then((r) => {
+        if (r.ok) { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+        return r;
       })
-    );
-    return;
-  }
-
-  // 4. App Shell local (index.html, app.js, sw.js, manifest.json, votar.html)
-  //    → Network-First: el móvil siempre recibe la versión más nueva.
-  //    cache: 'no-cache' revalida con GitHub Pages; sin ello la caché HTTP (10 min) servía versiones viejas.
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      fetch(event.request, { cache: 'no-cache' })
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          const cached = await caches.match(event.request);
-          if (cached) return cached;
-          return caches.match('./index.html');
-        })
-    );
-    return;
-  }
-  // 5. Cualquier otro dominio externo no clasificado: dejar pasar sin interceptar
+      .catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html')))
+  );
 });

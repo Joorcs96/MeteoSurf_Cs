@@ -1,0 +1,267 @@
+// forecast.js — Descarga de Open-Meteo por spot y cálculo de ola en rompiente, viento y calidad.
+import { SPOTS } from './spots.js';
+
+const TZ = 'Europe/Madrid';
+const DAYS = 16;
+const CACHE_KEY = 'meteosurf_cs_forecast_v1';
+const CACHE_MAX_AGE = 60 * 60 * 1000; // 1 h
+
+const MARINE_VARS = [
+  'wave_height', 'wave_period', 'wave_direction',
+  'swell_wave_height', 'swell_wave_period', 'swell_wave_direction',
+  'secondary_swell_wave_height', 'secondary_swell_wave_period', 'secondary_swell_wave_direction',
+  'wind_wave_height', 'wind_wave_period', 'wind_wave_direction',
+  'sea_level_height_msl', 'sea_surface_temperature'
+];
+const WEATHER_VARS = [
+  'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
+  'temperature_2m', 'weather_code', 'is_day'
+];
+
+// ---------- Utilidades angulares ----------
+export const norm360 = (a) => ((a % 360) + 360) % 360;
+export const angDiff = (a, b) => { const d = Math.abs(norm360(a) - norm360(b)); return d > 180 ? 360 - d : d; };
+const inWindow = (dir, [from, to]) => {
+  const d = norm360(dir), f = norm360(from), t = norm360(to);
+  return f <= t ? d >= f && d <= t : d >= f || d <= t;
+};
+const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'];
+export const compass = (deg) => (deg == null ? '–' : COMPASS[Math.round(norm360(deg) / 22.5) % 16]);
+
+// ---------- Descarga ----------
+async function fetchJson(url, ms = 12000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+function buildUrls() {
+  const seaLat = SPOTS.map((s) => s.seaLat).join(',');
+  const seaLon = SPOTS.map((s) => s.seaLon).join(',');
+  const lat = SPOTS.map((s) => s.lat).join(',');
+  const lon = SPOTS.map((s) => s.lon).join(',');
+  return {
+    marine: `https://marine-api.open-meteo.com/v1/marine?latitude=${seaLat}&longitude=${seaLon}` +
+      `&hourly=${MARINE_VARS.join(',')}&forecast_days=${DAYS}&timezone=${TZ}&cell_selection=sea`,
+    // GFS-Wave llega a 16 días: rellena donde el modelo principal (≈10 días) ya no tiene datos
+    marineExt: `https://marine-api.open-meteo.com/v1/marine?latitude=${seaLat}&longitude=${seaLon}` +
+      `&hourly=${MARINE_VARS.slice(0, 12).join(',')}&models=ncep_gfswave016&forecast_days=${DAYS}&timezone=${TZ}&cell_selection=sea`,
+    weather: `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&hourly=${WEATHER_VARS.join(',')}&daily=sunrise,sunset,temperature_2m_max` +
+      `&forecast_days=${DAYS}&timezone=${TZ}&wind_speed_unit=kmh`
+  };
+}
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function writeCache(data) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* sin almacenamiento */ }
+}
+
+// Devuelve { fetchedAt, stale, spots: { [id]: SpotForecast } }
+export async function loadForecast({ force = false } = {}) {
+  const cached = readCache();
+  if (!force && cached && Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_MAX_AGE) {
+    return { ...cached, spots: processAll(cached.raw), stale: false };
+  }
+  try {
+    const urls = buildUrls();
+    const [marine, weather, ext] = await Promise.all([
+      fetchJson(urls.marine), fetchJson(urls.weather), fetchJson(urls.marineExt).catch(() => null)
+    ]);
+    const raw = { marine: fillFrom(toArray(marine), ext && toArray(ext)), weather: toArray(weather) };
+    const data = { fetchedAt: new Date().toISOString(), raw };
+    writeCache(data);
+    return { ...data, spots: processAll(raw), stale: false };
+  } catch (err) {
+    if (cached) return { ...cached, spots: processAll(cached.raw), stale: true, error: String(err) };
+    throw err;
+  }
+}
+const toArray = (x) => (Array.isArray(x) ? x : [x]);
+
+// Completa los huecos (null) del modelo principal con el modelo de respaldo, hora a hora
+function fillFrom(main, ext) {
+  if (!ext) return main;
+  main.forEach((loc, i) => {
+    const e = ext[i]?.hourly;
+    if (!e || !loc?.hourly) return;
+    for (const key of Object.keys(e)) {
+      if (key === 'time' || !loc.hourly[key]) continue;
+      loc.hourly[key] = loc.hourly[key].map((v, k) => (v == null ? e[key][k] ?? null : v));
+    }
+  });
+  return main;
+}
+
+// ---------- Física de rompiente ----------
+// Altura en rompiente (Komar & Gaudet): Hb = 0.39 · g^0.2 · (T · H²)^0.4
+function breakingHeight(h, t) {
+  if (!h || !t || h <= 0) return 0;
+  return 0.39 * Math.pow(9.81, 0.2) * Math.pow(t * h * h, 0.4);
+}
+
+// Factor de exposición de un tren de olas para un spot: 1 de frente, cae con el ángulo,
+// y casi 0 si viene de fuera de la ventana útil (sombra de puerto/cabo o de tierra).
+function exposure(spot, dir) {
+  if (dir == null) return 0;
+  if (!inWindow(dir, spot.swellWindow)) return 0.08;
+  const d = angDiff(dir, spot.facing);
+  return Math.max(0.15, Math.pow(Math.cos((Math.min(d, 85) * Math.PI) / 180), 0.6));
+}
+
+function surfFromTrains(spot, trains) {
+  // Suma energética de los trenes que llegan a la rompiente
+  let e = 0;
+  for (const tr of trains) {
+    const hb = breakingHeight(tr.h, tr.t) * exposure(spot, tr.dir) * spot.exposureFactor;
+    e += hb * hb;
+  }
+  const hb = Math.sqrt(e);
+  return { min: hb * 0.75, max: hb * 1.15, mid: hb };
+}
+
+// ---------- Viento ----------
+// Estados: offshore (terral), cross-off, cross, cross-on, onshore. Glassy si < 6 km/h.
+export function windState(spot, speed, dirFrom) {
+  if (speed == null || dirFrom == null) return { key: 'na', label: '–' };
+  if (speed < 6) return { key: 'glassy', label: 'Calma' };
+  const off = norm360(spot.facing + 180);
+  const d = angDiff(dirFrom, off);
+  if (d <= 35) return { key: 'offshore', label: 'Terral' };
+  if (d <= 70) return { key: 'crossoff', label: 'Terral cruzado' };
+  if (d <= 110) return { key: 'cross', label: 'Cruzado' };
+  if (d <= 145) return { key: 'crosson', label: 'Mar cruzado' };
+  return { key: 'onshore', label: 'De mar' };
+}
+
+// ---------- Valoración (escala tipo Surfline) ----------
+export const RATINGS = [
+  { key: 'flat', label: 'Plato', color: 'var(--r-flat)' },
+  { key: 'vpoor', label: 'Muy malo', color: 'var(--r-vpoor)' },
+  { key: 'poor', label: 'Malo', color: 'var(--r-poor)' },
+  { key: 'poorfair', label: 'Malo-Regular', color: 'var(--r-poorfair)' },
+  { key: 'fair', label: 'Regular', color: 'var(--r-fair)' },
+  { key: 'fairgood', label: 'Regular-Bueno', color: 'var(--r-fairgood)' },
+  { key: 'good', label: 'Bueno', color: 'var(--r-good)' },
+  { key: 'epic', label: 'Épico', color: 'var(--r-epic)' }
+];
+
+// Escala calibrada para el Mediterráneo: con 0.5–0.7 m en rompiente y poco viento ya hay buen baño,
+// y el periodo típico es de 4–6 s (no penaliza); a partir de 7 s es mar de fondo de calidad.
+function rate(spot, surf, period, wind, speed) {
+  const h = surf.mid;
+  if (h < 0.22) return 0;
+  let s = h < 0.32 ? 1.5 : h < 0.45 ? 2.5 : h < 0.6 ? 3.5 : h < 0.85 ? 4.2 : h < 1.2 ? 5 : h < 1.8 ? 5.6 : 6;
+  if (h > spot.maxGood) s -= 1; // el spot se satura o cierra
+  if (period < 4) s -= 1; else if (period >= 9) s += 1; else if (period >= 7) s += 0.5;
+  const v = speed ?? 0;
+  s += {
+    glassy: 0.6,
+    offshore: v < 25 ? 0.5 : v < 35 ? 0 : -1,
+    crossoff: v < 20 ? 0.2 : -0.5,
+    cross: v < 10 ? 0 : v < 18 ? -0.6 : v < 26 ? -1.2 : -2,
+    crosson: v < 8 ? 0 : v < 14 ? -0.6 : v < 22 ? -1.5 : -2.5,
+    onshore: v < 10 ? -0.4 : v < 15 ? -1 : v < 22 ? -2 : -3,
+    na: 0
+  }[wind.key];
+  s = Math.round(s);
+  if (s >= 7 && !(h >= 1 && period >= 7 && (wind.key === 'offshore' || wind.key === 'glassy' || wind.key === 'crossoff'))) s = 6;
+  return Math.max(1, Math.min(7, s));
+}
+
+// Energía orientativa en kJ, proporcional a H²·T² (misma idea que la fila de energía de Surf-Forecast)
+export const energyKJ = (h, t) => (h && t ? Math.round(0.5 * h * h * t * t * 10) : 0);
+
+// ---------- Procesado por spot ----------
+function processAll(raw) {
+  const out = {};
+  SPOTS.forEach((spot, i) => {
+    const m = raw.marine[i]?.hourly;
+    const w = raw.weather[i]?.hourly;
+    const daily = raw.weather[i]?.daily;
+    if (!m || !w) return;
+    out[spot.id] = processSpot(spot, m, w, daily);
+  });
+  return out;
+}
+
+function processSpot(spot, m, w, daily) {
+  const hours = m.time.map((time, k) => {
+    const trains = [
+      { h: m.swell_wave_height[k], t: m.swell_wave_period[k], dir: m.swell_wave_direction[k] },
+      { h: m.secondary_swell_wave_height[k], t: m.secondary_swell_wave_period[k], dir: m.secondary_swell_wave_direction[k] },
+      { h: m.wind_wave_height[k], t: m.wind_wave_period[k], dir: m.wind_wave_direction[k] }
+    ];
+    // Si la partición no existe, usar el total
+    if (!trains.some((t) => t.h)) trains.push({ h: m.wave_height[k], t: m.wave_period[k], dir: m.wave_direction[k] });
+    const surf = surfFromTrains(spot, trains);
+    const windSpeed = w.wind_speed_10m[k];
+    const windDir = w.wind_direction_10m[k];
+    const wind = windState(spot, windSpeed, windDir);
+    const period = m.wave_period[k] ?? m.swell_wave_period[k];
+    const swells = trains
+      .map((t, idx) => ({ ...t, kind: ['Fondo', 'Fondo 2', 'Viento', 'Total'][idx] }))
+      .filter((t) => t.h && t.h >= 0.05)
+      .sort((a, b) => b.h - a.h);
+    return {
+      time, date: time.slice(0, 10), hour: +time.slice(11, 13),
+      surf, rating: rate(spot, surf, period ?? 0, wind, windSpeed),
+      waveHeight: m.wave_height[k], wavePeriod: period, waveDir: m.wave_direction[k],
+      energy: energyKJ(m.wave_height[k], period),
+      swells,
+      windSpeed, windGust: w.wind_gusts_10m[k], windDir, wind,
+      tide: m.sea_level_height_msl[k], sst: m.sea_surface_temperature[k],
+      temp: w.temperature_2m[k], code: w.weather_code[k], isDay: w.is_day[k]
+    };
+  });
+
+  const days = [];
+  const byDate = new Map();
+  hours.forEach((h) => { if (!byDate.has(h.date)) byDate.set(h.date, []); byDate.get(h.date).push(h); });
+  let di = 0;
+  for (const [date, hs] of byDate) {
+    const daylight = hs.filter((h) => h.hour >= 7 && h.hour <= 20);
+    const pick = daylight.length ? daylight : hs;
+    const best = pick.reduce((a, b) => (b.rating > a.rating || (b.rating === a.rating && b.surf.mid > a.surf.mid) ? b : a));
+    days.push({
+      date, hours: hs,
+      rating: best.rating, best,
+      surfMin: Math.min(...pick.map((h) => h.surf.min)),
+      surfMax: Math.max(...pick.map((h) => h.surf.max)),
+      sunrise: daily?.sunrise?.[di]?.slice(11, 16), sunset: daily?.sunset?.[di]?.slice(11, 16),
+      tempMax: daily?.temperature_2m_max?.[di]
+    });
+    di++;
+  }
+  return { spot, hours, days };
+}
+
+// Índice de la hora actual (o la más cercana) dentro de hours
+export function nowIndex(hours) {
+  const now = new Date();
+  const key = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false })
+    .format(now).replace(' ', 'T').slice(0, 13);
+  const i = hours.findIndex((h) => h.time.slice(0, 13) === key);
+  return i >= 0 ? i : 0;
+}
+
+// Extremos de marea (pleamar/bajamar) de un día
+export function tideExtremes(hours) {
+  const ex = [];
+  for (let i = 1; i < hours.length - 1; i++) {
+    const a = hours[i - 1].tide, b = hours[i].tide, c = hours[i + 1].tide;
+    if (a == null || b == null || c == null) continue;
+    if (b > a && b >= c) ex.push({ type: 'high', ...hours[i] });
+    else if (b < a && b <= c) ex.push({ type: 'low', ...hours[i] });
+  }
+  return ex;
+}

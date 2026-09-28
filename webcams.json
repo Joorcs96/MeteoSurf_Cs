@@ -320,6 +320,28 @@
       "enabled": true,
       "lastChecked": "2026-09-27T21:32:33.111962+00:00",
       "failCount": 0
+    },
+    {
+      "id": "surfers_castellon",
+      "name": "Cámara Surfers Castellón",
+      "short": "Surfers Castellón",
+      "spots": [
+        "Planetario",
+        "Gurugu"
+      ],
+      "priority": 3,
+      "embedType": "link",
+      "embedUrl": "https://surferscastellon.com/live-webcam/",
+      "pageUrl": "https://surferscastellon.com/live-webcam/",
+      "credit": "Club Surfers Castellón",
+      "notesShort": "Cámara del club en su web, con acceso de socios.",
+      "distanceKm": 0.2,
+      "tokenRefresh": null,
+      "enabled": true,
+      "verified": true,
+      "lastChecked": "2026-09-28T21:15:34.650615+00:00",
+      "failCount": 0,
+      "notes": "Solo enlace: la cámara está tras el login de socios del club. No incrustar sin permiso del club."
     }
   ]
 }

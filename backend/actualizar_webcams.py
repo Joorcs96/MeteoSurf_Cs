@@ -15,7 +15,7 @@ Esquema esperado de webcams.json (nuevo, "MeteoSurf_Cs"):
     {
       "id": str, "name": str, "short": str, "spots": [str, ...],
       "priority": int,
-      "embedType": "iframe" | "youtube" | "hls" | "jpg" | "mjpeg",
+      "embedType": "iframe" | "youtube" | "hls" | "jpg" | "mjpeg" | "link",
       "embedUrl": str, "pageUrl": str, "credit": str,
       "refreshSeconds": int,
       "distanceKm": number,
@@ -175,6 +175,10 @@ def procesar_camara(cam: Dict[str, Any], now_iso: str) -> None:
     cam_id = cam.get("id", "?")
     name = cam.get("name", cam_id)
     embed_type = cam.get("embedType", "")
+
+    # Un enlace a la web del propietario no es un stream: no se verifica ni se deshabilita
+    if embed_type == "link":
+        return
 
     if cam.get("tokenRefresh"):
         nueva_url = refrescar_token(cam)

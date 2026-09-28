@@ -49,6 +49,12 @@ function msg(el, title, text) {
 export async function playCam(el, cam, { autoplay = true } = {}) {
   stopCam(el);
   if (!cam) { msg(el, 'Sin cámara en este spot', 'Todavía no hay una cámara pública que enfoque esta playa.'); return; }
+  if (cam.embedType === 'link') {
+    // Cámara que solo se ve en la web de su propietario (p. ej. acceso de socios)
+    el.insertAdjacentHTML('beforeend', `<div class="cam-msg cam-link"><div><b>${cam.name}</b>${cam.notesShort || 'Se abre en su web.'}` +
+      `<a class="cam-link-btn" href="${cam.pageUrl}" target="_blank" rel="noopener">Abrir cámara</a></div></div>`);
+    return;
+  }
   const overlay = `<div class="cam-overlay"><span class="live-badge">${cam.embedType === 'jpg' ? 'FOTO' : 'EN DIRECTO'}</span></div>`;
   el.insertAdjacentHTML('beforeend', overlay);
   const t = cam.embedType;

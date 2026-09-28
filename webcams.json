@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-27T06:21:49.878564+00:00",
+  "updatedAt": "2026-09-28T06:25:18.166837+00:00",
   "webcams": [
     {
       "id": "planetario",
@@ -17,7 +17,7 @@
       "spots": [
         "Planetario"
       ],
-      "lastChecked": "2026-09-27T06:21:43.972905+00:00"
+      "lastChecked": "2026-09-28T06:25:12.458952+00:00"
     },
     {
       "id": "gurugu",
@@ -35,7 +35,7 @@
       "spots": [
         "Gurugu"
       ],
-      "lastChecked": "2026-09-27T06:21:43.972919+00:00"
+      "lastChecked": "2026-09-28T06:25:12.458968+00:00"
     },
     {
       "id": "voramar",
@@ -52,7 +52,7 @@
       "spots": [
         "Voramar"
       ],
-      "lastChecked": "2026-09-27T06:21:45.110233+00:00"
+      "lastChecked": "2026-09-28T06:25:13.524784+00:00"
     },
     {
       "id": "burriana",
@@ -69,7 +69,7 @@
       "spots": [
         "Burriana"
       ],
-      "lastChecked": "2026-09-27T06:21:46.073164+00:00"
+      "lastChecked": "2026-09-28T06:25:14.407434+00:00"
     },
     {
       "id": "peniscola",
@@ -87,7 +87,7 @@
       "spots": [
         "Peniscola N"
       ],
-      "lastChecked": "2026-09-27T06:21:46.976712+00:00"
+      "lastChecked": "2026-09-28T06:25:15.224621+00:00"
     },
     {
       "id": "oropesa",
@@ -104,7 +104,7 @@
       "spots": [
         "MorroGos"
       ],
-      "lastChecked": "2026-09-27T06:21:47.920542+00:00"
+      "lastChecked": "2026-09-28T06:25:16.088036+00:00"
     },
     {
       "id": "vinaros",
@@ -114,14 +114,14 @@
       "streamUrl": "https://streaming.comunitatvalenciana.com/webcam/Vinaros/playlist.m3u8",
       "snapshotUrl": "https://streaming.comunitatvalenciana.com/static/Vinaros/webcam_mini.png",
       "officialUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/vinaros/webcams/vinaros-2",
-      "status": "online",
-      "liveStatus": true,
+      "status": "offline",
+      "liveStatus": false,
       "reason": "HLS verificado: playlist → chunklist → segmentos .ts 1080p, CORS OK.",
       "description": "Paseo marítimo y rompiente urbana del Fortí en el norte de Castellón.",
       "spots": [
         "Vinaros"
       ],
-      "lastChecked": "2026-09-27T06:21:48.894156+00:00"
+      "lastChecked": "2026-09-28T06:25:17.432812+00:00"
     },
     {
       "id": "heliopolis",
@@ -138,7 +138,7 @@
       "spots": [
         "Heliopolis"
       ],
-      "lastChecked": "2026-09-27T06:21:48.894184+00:00"
+      "lastChecked": "2026-09-28T06:25:17.432837+00:00"
     },
     {
       "id": "alcossebre",
@@ -153,9 +153,9 @@
       "reason": "HLS verificado: playlist → chunklist → segmentos .ts 1080p, CORS OK.",
       "description": "Playa de fina arena protegida por salientes rocosos con oleaje suave.",
       "spots": [],
-      "lastChecked": "2026-09-27T06:21:49.878538+00:00"
+      "lastChecked": "2026-09-28T06:25:18.166808+00:00"
     }
   ],
-  "totalActive": 6,
+  "totalActive": 5,
   "totalLinkOnly": 3
 }

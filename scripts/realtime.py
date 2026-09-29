@@ -49,7 +49,6 @@ from __future__ import annotations
 
 import argparse
 import gzip
-import io
 import json
 import math
 import os
@@ -198,7 +197,7 @@ def _descarga(url: str, cuerpo: bytes | None, timeout: int, verificar: bool) -> 
         return bruto
 
 
-def _es_error_de_certificado(exc: BaseException) -> bool:
+def _es_error_de_certificado(exc: BaseException) -> str | None:
     """
     urllib envuelve el fallo de certificado en un URLError, así que hay que mirar dentro.
 
@@ -297,10 +296,10 @@ def leer_observacion(estacion: dict, variables: list[str]) -> dict | None:
     filas = pedir_api(f"/RTData/station/{id_est}?locale=es", ids)
     if not isinstance(filas, list) or not filas:
         return None
-    return _elige_fila(filas, station_id=id_est)
+    return _elige_fila(filas)
 
 
-def _elige_fila(filas: list[dict], station_id: int | None = None) -> dict | None:
+def _elige_fila(filas: list[dict]) -> dict | None:
     """La fila más reciente con valores utilizables."""
     ordenadas = []
     for fila in filas:
@@ -677,7 +676,7 @@ def recoger() -> dict:
         "oleaje": oleaje,
         "nivel_mar": nivel_mar,
         "viento": viento,
-        "notas": NOTAS,
+        "notas": list(NOTAS),
         "errores": errores,
     }
     if not datos["notas"]:
@@ -733,8 +732,8 @@ def resumen(datos: dict) -> str:
         lineas.append("Viento:     sin datos")
     for e in datos.get("errores") or []:
         lineas.append(f"Aviso:      [{e['bloque']}] {e['fuente']}: {e['mensaje']}")
-    for n_ in datos.get("notas") or []:
-        lineas.append(f"Nota:       {n_}")
+    for nota in datos.get("notas") or []:
+        lineas.append(f"Nota:       {nota}")
     return "\n".join(lineas)
 
 

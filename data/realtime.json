@@ -1,6 +1,6 @@
 {
-  "generado": "2026-09-29T22:17:17Z",
-  "generado_local": "2026-09-30T00:17:17+02:00",
+  "generado": "2026-09-29T22:34:49Z",
+  "generado_local": "2026-09-30T00:34:49+02:00",
   "ok": true,
   "referencia": {
     "lugar": "Castellón de la Plana",
@@ -92,8 +92,8 @@
     "lat": 39.63392,
     "lon": -0.20624,
     "distancia_km": 43.9,
-    "fecha": "2026-09-29T22:15:00Z",
-    "nivel_m": 0.093,
+    "fecha": "2026-09-29T22:33:00Z",
+    "nivel_m": 0.098,
     "obsoleto": false,
     "nota": "Puertos del Estado no tiene mareógrafo en Castellón; se publica el más cercano, junto con su distancia."
   },
@@ -104,12 +104,12 @@
     "lat": 39.97736,
     "lon": 0.02505,
     "distancia_km": 1.0,
-    "fecha": "2026-09-29T22:00:00Z",
-    "velocidad_ms": 0.4,
-    "racha_ms": 1.4,
-    "direccion_grados": 283,
-    "direccion": "ONO",
-    "temperatura_c": 23.6,
+    "fecha": "2026-09-29T22:20:00Z",
+    "velocidad_ms": 0.5,
+    "racha_ms": 1.1,
+    "direccion_grados": 264,
+    "direccion": "O",
+    "temperatura_c": 23.4,
     "cadencia_min": 10,
     "obsoleto": false,
     "nota": "La dirección es la de procedencia, de dónde viene el viento."

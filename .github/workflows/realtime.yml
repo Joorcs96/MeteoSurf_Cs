@@ -1,0 +1,55 @@
+name: MeteoSurf_Cs · Observaciones en Tiempo Real
+
+on:
+  schedule:
+    # Cada hora, en el minuto 12 para no coincidir con los otros cron
+    - cron: '12 * * * *'
+  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions en GitHub
+
+permissions:
+  contents: write
+
+concurrency:
+  group: realtime
+  cancel-in-progress: false
+
+jobs:
+  observar:
+    name: MeteoSurf_Cs · Actualizar Datos Reales
+    runs-on: ubuntu-latest
+    # El script tiene tiempo de espera propio en cada petición; este tope es sólo la red de
+    # seguridad para que una caída de Puertos del Estado no deje el trabajo colgado.
+    timeout-minutes: 20
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Consultar Puertos del Estado y escribir data/realtime.json
+        env:
+          # Opcional. Sin esta clave el script no pregunta a AEMET y usa sólo Puertos del
+          # Estado, que ya da el viento real a menos de 1 km de Castellón.
+          AEMET_API_KEY: ${{ secrets.AEMET_API_KEY }}
+        run: |
+          # --comprobar sólo reescribe el fichero si las medidas cambian de verdad, así que
+          # el paso de guardar abajo no encuentra nada que commitear cuando no hay novedades.
+          python scripts/realtime.py --comprobar
+
+      - name: Guardar cambios en los datos reales
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/realtime.json
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto: observaciones reales de oleaje, nivel del mar y viento [skip ci]"
+            git push
+          else
+            echo "Sin cambios en data/realtime.json: las medidas siguen iguales."
+          fi

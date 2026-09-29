@@ -285,7 +285,8 @@ function renderSpot(id) {
             </div>
             <div><i style="background:rgba(0,163,196,.6)"></i>Mar útil: ${compass(spot.swellWindow[0])} a ${compass(spot.swellWindow[1])} (${Math.round(norm360(spot.swellWindow[0]))}°–${Math.round(norm360(spot.swellWindow[1]))}°)</div>
             <div><i style="background:rgba(26,214,76,.6)"></i>Terral: ${compass(spot.facing + 135)} a ${compass(spot.facing + 225)}</div>
-            <div><i style="background:#c9a46a"></i>Línea de costa, mira al ${compass(spot.facing)}</div>
+            <div><i style="background:#00d1ff;border-radius:50%"></i>Centro: punto de datos del oleaje (mar adentro)</div>
+            <div><i style="background:#ffd23f;border-radius:50%"></i>Rompiente, mira al ${compass(spot.facing)}</div>
             <div><i style="background:#314ee6"></i>Mar de fondo ahora</div>
             <div><i style="background:#ff8a00"></i>Viento ahora</div>
           </div>

@@ -231,7 +231,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .compass-card svg { width: 130px; height: 130px; }
 .legend { display: grid; gap: 6px; font-size: 13px; color: var(--text-2); }
 .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
-@media (max-width: 420px) { .compass-card { grid-template-columns: 130px 1fr; gap: 8px; } .compass-card .legend { font-size: 12px; } }
+@media (max-width: 420px) { .compass-card { grid-template-columns: 1fr; gap: 10px; } .compass-card svg { width: 240px; height: 240px; margin: 0 auto; display: block; } .compass-card .legend { font-size: 12px; } }
 
 .tide svg { width: 100%; height: 120px; display: block; }
 .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; font-size: 13px; }
@@ -503,10 +503,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 /* Centro blanco con borde: en oscuro mejor fondo de superficie */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .compass-card circle[fill="#fff"],
-  :root:not([data-theme="light"]) .compass-card circle:last-child { fill: var(--surface); }
+  :root:not([data-theme="light"]) .compass-card circle:last-child:not(.data-pt) { fill: var(--surface); }
 }
 :root[data-theme="dark"] .compass-card circle[fill="#fff"],
-:root[data-theme="dark"] .compass-card circle:last-child { fill: var(--surface); }
+:root[data-theme="dark"] .compass-card circle:last-child:not(.data-pt) { fill: var(--surface); }
 
 /* --- Chips --- */
 @media (prefers-color-scheme: dark) {

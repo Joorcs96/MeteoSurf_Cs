@@ -26,34 +26,66 @@ function arrow(cx, cy, r, fromDeg, color, w = 4) {
     `<path d="M${x1} ${y1} L${hx1} ${hy1} L${hx2} ${hy2} Z" fill="${color}"/>`;
 }
 
-// mini = true → versión para tarjeta (sin letras)
+// Radio real (m) que cubre la foto de satélite de la rosa grande
+const SAT_RADIUS_M = 1600;
+
+// Foto de satélite (Esri World Imagery) centrada en el punto donde se piden los datos (seaLat/seaLon)
+export function satUrl(lat, lon, radiusM = SAT_RADIUS_M, px = 640) {
+  const x = (lon * Math.PI / 180) * 6378137;
+  const y = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) * 6378137;
+  const h = radiusM / Math.cos((lat * Math.PI) / 180); // metros reales → metros Mercator
+  const bbox = [x - h, y - h, x + h, y + h].map((v) => v.toFixed(1)).join(',');
+  return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export' +
+    `?bbox=${bbox}&bboxSR=3857&imageSR=3857&size=${px},${px}&format=jpg&f=image`;
+}
+
+// mini = true → versión para tarjeta (sin letras ni foto)
 export function compassSVG(spot, { swellDir = null, windDir = null, mini = false } = {}) {
   const S = 200, c = S / 2, R = 92;
+  const sat = !mini && spot.seaLat != null;
   const offshore = [norm360(spot.facing + 180 - 45), norm360(spot.facing + 180 + 45)];
+  const clip = `cc-${spot.id}`;
   let s = `<svg viewBox="0 0 ${S} ${S}" role="img" aria-label="Orientación de ${spot.name}: mira al ${Math.round(spot.facing)}°">`;
   s += `<circle cx="${c}" cy="${c}" r="${R}" fill="var(--surface-2)" stroke="var(--line)" stroke-width="1"/>`;
-  // Tierra: semicírculo opuesto a la cara de la playa
-  s += `<path d="${sector(c, c, 0, R, spot.facing + 90, spot.facing + 270)}" fill="color-mix(in srgb, #b08850 22%, transparent)"/>`;
-  // Ventana de mar útil
-  s += `<path d="${sector(c, c, R * 0.55, R, spot.swellWindow[0], spot.swellWindow[1])}" fill="rgba(0,163,196,.38)"/>`;
-  // Ventana de terral
-  s += `<path d="${sector(c, c, R * 0.55, R, offshore[0], offshore[1])}" fill="rgba(31,196,124,.38)"/>`;
-  // Línea de costa
-  const [lx0, ly0] = pt(c, c, R, spot.facing - 90), [lx1, ly1] = pt(c, c, R, spot.facing + 90);
-  s += `<line x1="${lx0}" y1="${ly0}" x2="${lx1}" y2="${ly1}" stroke="#c9a46a" stroke-width="3"/>`;
+  if (sat) {
+    s += `<clipPath id="${clip}"><circle cx="${c}" cy="${c}" r="${R}"/></clipPath>`;
+    s += `<image href="${satUrl(spot.seaLat, spot.seaLon)}" x="${c - R}" y="${c - R}" width="${2 * R}" height="${2 * R}" clip-path="url(#${clip})" preserveAspectRatio="none"/>`;
+    s += `<circle cx="${c}" cy="${c}" r="${R}" fill="rgba(0,0,0,.12)" stroke="var(--line)" stroke-width="1"/>`;
+  } else {
+    // Tierra: semicírculo opuesto a la cara de la playa
+    s += `<path d="${sector(c, c, 0, R, spot.facing + 90, spot.facing + 270)}" fill="color-mix(in srgb, #b08850 22%, transparent)"/>`;
+  }
+  // Ventana de mar útil y de terral (anillo exterior, más transparente sobre la foto)
+  s += `<path d="${sector(c, c, R * 0.72, R, spot.swellWindow[0], spot.swellWindow[1])}" fill="rgba(0,163,196,${sat ? '.55' : '.38'})"/>`;
+  s += `<path d="${sector(c, c, R * 0.72, R, offshore[0], offshore[1])}" fill="rgba(31,196,124,${sat ? '.55' : '.38'})"/>`;
+  if (!sat) {
+    // Línea de costa
+    const [lx0, ly0] = pt(c, c, R, spot.facing - 90), [lx1, ly1] = pt(c, c, R, spot.facing + 90);
+    s += `<line x1="${lx0}" y1="${ly0}" x2="${lx1}" y2="${ly1}" stroke="#c9a46a" stroke-width="3"/>`;
+  } else {
+    // Rompiente (lat/lon del spot) respecto al centro de datos
+    const dx = (spot.lon - spot.seaLon) * Math.cos((spot.lat * Math.PI) / 180) * 111320;
+    const dy = (spot.lat - spot.seaLat) * 110540;
+    const bx = c + (dx / SAT_RADIUS_M) * R, by = c - (dy / SAT_RADIUS_M) * R;
+    s += `<circle cx="${bx}" cy="${by}" r="4.5" fill="#ffd23f" stroke="#1a1a1a" stroke-width="1.2"><title>Rompiente</title></circle>`;
+  }
   if (!mini) {
     for (let d = 0; d < 360; d += 30) {
       const [a0, b0] = pt(c, c, R, d), [a1, b1] = pt(c, c, R - (d % 90 ? 5 : 9), d);
-      s += `<line x1="${a0}" y1="${b0}" x2="${a1}" y2="${b1}" stroke="var(--text-3)" stroke-width="1.5"/>`;
+      s += `<line x1="${a0}" y1="${b0}" x2="${a1}" y2="${b1}" stroke="${sat ? '#fff' : 'var(--text-3)'}" stroke-width="1.5"/>`;
     }
     [['N', 0], ['E', 90], ['S', 180], ['O', 270]].forEach(([t, d]) => {
       const [x, y] = pt(c, c, R - 18, d);
-      s += `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text-2)">${t}</text>`;
+      s += sat
+        ? `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" stroke="rgba(0,0,0,.55)" stroke-width="2.5" paint-order="stroke">${t}</text>`
+        : `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text-2)">${t}</text>`;
     });
   }
   if (swellDir != null) s += arrow(c, c, R - 4, swellDir, '#314ee6', mini ? 9 : 5);
   if (windDir != null) s += arrow(c, c, R - 4, windDir, '#ff8a00', mini ? 7 : 3.5);
-  s += `<circle cx="${c}" cy="${c}" r="${mini ? 5 : 4}" fill="#fff" stroke="var(--text-3)"/>`;
+  s += sat
+    ? `<circle class="data-pt" cx="${c}" cy="${c}" r="6" fill="#00d1ff" stroke="#fff" stroke-width="2"><title>Punto de datos</title></circle>`
+    : `<circle cx="${c}" cy="${c}" r="${mini ? 5 : 4}" fill="#fff" stroke="var(--text-3)"/>`;
   return s + '</svg>';
 }
 

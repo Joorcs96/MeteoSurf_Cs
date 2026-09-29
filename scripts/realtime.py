@@ -7,7 +7,7 @@ Sirve para comparar lo que predice la web con lo que de verdad se mide. Todas la
 gratuitas y no piden clave: la red de Puertos del Estado (Portus), que además es la que la propia
 web oficial usa para pintar sus mapas en tiempo real.
 
-Fuentes y cómo sesacamos cada dato
+Fuentes y cómo sacamos cada dato
 ----------------------------------
 * Oleaje: red de boyas REDEXT de Puertos del Estado. No hay boya en Castellón, así que se usa la
   más cercana que haya en marcha, que hoy es la Boya de Valencia (unos 55 km al sur). Se listan
@@ -17,8 +17,7 @@ Fuentes y cómo sesacamos cada dato
 * Viento: estaciones meteorológicas REMPOR de Puertos del Estado. En el puerto de Castellón hay
   seis, a menos de 5 km, con velocidad, racha y dirección. Se prueban por orden de cercanía hasta
   que una devuelva dato reciente.
-* AEMET queda preparado y desactivado: sólo se consulta si hay clave en la variable de entorno
-  AEMET_API_KEY (se pondría en un secret del workflow). Es el último recurso para el viento.
+* No se usan claves ni servicios autenticados; las tres fuentes proceden de Portus.
 
 API que se usa (descubierta en el propio JavaScript de portus.puertos.es)
 ----------------------------------------------------------------------
@@ -57,6 +56,7 @@ import ssl
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -68,9 +68,6 @@ RAIZ = Path(__file__).resolve().parent.parent
 SALIDA = RAIZ / "data" / "realtime.json"
 
 API_PORTUS = os.environ.get("REALTIME_API_PORTUS", "https://portus.puertos.es/portussvr/api")
-API_AEMET = "https://api.aemet.es/opendata/api/observaciones"
-# Estación de AEMET más próxima a Castellón (Castellón, Almassora). Sólo se usa con clave.
-ESTACION_AEMET = "B228"
 
 TIMEOUT = 25
 
@@ -84,7 +81,7 @@ RADIO_VIENTO_KM = 30.0
 # Cuánto puede envejecer una observación y seguir publicándose. La boya va cada 60 min, el
 # mareógrafo cada 5 y las estaciones de viento cada 10.
 MAX_EDAD_HORAS = {
-    "oleaje": float(os.environ.get("REALTIME_MAX_EDAD_OLEAJE_H", 6)),
+    "oleaje": float(os.environ.get("REALTIME_MAX_EDAD_OLEAJE_H", 3)),
     "nivel_mar": float(os.environ.get("REALTIME_MAX_EDAD_NIVEL_H", 3)),
     "viento": float(os.environ.get("REALTIME_MAX_EDAD_VENTO_H", 3)),
 }
@@ -153,12 +150,10 @@ def grados(valor: float | None) -> int | None:
 # --------------------------------------------------------------------------------------
 # HTTPS
 #
-# puertos.es firma con una cadena de la FNMT que no está en los almacenes de certificados
-# públicos, así que la verificación normal falla contra "self-signed certificate in chain".
-# Se intenta primero con verificación completa; sólo si eso falla se reintenta sin ella, y se
-# deja constancia en el JSON. Los datos son públicos y de sólo lectura, y el riesgo real está
-# en que un valor llegue manipulado; por eso el aviso es explícito y se puede fijar una CA
-# propia con REALTIME_CA_BUNDLE cuando Puertos lo permita.
+# En este host la cadena de Portus falla con "self-signed certificate in chain".
+# Sólo los fallos de confianza en la cadena permiten el reintento, limitado a su API HTTPS
+# pública y sin redirecciones. Sigue existiendo riesgo de datos manipulados: no se autentica
+# el servidor durante el reintento. REALTIME_CA_BUNDLE exige verificar y desactiva la excepción.
 # --------------------------------------------------------------------------------------
 
 
@@ -178,7 +173,22 @@ def contexto_tls(verificar: bool) -> ssl.SSLContext:
 _TLS_SIN_VERIFICAR = False
 
 
+def _es_portus(url: str) -> bool:
+    p = urlsplit(url)
+    return (p.scheme == "https" and p.hostname == "portus.puertos.es"
+            and p.port in (None, 443) and not p.username and not p.password
+            and p.path.startswith("/portussvr/api/"))
+
+
+class _SinRedireccion(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Nunca extender la excepción TLS a un destino indicado por el servidor.
+        raise urllib.error.HTTPError(req.full_url, code, "redirección no permitida", headers, fp)
+
+
 def _descarga(url: str, cuerpo: bytes | None, timeout: int, verificar: bool) -> bytes:
+    if not verificar and not _es_portus(url):
+        raise ValueError("TLS sin verificar sólo permitido para la API HTTPS de Portus")
     peticion = urllib.request.Request(
         url,
         data=cuerpo,
@@ -190,7 +200,9 @@ def _descarga(url: str, cuerpo: bytes | None, timeout: int, verificar: bool) -> 
         },
         method="POST" if cuerpo is not None else "GET",
     )
-    with urllib.request.urlopen(peticion, context=contexto_tls(verificar), timeout=timeout) as r:
+    opener = urllib.request.build_opener(
+        urllib.request.HTTPSHandler(context=contexto_tls(verificar)), _SinRedireccion())
+    with opener.open(peticion, timeout=timeout) as r:
         bruto = r.read()
         if r.headers.get("Content-Encoding") == "gzip":
             bruto = gzip.decompress(bruto)
@@ -210,10 +222,8 @@ def _es_error_de_certificado(exc: BaseException) -> str | None:
         if id(actual) in vistos:
             continue
         vistos.add(id(actual))
-        if isinstance(actual, ssl.SSLCertVerificationError):
+        if isinstance(actual, ssl.SSLCertVerificationError) and actual.verify_code in (18, 19, 20, 21):
             return str(actual.verify_message or actual.reason or actual)
-        if isinstance(actual, ssl.SSLError):
-            return str(actual.reason or actual)
         for atributo in ("reason", "args"):
             valor = getattr(actual, atributo, None)
             if isinstance(valor, BaseException):
@@ -227,17 +237,18 @@ def descarga(url: str, cuerpo=None, timeout: int = TIMEOUT) -> bytes:
     """Descarga bytes, reintentando sin verificación TLS si la cadena de puertos.es no valida."""
     global _TLS_SIN_VERIFICAR
     datos = json.dumps(cuerpo).encode("utf-8") if cuerpo is not None else None
-    if _TLS_SIN_VERIFICAR:
+    permite_excepcion = _es_portus(url) and not os.environ.get("REALTIME_CA_BUNDLE")
+    if _TLS_SIN_VERIFICAR and permite_excepcion:
         return _descarga(url, datos, timeout, verificar=False)
     try:
         return _descarga(url, datos, timeout, verificar=True)
     except Exception as exc:  # noqa: BLE001
         motivo_cert = _es_error_de_certificado(exc) if isinstance(exc, urllib.error.URLError) else None
-        if motivo_cert is None:
+        if motivo_cert is None or not permite_excepcion:
             raise
-        aviso = ("Puertos del Estado firma con una cadena de la FNMT que no está en el almacén "
-                 f"de certificados del sistema ({motivo_cert}); se repite la petición sin "
-                 "verificar el certificado.")
+        aviso = (f"No se pudo verificar la cadena TLS de Portus ({motivo_cert}); "
+                 "se reintenta sólo su API HTTPS pública, sin redirecciones ni verificación "
+                 "del certificado. La autenticidad de estos datos no está garantizada.")
         if aviso not in NOTAS:
             NOTAS.append(aviso)
         _TLS_SIN_VERIFICAR = True
@@ -266,9 +277,18 @@ def catalogo(tipo: str) -> list[dict]:
     datos = pedir_api(f"/estaciones/rt/{tipo}?locale=es")
     if not isinstance(datos, list):
         raise ValueError(f"el catálogo {tipo} no es una lista")
+    validas = []
     for e in datos:
-        e["distancia_km"] = distancia_km(e["latitud"], e["longitud"], REF_LAT, REF_LON)
-    return datos
+        if not isinstance(e, dict) or not isinstance(e.get("id"), int) or not isinstance(e.get("nombre"), str):
+            continue
+        lat, lon = e.get("latitud"), e.get("longitud")
+        if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+            continue
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            continue
+        e["distancia_km"] = distancia_km(lat, lon, REF_LAT, REF_LON)
+        validas.append(e)
+    return validas
 
 
 def elegir_por_cercania(estaciones: list[dict], radio_km: float | None = None) -> list[dict]:
@@ -296,15 +316,18 @@ def leer_observacion(estacion: dict, variables: list[str]) -> dict | None:
     filas = pedir_api(f"/RTData/station/{id_est}?locale=es", ids)
     if not isinstance(filas, list) or not filas:
         return None
-    return _elige_fila(filas)
+    requerido = {"WAVE": "Hm0", "SEA_LEVEL": "SeaLevel", "WIND": "WindSpeed"}.get(variables[0])
+    return _elige_fila(filas, requerido)
 
 
-def _elige_fila(filas: list[dict]) -> dict | None:
+def _elige_fila(filas: list[dict], requerido: str | None = None) -> dict | None:
     """La fila más reciente con valores utilizables."""
     ordenadas = []
     for fila in filas:
+        if not isinstance(fila, dict):
+            continue
         fecha = _fecha_de(fila.get("fecha"))
-        if fecha is None:
+        if fecha is None or fecha > ahora() + timedelta(minutes=5):
             continue
         ordenadas.append((fecha, fila))
     ordenadas.sort(key=lambda x: x[0], reverse=True)
@@ -315,7 +338,7 @@ def _elige_fila(filas: list[dict]) -> dict | None:
             v = _valor_de(dato)
             if v is not None:
                 valores[dato.get("paramEseoo") or dato.get("id")] = v
-        if valores:
+        if valores and (requerido is None or requerido in valores):
             return {"fecha": fecha, "valores": valores, "crudo": fila}
     return None
 
@@ -324,18 +347,16 @@ def _fecha_de(texto: str | None) -> datetime | None:
     """Portus devuelve la hora de observación en GMT, tipo "2026-09-29 22:00:00.0"."""
     if not texto:
         return None
-    limpio = str(texto).strip().replace("T", " ").split("+")[0].split("Z")[0]
-    for formato in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
-        try:
-            return datetime.strptime(limpio, formato).replace(tzinfo=timezone.utc)
-        except ValueError:
-            continue
-    return None
+    try:
+        fecha = datetime.fromisoformat(str(texto).strip().replace("Z", "+00:00"))
+        return (fecha if fecha.tzinfo else fecha.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+    except ValueError:
+        return None
 
 
 def _valor_de(dato: dict) -> float | None:
     """Valor de un parámetro en sus unidades reales, o None si está averiado o es centinela."""
-    if dato.get("averia"):
+    if not isinstance(dato, dict) or dato.get("averia"):
         return None
     bruto = dato.get("valor")
     if bruto is None or bruto == "":
@@ -344,17 +365,22 @@ def _valor_de(dato: dict) -> float | None:
         numero = float(bruto)
     except (TypeError, ValueError):
         return None
-    if math.isnan(numero) or math.isinf(numero):
+    if not math.isfinite(numero) or abs(numero) == 9999:
         return None
-    factor = dato.get("factor") or 1.0
-    valor = numero / float(factor)
+    try:
+        factor = float(dato.get("factor", 1))
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(factor) or factor <= 0:
+        return None
+    valor = numero / factor
     limites = RANGOS.get(dato.get("paramEseoo"))
-    if limites and not (limites[0] <= valor <= limites[1]):
+    if not limites or not (limites[0] <= valor <= limites[1]):
         return None
     return valor
 
 
-def antiguedad_min(fecha: datetime) -> int:
+def antiguedad_min(fecha: datetime) -> float:
     """
     Minutos transcurridos desde la observación.
 
@@ -362,7 +388,7 @@ def antiguedad_min(fecha: datetime) -> int:
     JSON porque cambia en cada ejecución: si fuera dentro, el workflow commitearía cada hora aunque
     las medidas fueran las mismas. Quien lo use la calcula con "fecha".
     """
-    return int((ahora() - fecha).total_seconds() / 60)
+    return (ahora() - fecha).total_seconds() / 60
 
 
 # --------------------------------------------------------------------------------------
@@ -429,18 +455,14 @@ def bloque_oleaje(candidatas: list[dict], errores: list[dict]) -> dict | None:
                         "mensaje": "las boyas cercanas responden pero sin altura de oleaje válida"})
         return None
 
-    if principal["cadencia_min"]:
-        # La boya transmite cada hora: una lectura de hace más de una hora y mediarare ya no
-        # describe la realidad de ahora.
-        margen = max(MAX_EDAD_HORAS["oleaje"], (principal["cadencia_min"] / 60) * 1.5)
-    else:
-        margen = MAX_EDAD_HORAS["oleaje"]
-    antiguedad = antiguedad_min(datetime.strptime(principal["fecha"], "%Y-%m-%dT%H:%M:%SZ")
-                                .replace(tzinfo=timezone.utc))
+    # Preferir una boya reciente; conservar la más cercana como respaldo obsoleto.
+    principal = next((item for item in detalle if item["altura_m"] is not None
+                      and antiguedad_min(_fecha_de(item["fecha"])) <= MAX_EDAD_HORAS["oleaje"] * 60), principal)
+    antiguedad = antiguedad_min(_fecha_de(principal["fecha"]))
     principal = {
         **principal,
         "fuente": "Puertos del Estado · red de boyas REDEXT",
-        "obsoleto": antiguedad > margen * 60,
+        "obsoleto": antiguedad > MAX_EDAD_HORAS["oleaje"] * 60,
     }
     return {"principal": principal, "boyas_cercanas": detalle}
 
@@ -452,6 +474,7 @@ def bloque_nivel_mar(candidatas: list[dict], errores: list[dict]) -> dict | None
                         "mensaje": "no hay ningún mareógrafo disponible cerca de Castellón"})
         return None
 
+    respaldo = None
     for est in candidatas[:3]:
         try:
             obs = leer_observacion(est, ["SEA_LEVEL"])
@@ -466,7 +489,7 @@ def bloque_nivel_mar(candidatas: list[dict], errores: list[dict]) -> dict | None
             continue
         fecha = iso_utc(obs["fecha"])
         antiguedad = antiguedad_min(obs["fecha"])
-        return {
+        bloque = {
             "fuente": "Puertos del Estado · mareógrafo",
             **_estacion(est),
             "fecha": fecha,
@@ -475,77 +498,15 @@ def bloque_nivel_mar(candidatas: list[dict], errores: list[dict]) -> dict | None
             "nota": "Puertos del Estado no tiene mareógrafo en Castellón; se publica el más "
                     "cercano, junto con su distancia.",
         }
+        if not bloque["obsoleto"]:
+            return bloque
+        if respaldo is None:
+            respaldo = bloque
+    if respaldo:
+        return respaldo
     errores.append({"bloque": "nivel_mar", "fuente": "Puertos del Estado",
                     "mensaje": "ningún mareógrafo cercano devolvió nivel de mar válido"})
     return None
-
-
-def bloque_viento_aemet(errores: list[dict]) -> dict | None:
-    """Viento de AEMET. Sólo actúa si hay AEMET_API_KEY; el acceso a datos de AEMet es gratuito."""
-    clave = os.environ.get("AEMET_API_KEY")
-    if not clave:
-        return None
-    hasta = ahora()
-    desde = hasta - timedelta(hours=6)
-    url = (f"{API_AEMET}/fechainicial/{desde.strftime('%Y-%m-%dT%H:%M:%SUTC')}"
-           f"/fechainicial/{hasta.strftime('%Y-%m-%dT%H:%M:%SUTC')}"
-           f"/estacion/{ESTACION_AEMET}?api_key={clave}")
-    try:
-        datos = pedir_json(url, timeout=30)
-    except urllib.error.HTTPError as exc:
-        errores.append({"bloque": "viento", "fuente": "AEMET OpenData",
-                        "mensaje": f"la clave de AEMET no es válida (HTTP {exc.code})"})
-        return None
-    except Exception as exc:  # noqa: BLE001
-        errores.append({"bloque": "viento", "fuente": "AEMET OpenData",
-                        "mensaje": f"no se pudo consultar: {_motivo(exc)}"})
-        return None
-    if not isinstance(datos, dict) or not datos.get("respuesta"):
-        errores.append({"bloque": "viento", "fuente": "AEMET OpenData",
-                        "mensaje": "AEMET no devolvió observaciones"})
-        return None
-
-    # AEMET responde con fecha en UTC y los campos en el idioma de la petición.
-    filas = []
-    for feature in datos["respuesta"]:
-        for prop, obs in (feature.get("properties") or {}).items():
-            fecha = _fecha_de(obs.get("fecha"))
-            if fecha is None:
-                continue
-            def numero(clave_alt, factor):
-                try:
-                    v = obs.get(clave_alt)
-                    return None if v is None else float(v.replace(",", ".")) / factor
-                except (TypeError, ValueError, AttributeError):
-                    return None
-            filas.append({
-                "fecha": fecha,
-                "fecha_texto": obs.get("fecha"),
-                "velocidad_ms": numero("vv", 1.0),
-                "racha_ms": numero("vmax", 1.0),
-                "direccion_grados": numero("dv", 1.0),
-                "temperatura_c": numero("ta", 1.0),
-                "presion_hpa": numero("p", 1.0),
-            })
-    filas.sort(key=lambda f: f["fecha"], reverse=True)
-    usable = next((f for f in filas if f["velocidad_ms"] is not None), None)
-    if usable is None:
-        return None
-    antiguedad = antiguedad_min(usable["fecha"])
-    return {
-        "fuente": "AEMET OpenData",
-        "estacion": f"Estación AEMET {ESTACION_AEMET} (Castellón, Almassora)",
-        "estacion_id": ESTACION_AEMET,
-        "fecha": iso_utc(usable["fecha"]),
-        "velocidad_ms": redondea(usable["velocidad_ms"], 1),
-        "racha_ms": redondea(usable["racha_ms"], 1),
-        "direccion_grados": grados(usable["direccion_grados"]),
-        "direccion": rosa_vientos(grados(usable["direccion_grados"])),
-        "temperatura_c": redondea(usable["temperatura_c"], 1),
-        "presion_hpa": redondea(usable["presion_hpa"], 1),
-        "obsoleto": antiguedad > MAX_EDAD_HORAS["viento"] * 60,
-        "nota": "AEMET publica el viento en m/s y la dirección de procedencia.",
-    }
 
 
 def bloque_viento(candidatas: list[dict], errores: list[dict]) -> dict | None:
@@ -553,10 +514,7 @@ def bloque_viento(candidatas: list[dict], errores: list[dict]) -> dict | None:
     if not candidatas:
         errores.append({"bloque": "viento", "fuente": "Puertos del Estado",
                         "mensaje": f"no hay estación de viento en un radio de "
-                                   f"{RADIO_VENTO_KM:.0f} km"})
-        aemet = bloque_viento_aemet(errores)
-        if aemet:
-            return aemet
+                                   f"{RADIO_VIENTO_KM:.0f} km"})
         return None
 
     # Se prueban hasta tres estaciones por cercanía y se queda con la primera lectura válida. Si
@@ -598,24 +556,11 @@ def bloque_viento(candidatas: list[dict], errores: list[dict]) -> dict | None:
         if respaldo is None:
             respaldo = bloque
         errores.append({"bloque": "viento", "fuente": f"{est['nombre']} ({est['id']})",
-                        "mensaje": f"la última observación es de hace {antiguedad} min"})
-
-    # Si todo lo de Puertos está viejo, se pregunta a AEMET antes de resignarse: puede tener
-    # lectura reciente. Sólo si AEMET tampoco sirve se devuelve el dato viejo marcado.
-    aemet = bloque_viento_aemet(errores)
-    if aemet and not aemet["obsoleto"]:
-        return aemet
+                        "mensaje": f"la última observación es antigua: {bloque['fecha']}"})
 
     if respaldo is not None:
-        respaldo["nota"] = (f"{respaldo['nota']} La observación es antigua: se marca como "
-                            "obsoleta y no debe usarse como el viento actual.")
-        if aemet:
-            respaldo["nota"] += (f" AEMET tampoco tenía lectura reciente: "
-                                 f"{aemet['nota']}")
         return respaldo
 
-    if aemet:
-        return aemet
     errores.append({"bloque": "viento", "fuente": "Puertos del Estado",
                     "mensaje": "ninguna estación cercana devolvió viento válido"})
     return None
@@ -695,10 +640,12 @@ def comparable(datos: dict) -> str:
 
 def escribir(datos: dict, destino: Path) -> None:
     destino.parent.mkdir(parents=True, exist_ok=True)
-    texto = json.dumps(datos, ensure_ascii=False, indent=2) + "\n"
+    texto = json.dumps(datos, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
     # newline="\n" para que el fichero sea idéntico en Windows y en el runner de GitHub.
-    with open(destino, "w", encoding="utf-8", newline="\n") as f:
+    temporal = destino.with_suffix(destino.suffix + ".tmp")
+    with open(temporal, "w", encoding="utf-8", newline="\n") as f:
         f.write(texto)
+    temporal.replace(destino)
 
 
 def resumen(datos: dict) -> str:

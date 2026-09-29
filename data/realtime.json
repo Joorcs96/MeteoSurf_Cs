@@ -1,6 +1,6 @@
 {
-  "generado": "2026-09-29T22:34:49Z",
-  "generado_local": "2026-09-30T00:34:49+02:00",
+  "generado": "2026-09-29T23:01:39Z",
+  "generado_local": "2026-09-30T01:01:39+02:00",
   "ok": true,
   "referencia": {
     "lugar": "Castellón de la Plana",
@@ -71,11 +71,11 @@
         "lat": 41.07,
         "lon": 1.19,
         "distancia_km": 155.5,
-        "fecha": "2026-09-29T21:00:00Z",
-        "altura_m": 0.61,
-        "altura_max_m": 0.91,
-        "periodo_s": 7.6,
-        "periodo_medio_s": 4.3,
+        "fecha": "2026-09-29T22:00:00Z",
+        "altura_m": 0.56,
+        "altura_max_m": 0.82,
+        "periodo_s": 7.5,
+        "periodo_medio_s": 4.4,
         "direccion_grados": 116,
         "direccion_pico_grados": null,
         "temperatura_agua_c": 26.7,
@@ -92,8 +92,8 @@
     "lat": 39.63392,
     "lon": -0.20624,
     "distancia_km": 43.9,
-    "fecha": "2026-09-29T22:33:00Z",
-    "nivel_m": 0.098,
+    "fecha": "2026-09-29T23:00:00Z",
+    "nivel_m": 0.084,
     "obsoleto": false,
     "nota": "Puertos del Estado no tiene mareógrafo en Castellón; se publica el más cercano, junto con su distancia."
   },
@@ -104,18 +104,18 @@
     "lat": 39.97736,
     "lon": 0.02505,
     "distancia_km": 1.0,
-    "fecha": "2026-09-29T22:20:00Z",
-    "velocidad_ms": 0.5,
-    "racha_ms": 1.1,
-    "direccion_grados": 264,
+    "fecha": "2026-09-29T22:50:00Z",
+    "velocidad_ms": 0.7,
+    "racha_ms": 1.4,
+    "direccion_grados": 278,
     "direccion": "O",
-    "temperatura_c": 23.4,
+    "temperatura_c": 23.1,
     "cadencia_min": 10,
     "obsoleto": false,
     "nota": "La dirección es la de procedencia, de dónde viene el viento."
   },
   "notas": [
-    "Puertos del Estado firma con una cadena de la FNMT que no está en el almacén de certificados del sistema (self-signed certificate in certificate chain); se repite la petición sin verificar el certificado."
+    "No se pudo verificar la cadena TLS de Portus (self-signed certificate in certificate chain); se reintenta sólo su API HTTPS pública, sin redirecciones ni verificación del certificado. La autenticidad de estos datos no está garantizada."
   ],
   "errores": []
 }

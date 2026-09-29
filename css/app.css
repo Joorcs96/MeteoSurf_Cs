@@ -120,6 +120,12 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .rating { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
 .rating::before { content: ''; width: 10px; height: 10px; border-radius: 3px; background: var(--rc); }
 .rating-bar { height: 6px; border-radius: 3px; background: var(--rc); }
+.stars { display: inline-flex; align-items: center; gap: 1px; vertical-align: middle; }
+.stars svg { width: 12px; height: 12px; display: block; }
+.good-day { background: color-mix(in srgb, var(--rc) 18%, var(--surface)); border-color: var(--rc) !important; }
+.good-day-label { display: block; color: var(--rc); font-size: 8px; line-height: 1.1; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.day .stars { margin: 2px 0 5px; }
+.day.good-day .good-day-label { margin-top: 2px; }
 .rating-pill { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--rc); color: #0b1b2b; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
 .r0 { --rc: var(--r-flat); } .r1 { --rc: var(--r-vpoor); } .r2 { --rc: var(--r-poor); } .r3 { --rc: var(--r-poorfair); }
 .r4 { --rc: var(--r-fair); } .r5 { --rc: var(--r-fairgood); } .r6 { --rc: var(--r-good); } .r7 { --rc: var(--r-epic); }
@@ -156,6 +162,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .spark { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
 .spark div { display: flex; flex-direction: column; gap: 3px; align-items: stretch; text-align: center; }
 .spark i { display: block; height: 5px; border-radius: 2px; background: var(--rc); }
+.spark i.good-day-bar { height: 8px; }
 .spark span { font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; }
 .live-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: .04em; }
 .live-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 0 3px rgba(255,59,59,.3); }
@@ -186,12 +193,15 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .report p { margin: 0 0 10px; } .report p:last-child { margin-bottom: 0; }
 
 /* Tendencia larga */
-.lr-head, .lr-row { display: grid; grid-template-columns: 76px 64px 72px 1fr 1fr 58px; gap: 8px; align-items: center; padding: 10px 14px; font-size: 13px; }
+.lr-head, .lr-row { display: grid; grid-template-columns: 76px 64px 64px 72px 1fr 1fr 58px; gap: 8px; align-items: center; padding: 10px 14px; font-size: 13px; }
 .lr-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); border-bottom: 1px solid var(--line); }
 .lr-row + .lr-row { border-top: 1px solid var(--line); }
 .lr-day { display: flex; flex-direction: column; line-height: 1.2; }
 .lr-day span { font-size: 11px; }
 .lr-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.lr-stars { display: flex; justify-content: center; }
+.lr-stars .stars svg { width: 9px; height: 9px; }
+.lr-row.good-day { border: 1px solid var(--rc); border-radius: 6px; margin: 2px 6px; padding: 8px; }
 .lr-bars div { height: 12px; border-radius: 3px; background: var(--rc); }
 .lr-sw, .lr-w { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 560px) {
@@ -260,6 +270,9 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; }
 .ftable .daysep { border-left: 2px solid var(--text-3); }
 .ftable td.cell-r { padding: 0; }
 .ftable td.cell-r div { height: 22px; background: var(--rc); }
+.ftable td.star-cell { padding: 4px 2px; }
+.ftable td.star-cell .stars svg { width: 9px; height: 9px; }
+.ftable thead th.good-day { background: color-mix(in srgb, var(--rc) 18%, var(--surface-2)); }
 .ftable .big { font-weight: 800; font-size: 13px; }
 .ftable tr.now-col td.nowc { outline: 2px solid var(--brand); outline-offset: -2px; }
 .hcell { color: var(--text); }

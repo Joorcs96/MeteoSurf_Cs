@@ -40,6 +40,14 @@ const dayName = (date, i) => {
 const dayShort = (date) => { const d = new Date(date + 'T12:00:00'); return `${d.getDate()} ${MON[d.getMonth()]}`; };
 const ratingCls = (r) => `r${r}`;
 const ratingLabel = (r) => RATINGS[r]?.label ?? '–';
+const starRating = (r) => r <= 1 ? 0 : r === 2 ? 1 : r === 3 ? 2 : r === 4 ? 3 : r === 5 ? 4 : 5;
+function stars(r) {
+  const n = starRating(Number(r) || 0);
+  const icon = (filled) => `<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="${filled ? '#ffb400' : 'var(--line)'}" d="M10 1.5l2.5 5.1 5.6.8-4 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4-4 5.6-.8z"/></svg>`;
+  return `<span class="stars" aria-label="${n} de 5 estrellas">${[0, 1, 2, 3, 4].map((i) => icon(i < n)).join('')}</span>`;
+}
+const goodDay = (d) => Number(d?.rating) >= 5;
+const goodLabel = (r) => Number(r) >= 6 ? 'Día muy bueno' : 'Día bueno';
 const hClass = (h) => `hc${h < 0.2 ? 0 : h < 0.4 ? 1 : h < 0.6 ? 2 : h < 0.9 ? 3 : h < 1.3 ? 4 : h < 2 ? 5 : 6}`;
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ICON = {
@@ -186,7 +194,7 @@ function spotCard(s) {
         <div style="min-width:0;flex:1">
           <div class="name">${esc(s.name)}${cam ? ' <span class="cam-dot" title="Cámara en directo">' + ICON.cam + '</span>' : ''}</div>
           <div class="zone">${esc(s.zoneName)}</div>
-          ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span></div>` : '<div class="skeleton" style="height:28px;margin-top:6px"></div>'}
+          ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span>${stars(h.rating)}</div>` : '<div class="skeleton" style="height:28px;margin-top:6px"></div>'}
         </div>
         <div class="mini-compass">${compassSVG(s, { swellDir: sw?.dir, windDir: h?.windDir, mini: true })}</div>
         <button class="fav-btn fav ${favs.has(s.id) ? 'on' : ''}" data-fav="${esc(s.id)}" aria-label="Favorito">${ICON.star}</button>
@@ -260,10 +268,10 @@ function renderSpot(id) {
       <div class="a-fc">
         ${f ? `
         <div class="section-title" id="s-prevision">Previsión detallada · próximos 4 días</div>
-        <div class="days">${f.days.map((d, i) => `<button class="day ${i === state.dayIdx ? 'on' : ''}" data-day="${i}">
+        <div class="days">${f.days.map((d, i) => `<button class="day ${i === state.dayIdx ? 'on' : ''} ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}" data-day="${i}">
           ${i === bestDayIdx ? '<span class="day-badge-watch">MEJOR</span>' : ''}
           <div class="dn">${dayName(d.date, i)}</div><div class="dd">${dayShort(d.date)}</div>
-          <div class="dh num">${range({ min: d.surfMin, max: d.surfMax })}<small> m</small></div>
+          ${goodDay(d) ? `<span class="good-day-label">${goodLabel(d.rating)}</span>` : ''}<div class="dh num">${range({ min: d.surfMin, max: d.surfMax })}<small> m</small></div>${stars(d.rating)}
           <div class="rating-bar ${ratingCls(d.rating)}"></div></button>`).join('')}</div>
         <div class="card pad chart-wrap" style="margin-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
@@ -352,7 +360,7 @@ function nowPanel(spot, f, h) {
     <div class="wide" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
       <div><div class="k">Ahora · ${h.hour}:00</div><div class="hero-wave num">${range(h.surf)}<small> m</small></div>
         <div class="d">${surfWords(h.surf.mid)}</div></div>
-      <span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>
+      <span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>${stars(h.rating)}
     </div>
     <div class="wide"><div class="k">Mar de fondo</div>
       ${h.swells.slice(0, 3).map((s, i) => `<div class="swell-line num"><span class="dot s${i + 1}"></span>${m(s.h)} m · ${s.t ? s.t.toFixed(0) : '–'} s · ${compass(s.dir)} ${Math.round(s.dir)}° ${dirArrow(s.dir)} <span class="faint" style="font-weight:500">${s.kind}</span></div>`).join('') || '<div class="muted">Sin mar de fondo</div>'}
@@ -492,10 +500,11 @@ function hourlyTable(f, dayIdx) {
   const td = (c, i, inner, cls = '') => `<td class="${cls}${c.first ? ' daysep' : ''}${i === nowCol && dayIdx === 0 ? ' nowc' : ''}">${inner}</td>`;
   const row = (label, fn, rowCls = '') => `<tr class="${rowCls}"><td class="lbl">${label}</td>${cols.map((c, i) => fn(c, i)).join('')}</tr>`;
   let s = '<table class="ftable num"><thead>';
-  s += `<tr><th class="lbl"></th>${days.map((d, i) => `<th colspan="${cols.filter((c) => c.d === d).length}" class="daysep">${dayName(d.date, dayIdx + i)} ${dayShort(d.date)}</th>`).join('')}</tr>`;
+  s += `<tr><th class="lbl"></th>${days.map((d, i) => `<th colspan="${cols.filter((c) => c.d === d).length}" class="daysep ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}">${dayName(d.date, dayIdx + i)} ${dayShort(d.date)}</th>`).join('')}</tr>`;
   s += `<tr><th class="lbl">Hora</th>${cols.map((c) => `<th class="${c.first ? 'daysep' : ''}">${c.h.hour}h</th>`).join('')}</tr></thead><tbody>`;
   const kjCls = (e) => e == null ? '' : e < 50 ? 'kj-0' : e < 150 ? 'kj-1' : e < 400 ? 'kj-2' : 'kj-3';
   s += row('Calidad', (c, i) => td(c, i, `<div class="${ratingCls(c.h.rating)}" title="${ratingLabel(c.h.rating)}"></div>`, 'cell-r'));
+  s += row('Estrellas', (c, i) => td(c, i, stars(c.h.rating), 'star-cell'));
   s += row('Surf (m)', (c, i) => td(c, i, range(c.h.surf), `big hcell ${hClass(c.h.surf.mid)}`));
   s += row('Mar total', (c, i) => td(c, i, `${m(c.h.waveHeight)}`));
   s += row('Energía', (c, i) => td(c, i, c.h.energy || '–', kjCls(c.h.energy)));
@@ -524,16 +533,17 @@ function longRange(f) {
     const a = half(am), p = half(pm), b = d.best, sw = b.swells[0];
     const winds = d.hours.filter((h) => h.hour >= 7 && h.hour <= 20).map((h) => h.windSpeed);
     const conf = i < 7 ? 'Media' : i < 10 ? 'Baja' : 'Muy baja';
-    return `<div class="lr-row">
+    const bestRating = Math.max(d.rating ?? 0, a.rating, p.rating);
+    return `<div class="lr-row ${goodDay({ rating: bestRating }) ? `good-day ${ratingCls(bestRating)}` : ''}">
       <div class="lr-day"><b>${dayName(d.date, i)}</b><span class="faint">${dayShort(d.date)}</span></div>
-      <div class="lr-bars" title="Mañana: ${ratingLabel(a.rating)} · Tarde: ${ratingLabel(p.rating)}"><div class="${ratingCls(a.rating)}"></div><div class="${ratingCls(p.rating)}"></div></div>
+      <div class="lr-bars" title="Mañana: ${ratingLabel(a.rating)} · Tarde: ${ratingLabel(p.rating)}"><div class="${ratingCls(a.rating)}"></div><div class="${ratingCls(p.rating)}"></div></div><div class="lr-stars">${stars(bestRating)}</div>
       <div class="lr-h num"><b>${range({ min: d.surfMin, max: d.surfMax })}</b> m</div>
       <div class="lr-sw num">${sw ? `${m(sw.h)} m ${sw.t ? Math.round(sw.t) + ' s' : ''} ${dirArrow(sw.dir)} ${compass(sw.dir)}` : '–'}</div>
       <div class="lr-w num">${dirArrow(b.windDir)} ${Math.round(Math.min(...winds))}–${Math.round(Math.max(...winds))} km/h</div>
       <div class="lr-c faint">${conf}</div>
     </div>`;
   }).join('');
-  return `<div class="lr-head"><span>Día</span><span>Mañ · Tarde</span><span>Surf</span><span>Mar de fondo</span><span>Viento</span><span>Fiab.</span></div>${rows}`;
+  return `<div class="lr-head"><span>Día</span><span>Mañ · Tarde</span><span>Estrellas</span><span>Surf</span><span>Mar de fondo</span><span>Viento</span><span>Fiab.</span></div>${rows}`;
 }
 
 function tideChart(day) {

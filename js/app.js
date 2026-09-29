@@ -17,12 +17,16 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('msc_' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('msc_' + k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } }
 };
-const favs = new Set(store.get('favs', []));
+const DEFAULT_FAVS = ['Planetario', 'Voramar', 'MorroGos', 'Palaciet'];
+const savedFavs = store.get('favs', null);
+const favs = new Set(Array.isArray(savedFavs) && savedFavs.length ? savedFavs : DEFAULT_FAVS);
+if (!Array.isArray(savedFavs) || !savedFavs.length) store.set('favs', [...favs]);
 const toggleFav = (id) => { favs.has(id) ? favs.delete(id) : favs.add(id); store.set('favs', [...favs]); };
 
 // Planetario siempre primero; el resto en el orden de la costa
 const DEFAULT_SPOT = 'Planetario';
 const ordered = () => [...SPOTS].sort((a, b) => (b.id === DEFAULT_SPOT) - (a.id === DEFAULT_SPOT));
+const favoriteSpots = () => [...favs].map((id) => SPOTS.find((s) => s.id === id)).filter(Boolean);
 
 // ---------- Formato ----------
 const m = (x) => (x == null ? '–' : x < 0.95 ? x.toFixed(1) : x.toFixed(1));
@@ -72,6 +76,7 @@ function route() {
   const h = location.hash.replace(/^#\/?/, '');
   const [page, arg] = h.split('/');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
+  renderQuickSpots();
   document.querySelectorAll('.cam').forEach(stopCam);
   if (page === 'spot' && arg) return renderSpot(decodeURIComponent(arg));
   if (page === 'mapa') return renderMap();
@@ -87,7 +92,7 @@ function renderHome() {
   document.title = 'MeteoSurf_Cs · Previsión de surf en Castellón';
   const fc = state.fc;
   const zones = [['all', 'Todos'], ['fav', 'Favoritos'], ['cams', 'Con cámara'], ['offshore', 'Terral ahora'], ...ZONES.map((z) => [z.id, z.name])];
-  const spots = ordered().filter((s) => {
+  const spots = (state.zone === 'fav' ? favoriteSpots() : ordered()).filter((s) => {
     if (state.zone === 'all') return true;
     if (state.zone === 'fav') return favs.has(s.id);
     if (state.zone === 'cams') return camsForSpot(s).length > 0;
@@ -107,11 +112,22 @@ function renderHome() {
       </div>
     </div>
 
-    <div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>
+    ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
     <div class="chips" role="tablist">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
     <div class="section-title">Ahora mismo<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">Próximos 7 días ▸</span></div>
     <div class="spot-grid">${spots.length ? spots.map(spotCard).join('') : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa la estrella de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
     ${footer()}`;
+
+  if (state.zone === 'fav') {
+    view.querySelector('#region-report')?.remove();
+    const heading = view.querySelector('.section-title');
+    if (heading) heading.innerHTML = 'Mis spots<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">Ahora + mejor franja de hoy</span>';
+  }
+
+  if (state.zone === 'fav' && spots.length) {
+    const grid = view.querySelector('.spot-grid');
+    if (grid) grid.outerHTML = favoriteComparison(spots);
+  }
 
   view.querySelectorAll('[data-zone]').forEach((b) => b.addEventListener('click', () => {
     state.zone = b.dataset.zone;
@@ -119,12 +135,56 @@ function renderHome() {
     renderHome();
   }));
   bindFavs();
-  if (fc) assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p><a href="#/asistente">Preguntar al asistente</a></p>'); })
+  if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p><a href="#/asistente">Preguntar al asistente</a></p>'); })
     .catch(() => $('#region-report')?.remove());
   else $('#region-report')?.remove();
 }
 
 // Parte plegable: titular de una línea con la mejor ventana y el texto completo al desplegar
+function bestWindowToday(f) {
+  const day = f?.days?.[0];
+  if (!day?.hours?.length) return null;
+  const daylight = day.hours.filter((h) => h.hour >= 7 && h.hour <= 20);
+  const pool = daylight.length ? daylight : day.hours;
+  const bestRating = Math.max(...pool.map((h) => h.rating));
+  const best = pool.filter((h) => h.rating === bestRating)
+    .reduce((a, b) => (b.surf.mid > a.surf.mid ? b : a));
+  const bestPos = pool.indexOf(best);
+  let first = bestPos;
+  let last = bestPos;
+  while (first > 0 && pool[first - 1].rating === bestRating) first--;
+  while (last < pool.length - 1 && pool[last + 1].rating === bestRating) last++;
+  return { best, from: pool[first].hour, to: pool[last].hour + 1 };
+}
+
+function renderQuickSpots() {
+  const nav = $('#quick-spots');
+  if (!nav) return;
+  const spots = favoriteSpots();
+  nav.innerHTML = spots.map((s) => `<a href="#/spot/${encodeURIComponent(s.id)}" class="quick-spot ${state.spotId === s.id ? 'active' : ''}" aria-label="Abrir previsión de ${esc(s.name)}"${state.spotId === s.id ? ' aria-current="page"' : ''}><span>${esc(s.name)}</span></a>`).join('');
+  nav.setAttribute('aria-label', spots.length ? 'Mis spots' : 'Spots favoritos');
+}
+
+function favoriteComparison(spots) {
+  return `<div class="fav-comparison" aria-label="Comparativa de mis spots">${spots.map((s) => {
+    const f = state.fc?.spots[s.id];
+    const h = f?.hours?.[nowIndex(f.hours)];
+    const sw = h?.swells?.[0];
+    const win = bestWindowToday(f);
+    return `<article class="card fav-row">
+      <a class="fav-row-head" href="#/spot/${encodeURIComponent(s.id)}"><strong>${esc(s.name)}</strong><span>${esc(s.zoneName)}</span></a>
+      ${h ? `<div class="fav-now" aria-label="Condiciones actuales">
+        <div><span>Altura</span><b class="num">${range(h.surf)} m</b></div>
+        <div><span>Periodo</span><b class="num">${h.wavePeriod ? Math.round(h.wavePeriod) + ' s' : '–'}</b></div>
+        <div><span>Dirección</span><b>${sw ? `${dirArrow(sw.dir)} ${compass(sw.dir)}` : '–'}</b></div>
+        <div><span>Viento</span><b>${Math.round(h.windSpeed)} km/h <em class="wind-tag wind-${h.wind.key}">${esc(h.wind.label)}</em></b></div>
+        <div><span>Calidad</span><b class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</b></div>
+      </div>
+      <div class="fav-best"><span>Mejor franja de hoy</span><strong>${win ? `${String(win.from).padStart(2, '0')}:00–${String(win.to).padStart(2, '0')}:00 · ${range(win.best.surf)} m · ${esc(win.best.wind.label.toLowerCase())}` : 'Sin datos'}</strong></div>` : '<div class="fav-loading">Cargando previsión…</div>'}
+    </article>`;
+  }).join('')}</div>`;
+}
+
 function reportBox(ai, spots, fullHtml) {
   const fc = state.fc;
   const wins = ai.bestWindows(fc, spots, { days: 4, minRating: 3 });
@@ -222,6 +282,7 @@ function renderSpot(id) {
   const spot = SPOTS.find((s) => s.id === id);
   if (!spot) { location.hash = '#/'; return; }
   if (state.spotId !== id) { state.dayIdx = 0; state.camIdx = 0; state.spotId = id; }
+  renderQuickSpots();
   document.title = `${spot.name} · MeteoSurf_Cs`;
   const f = state.fc?.spots[id];
   const cams = camsForSpot(spot);
@@ -346,6 +407,27 @@ function renderSpot(id) {
     view.querySelectorAll('[data-day]').forEach((x) => x.classList.toggle('on', x === b));
     drawDay(spot, f);
   }));
+  const spotLayout = $('.spot-layout');
+  if (spotLayout) {
+    let touchStart = null;
+    const isScrollableTarget = (target) => target.closest('a, button, input, select, textarea, .days, .chart-wrap, .ftable-wrap');
+    spotLayout.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1 || isScrollableTarget(e.target)) { touchStart = null; return; }
+      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, { passive: true });
+    spotLayout.addEventListener('touchend', (e) => {
+      if (!touchStart || e.changedTouches.length !== 1) return;
+      const dx = e.changedTouches[0].clientX - touchStart.x;
+      const dy = e.changedTouches[0].clientY - touchStart.y;
+      touchStart = null;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      const spots = favoriteSpots();
+      const current = spots.findIndex((s) => s.id === id);
+      if (current < 0 || spots.length < 2) return;
+      const next = spots[(current + (dx < 0 ? 1 : -1) + spots.length) % spots.length];
+      location.hash = `#/spot/${encodeURIComponent(next.id)}`;
+    }, { passive: true });
+  }
   bindFavs();
   if (f) drawDay(spot, f);
 }

@@ -82,7 +82,7 @@ export const SPOTS = [
     desc: 'Al sur del puerto de Castellón, que la abriga del Norte y del Gregal. Pide mar del Este o Sudeste.'
   }),
   S({
-    id: 'Palaciet', name: 'El Palaciet', zone: 'sur', zoneName: 'Almassora',
+    id: 'Palaciet', name: 'El Palaciet', zone: 'sur', zoneName: 'Burriana · El Coso',
     lat: 39.90453, lon: -0.01584, facing: 143,
     bottom: 'Arena fina', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO',
     desc: 'Playa tranquila de Almassora con rompiente suave; buena opción de tablón con mar pequeño.'

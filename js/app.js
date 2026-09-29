@@ -1,12 +1,12 @@
 // app.js — MeteoSurf_Cs: rutas, vistas y renderizado.
 import { SPOTS, ZONES } from './spots.js';
-import { loadForecast, nowIndex, tideExtremes, compass, RATINGS, norm360 } from './forecast.js';
+import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360 } from './forecast.js';
 import { compassSVG, dirArrow } from './compass.js';
 import { loadCams, camsForSpot, playCam, stopCam, camThumb } from './cams.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
-const state = { fc: null, zone: 'all', dayIdx: 0, camIdx: 0, spotId: null };
+const state = { fc: null, realtime: null, zone: 'all', dayIdx: 0, camIdx: 0, spotId: null };
 
 // Asistente de previsión (se carga aparte para no retrasar el primer pintado)
 let aiMod = null;
@@ -67,6 +67,76 @@ const ICON = {
 
 const WIND_SHORT = { glassy: 'Calma', offshore: 'Terral', crossoff: 'T.cruz', cross: 'Cruz', crosson: 'M.cruz', onshore: 'Mar' };
 
+// ---------- Observaciones de Puertos del Estado ----------
+const realNumber = (v, min, max) => Number.isFinite(v) && v >= min && v <= max;
+const realValue = (v, unit, decimals = 1, min = 0, max = 100) =>
+  realNumber(v, min, max) ? `${v.toLocaleString('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ${unit}` : 'Sin dato';
+function realStatus(obs) {
+  const age = antiguedadRealtime(obs);
+  const stale = age == null || age > 180 || obs?.obsoleto === true;
+  const elapsed = age == null ? 'Sin fecha válida' : age < 1 ? 'hace menos de 1 min'
+    : age < 60 ? `hace ${Math.floor(age)} min` : `hace ${Math.floor(age / 60)} h${Math.floor(age % 60) ? ` ${Math.floor(age % 60)} min` : ''}`;
+  return { stale, label: obs ? `${elapsed}${stale ? ' · dato antiguo o no válido' : ''}` : 'Sin datos disponibles' };
+}
+function realDirection(obs) {
+  return realNumber(obs?.direccion_grados, 0, 360) ? `${compass(obs.direccion_grados)} ${Math.round(obs.direccion_grados)}°` : 'dirección sin dato';
+}
+function realSource(obs, spot) {
+  if (!obs) return '';
+  let distance = '';
+  if (spot && realNumber(obs.lat, -90, 90) && realNumber(obs.lon, -180, 180)) {
+    const rad = Math.PI / 180;
+    const a = Math.sin((obs.lat - spot.lat) * rad / 2) ** 2 + Math.cos(spot.lat * rad) * Math.cos(obs.lat * rad) * Math.sin((obs.lon - spot.lon) * rad / 2) ** 2;
+    const km = 12742 * Math.asin(Math.sqrt(Math.min(1, a)));
+    distance = ` · a ${Math.max(1, Math.round(km))} km del spot`;
+  } else if (realNumber(obs.distancia_km, 0, 20000)) {
+    distance = ` · a ${Math.round(obs.distancia_km)} km de Castellón`;
+  }
+  return esc(`${String(obs.estacion || 'Estación de Puertos del Estado').replace('Mareografo', 'Mareógrafo')}${distance}`);
+}
+function realComparison(spot, obs) {
+  if (realStatus(obs).stale || !realNumber(obs?.altura_m, 0, 20) || state.fc?.stale) return '';
+  // Open-Meteo devuelve horas civiles de Madrid, incluso si el visitante está en otra zona.
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date(obs.fecha)).map((p) => [p.type, p.value]));
+  const key = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}`;
+  const matching = state.fc?.spots[spot.id]?.hours.filter((h) => h.time.slice(0, 13) === key) || [];
+  // Sin coincidencia (o con hora duplicada por cambio de hora), no inventar comparación.
+  if (matching.length !== 1 || !realNumber(matching[0].waveHeight, 0, 20)) return '';
+  return `<p class="realtime-compare">${parts.hour}:00 · Previsto ${realValue(matching[0].waveHeight, 'm', 1, 0, 20)}, real ${realValue(obs.altura_m, 'm', 1, 0, 20)}<span>Oleaje mar adentro del spot frente a la boya; son lugares distintos.</span></p>`;
+}
+function realtimeCard(spot) {
+  const wave = state.realtime?.oleaje?.principal;
+  const wind = state.realtime?.viento;
+  const sea = state.realtime?.nivel_mar;
+  const row = (label, obs, valid, values) => {
+    const status = realStatus(obs);
+    return `<div class="realtime-row${status.stale || !valid ? ' is-stale' : ''}"><div class="realtime-row-top"><b>${label}</b><span>${esc(status.label)}</span></div>
+      <div class="realtime-values">${valid ? values : 'Sin datos disponibles'}</div>${obs ? `<div class="realtime-source">${realSource(obs, spot)}</div>` : ''}</div>`;
+  };
+  return `<section class="card realtime-card" aria-label="Datos reales ahora"><h2>Datos reales ahora</h2>
+    <p class="realtime-credit"><a href="https://portus.puertos.es/" target="_blank" rel="noopener">Puertos del Estado</a> · observaciones cercanas</p>
+    ${row('Boya', wave, realNumber(wave?.altura_m, 0, 20), `<strong>${realValue(wave?.altura_m, 'm', 1, 0, 20)}</strong> · ${realValue(wave?.periodo_s, 's', 1, 0, 30)} · ${realDirection(wave)}`)}
+    ${row('Viento real', wind, realNumber(wind?.velocidad_ms, 0, 75), `<strong>${realValue(wind?.velocidad_ms * 3.6, 'km/h', 0, 0, 270)}</strong> · racha ${realValue(wind?.racha_ms == null ? null : wind.racha_ms * 3.6, 'km/h', 0, 0, 360)} · ${realDirection(wind)}`)}
+    ${row('Nivel del mar', sea, realNumber(sea?.nivel_m, -3, 5), `<strong>${realValue(sea?.nivel_m, 'm', 2, -3, 5)}</strong> · referencia del mareógrafo`)}
+    ${realComparison(spot, wave)}
+  </section>`;
+}
+function realtimeLine() {
+  const wave = state.realtime?.oleaje?.principal;
+  const status = realStatus(wave);
+  const valid = realNumber(wave?.altura_m, 0, 20);
+  return `<p class="realtime-line${status.stale || !valid ? ' is-stale' : ''}"><b>${esc(wave?.estacion || 'Boya')}</b> · ${valid ? `${realValue(wave.altura_m, 'm', 1, 0, 20)} · ${realValue(wave.periodo_s, 's', 1, 0, 30)} · ${realDirection(wave)}` : 'Sin datos disponibles'}<span>${esc(status.label)}${wave ? ` · ${realNumber(wave.distancia_km, 0, 20000) ? `${Math.round(wave.distancia_km)} km de Castellón · ` : ''}Puertos del Estado` : ''}</span></p>`;
+}
+function updateRealtime() {
+  document.querySelectorAll('[data-realtime-spot]').forEach((el) => {
+    const spot = SPOTS.find((s) => s.id === el.dataset.realtimeSpot);
+    if (spot) el.innerHTML = realtimeCard(spot);
+  });
+  document.querySelectorAll('[data-realtime-list]').forEach((el) => { el.innerHTML = realtimeLine(); });
+}
+
 function toast(t) {
   const el = document.createElement('div');
   el.className = 'toast'; el.textContent = t;
@@ -118,6 +188,7 @@ function renderHome() {
     ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
     <div class="chips" role="tablist">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
     <div class="section-title">Ahora mismo<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">Próximos 7 días ▸</span></div>
+    ${state.zone === 'fav' ? `<div data-realtime-list>${realtimeLine()}</div>` : ''}
     <div class="spot-grid">${spots.length ? spots.map(spotCard).join('') : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa la estrella de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
     ${footer()}`;
 
@@ -326,6 +397,7 @@ function renderSpot(id) {
         <div class="cam-source" id="cam-source"></div>
       </div>
       <div class="a-now" id="s-ahora">
+        <div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div>
         ${h ? nowPanel(spot, f, h) : loadingBlock()}
         <div id="spot-report" style="margin-top:12px"><div class="skeleton" style="height:56px"></div></div>
       </div>
@@ -780,11 +852,14 @@ function footer() {
 
 // ---------- Arranque ----------
 async function refresh(force = false) {
+  const realtime = loadRealtime().then((data) => { state.realtime = data; updateRealtime(); });
   try {
     state.fc = await loadForecast({ force });
   } catch (e) {
     view.insertAdjacentHTML('afterbegin', `<div class="banner">No se ha podido descargar la previsión (${esc(e.message)}). Revisa la conexión y vuelve a intentarlo.</div>`);
     return;
+  } finally {
+    await realtime;
   }
   route();
 }
@@ -803,6 +878,8 @@ async function init() {
   await refresh();
   // Refresco automático cada 30 min si la pestaña está visible
   setInterval(() => { if (document.visibilityState === 'visible') refresh(true); }, 30 * 60 * 1000);
+  setInterval(() => { if (document.visibilityState === 'visible') updateRealtime(); }, 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') updateRealtime(); });
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').then((reg) => {
       reg.addEventListener('updatefound', () => {

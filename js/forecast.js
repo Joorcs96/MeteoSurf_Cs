@@ -74,12 +74,15 @@ export async function loadRealtime({ ruta = 'data/realtime.json' } = {}) {
   return datos && typeof datos === 'object' && !Array.isArray(datos) ? datos : null;
 }
 
-// Minutos desde la última actualización de los datos reales; null si no hay fecha legible.
+// Minutos desde la observación; nunca usar la fecha de descarga como edad del sensor.
 // Sirve para no pintar como "ahora" una observación vieja: el bloque trae "obsoleto", pero la
 // cuenta fina la hace quien lo pinte.
 export function antiguedadRealtime(datos) {
-  const t = Date.parse(datos?.generado || '');
-  return Number.isFinite(t) ? Math.max(0, Math.round((Date.now() - t) / 60000)) : null;
+  const fecha = datos?.fecha;
+  if (typeof fecha !== 'string' || !/(Z|[+-]\d{2}:\d{2})$/.test(fecha)) return null;
+  const t = Date.parse(fecha);
+  const edad = (Date.now() - t) / 60000;
+  return Number.isFinite(t) && edad >= -5 ? Math.max(0, edad) : null;
 }
 
 function readCache() {
@@ -160,10 +163,10 @@ export async function loadEcmwfWam({ dias = 3 } = {}) {
   const out = {};
   SPOTS.forEach((spot, i) => {
     const h = puntos[i]?.hourly;
-    if (!h?.time || !h.wave_height) return;
+    if (!Array.isArray(h?.time) || !Array.isArray(h.wave_height)) return;
     // Fuera de la malla el modelo responde con la serie entera a null. Mejor no crear la entrada
     // que dejarla con ceros falsos: así se distingue "no hay dato" de "hay cero de oleaje".
-    if (!h.wave_height.some((v) => v != null)) return;
+    if (!h.wave_height.some((v) => Number.isFinite(v) && v >= 0)) return;
     out[spot.id] = {
       time: h.time,
       waveHeight: h.wave_height,

@@ -7,6 +7,7 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Carpeta local sigue llamándose C:/Users/Jordi/orca/Surfline_CS. Investigación e informes: C:/Users/Jordi/orca/meteosurf_research.
 - Frontend sin build: index.html, css/app.css, js/{app,forecast,spots,cams,compass,assistant}.js, sw.js, webcams.json.
 - Probar en local: `python -m http.server 8765` y abrir http://127.0.0.1:8765/. Capturas móvil: Chrome headless por CDP (script shot.mjs en el scratchpad de Claude; ancho 400).
+- Datos reales: `python scripts/realtime.py` escribe data/realtime.json (cron horario en .github/workflows/realtime.yml, igual que webcams.yml pero con `--comprobar`). Python en este equipo: `C:\Users\Jordi\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe`.
 
 ## Preferencias de Jordi
 - Como Surfline y Surf-Forecast pero con los spots de Castellón; móvil primero, profesional, directo, poco texto (partes plegables).
@@ -17,6 +18,18 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 
 ## Decisiones y trampas
 - Previsión: Open-Meteo marine por spot (punto seaLat/seaLon) + GFS-Wave (ncep_gfswave016) para rellenar días 11–16; forecast con viento/sol.
+- Datos reales (scripts/realtime.py + data/realtime.json, todo de Puertos del Estado, sin claves):
+  - No hay boya ni mareógrafo en Castellón. Oleaje = Boya de Valencia (REDEXT, id 2630), a 55 km; nivel del mar = Mareógrafo de Sagunto (id 3655), a 44 km, y el JSON lo avisa. Viento = estación REMPOR del puerto, la de Castellón Mistral (id 4660) está a 1 km y hay seis a menos de 5 km; cada una es con su nombre de viento (Mistral, Gregal, Levante, Poniente, Siroco, Tamontana), así que si una cae el script prueba la siguiente.
+  - La API no tiene documentación pública: las rutas salen del JavaScript de portus.puertos.es. Base `https://portus.puertos.es/portussvr/api`:
+    - `GET /estaciones/rt/{WAVE,SEA_LEVEL,WIND}?locale=es` → catálogo (nombre, coordenadas, `disponible`, `estado`, `cadencia`). Sin `locale` da 400.
+    - `POST /parametros/<id>?locale=es` con `["WAVE","WIND"]` → los ids numéricos de los parámetros.
+    - `POST /RTData/station/<id>?locale=es` con esos ids → las últimas observaciones. Ojo: los valores son enteros y hay que dividirlos por `factor`; `averia: true` y los centinelas (9999) son basura, scripts/realtime.py los descarta con límites por parámetro.
+  - `estaciones/rt/WAVE` incluye también puntos de "Propagación de Oleaje" que son un modelo matemático, no medidas. El script se queda sólo con los que son boya de verdad.
+  - **Trampa importante: puertos.es firma con una cadena de la FNMT que no está en ningún almacén de certificados público**, así que la verificación TLS normal falla siempre. El script verifica primero y, sólo si falla, repite sin verificar, dejando el aviso en el JSON. Se puede fijar una CA propia con `REALTIME_CA_BUNDLE`.
+  - `data/realtime.json` no lleva la edad en minutos a propósito: cambia en cada ejecución y el cron commitearía cada hora aunque las medidas fueran idénticas. `js/forecast.js` la calcula con `antiguedadRealtime()`.
+  - AEMET queda preparado y apagado (bloque `bloque_viento_aemet`, estación B228, sólo si hay `AEMET_API_KEY`). El parseo está probado con cargas sintéticas pero **no se ha podido probar contra la API real** porque en el portátil de Jordi api.aemet.es no resuelve por DNS.
+  - Pendiente: pintar estos datos. exportan `loadRealtime()` y `antiguedadRealtime()` en js/forecast.js; toca app.js e index.html, que estaban siendo modificados por otro worker.
+- Modelo de contraste `ecmwf_wam025` (loadEcmwfWam() en js/forecast.js): sólo publica altura, periodo y dirección totales; si se le pide el desglose por trenes de ola o el nivel del mar responde todo a null. Su malla no pasa de 40.3°N, así que **Vinaros y Peñíscola no tienen dato** de este modelo. Horizonte útil hasta 12 días. Va aparte de loadForecast() a propósito: un tercer array horario de 13 puntos en la caché de localStorage es arriesgado.
 - Cámaras: Turisme CV HLS (streaming.comunitatvalenciana.com/webcam/<Nombre>/playlist.m3u8, CORS *, sin token), Hotel Voramar MJPEG, IPCamLive Peñíscola, Windy como respaldo. Skyline no se puede iframear y sus JPG no cargan fuera de su web.
 - Surfers Castellón: su cámara está tras login de socios. Solo hay una pestaña de enlace (embedType 'link' en webcams.json, se abre su web). NO extraer claves ni automatizar login ni pedir credenciales a Jordi; solo incrustar si el club da enlace público o permiso.
 - El cron de webcams (.github/workflows/webcams.yml, cada 30 min) solo reescribe webcams.json si cambia algo real.

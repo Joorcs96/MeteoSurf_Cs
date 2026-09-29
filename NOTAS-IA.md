@@ -27,6 +27,11 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - 29/09: cuotas de Antigravity agotadas (Gemini ~4 h; Claude Sonnet y GPT-OSS ~5 días). Codex como relevo (arranca con el prompt sin enviar: mandar Intro). Tras worker-start, comprobar la terminal.
 - Los workers a veces escriben sin tildes: revisar textos visibles antes de publicar.
 
+## Normas de trabajo (incluir en specs)
+- Parar bucles: 3 fallos seguidos de la misma prueba = parar, causa en 3 líneas, volver al último commit bueno y preguntar.
+- Logs de más de 50 líneas: solo 20 primeras + 20 últimas.
+- Antes de integrar en main: rebase sobre el main actual y repetir la prueba.
+
 ## Pendiente de Jordi
 - Confirmar orientaciones medidas con OSM que cambian mucho: La Renegà 148°, Voramar 142°, El Palaciet 143°.
 - Cámara de Surfers Castellón: pedir al club enlace público o permiso.

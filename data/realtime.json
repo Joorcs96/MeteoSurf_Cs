@@ -1,0 +1,121 @@
+{
+  "generado": "2026-09-29T22:17:17Z",
+  "generado_local": "2026-09-30T00:17:17+02:00",
+  "ok": true,
+  "referencia": {
+    "lugar": "Castellón de la Plana",
+    "lat": 39.9858,
+    "lon": 0.0277
+  },
+  "oleaje": {
+    "principal": {
+      "estacion": "Boya de Valencia",
+      "estacion_id": 2630,
+      "lat": 39.51,
+      "lon": 0.2,
+      "distancia_km": 54.9,
+      "fecha": "2026-09-29T22:00:00Z",
+      "altura_m": 0.7,
+      "altura_max_m": 1.06,
+      "periodo_s": 7.03,
+      "periodo_medio_s": 4.38,
+      "direccion_grados": 102,
+      "direccion_pico_grados": 98,
+      "temperatura_agua_c": 25.59,
+      "cadencia_min": 60,
+      "direccion": "ESE",
+      "direccion_pico": "E",
+      "fuente": "Puertos del Estado · red de boyas REDEXT",
+      "obsoleto": false
+    },
+    "boyas_cercanas": [
+      {
+        "estacion": "Boya de Valencia",
+        "estacion_id": 2630,
+        "lat": 39.51,
+        "lon": 0.2,
+        "distancia_km": 54.9,
+        "fecha": "2026-09-29T22:00:00Z",
+        "altura_m": 0.7,
+        "altura_max_m": 1.06,
+        "periodo_s": 7.03,
+        "periodo_medio_s": 4.38,
+        "direccion_grados": 102,
+        "direccion_pico_grados": 98,
+        "temperatura_agua_c": 25.59,
+        "cadencia_min": 60,
+        "direccion": "ESE",
+        "direccion_pico": "E"
+      },
+      {
+        "estacion": "Boya de Tarragona",
+        "estacion_id": 2720,
+        "lat": 40.69,
+        "lon": 1.47,
+        "distancia_km": 145.2,
+        "fecha": "2026-09-29T22:00:00Z",
+        "altura_m": 0.7,
+        "altura_max_m": 1.06,
+        "periodo_s": 7.23,
+        "periodo_medio_s": 4.22,
+        "direccion_grados": 109,
+        "direccion_pico_grados": 110,
+        "temperatura_agua_c": 26.35,
+        "cadencia_min": 60,
+        "direccion": "ESE",
+        "direccion_pico": "ESE"
+      },
+      {
+        "estacion": "Boya de Tarragona",
+        "estacion_id": 1712,
+        "lat": 41.07,
+        "lon": 1.19,
+        "distancia_km": 155.5,
+        "fecha": "2026-09-29T21:00:00Z",
+        "altura_m": 0.61,
+        "altura_max_m": 0.91,
+        "periodo_s": 7.6,
+        "periodo_medio_s": 4.3,
+        "direccion_grados": 116,
+        "direccion_pico_grados": null,
+        "temperatura_agua_c": 26.7,
+        "cadencia_min": 60,
+        "direccion": "ESE",
+        "direccion_pico": null
+      }
+    ]
+  },
+  "nivel_mar": {
+    "fuente": "Puertos del Estado · mareógrafo",
+    "estacion": "Mareografo de Sagunto",
+    "estacion_id": 3655,
+    "lat": 39.63392,
+    "lon": -0.20624,
+    "distancia_km": 43.9,
+    "fecha": "2026-09-29T22:15:00Z",
+    "nivel_m": 0.093,
+    "obsoleto": false,
+    "nota": "Puertos del Estado no tiene mareógrafo en Castellón; se publica el más cercano, junto con su distancia."
+  },
+  "viento": {
+    "fuente": "Puertos del Estado · estaciones meteorológicas REMPOR",
+    "estacion": "Estación Meteorológica de Castellón Mistral",
+    "estacion_id": 4660,
+    "lat": 39.97736,
+    "lon": 0.02505,
+    "distancia_km": 1.0,
+    "fecha": "2026-09-29T22:00:00Z",
+    "velocidad_ms": 0.4,
+    "racha_ms": 1.4,
+    "direccion_grados": 283,
+    "direccion": "ONO",
+    "temperatura_c": 23.6,
+    "cadencia_min": 10,
+    "obsoleto": false,
+    "nota": "La dirección es la de procedencia, de dónde viene el viento."
+  },
+  "notas": [
+    "Puertos del Estado firma con una cadena de la FNMT que no está en el almacén de certificados del sistema (self-signed certificate in certificate chain); se repite la petición sin verificar el certificado."
+  ],
+  "errores": []
+}

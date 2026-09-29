@@ -23,6 +23,8 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - CARTO pide API key: el mapa usa OSM + Esri satélite.
 - Orca: workers gemini en worktree distinto fallan en agent_readiness; usar `--agent antigravity --model gemini-3.1-pro-high`. Worktrees nuevos de Orca parten de un commit viejo: resetear a main antes.
 - Si un worker Antigravity queda quieto, leer su terminal: puede ser 'Individual quota reached' (Gemini 3.1 Pro, reset ~2 h) o el prompt sin enviar (mandar Intro con `orca terminal send --enter`). Relevo: `--agent antigravity --model claude-sonnet-4-6`.
+- Estrellas (0-5) derivadas de la calidad 0-7 en js/app.js (starRating/stars); días con calidad >= 5 se resaltan ('Día bueno'/'Día muy bueno').
+- 29/09: cuotas de Antigravity agotadas (Gemini ~4 h; Claude Sonnet y GPT-OSS ~5 días). Codex como relevo (arranca con el prompt sin enviar: mandar Intro). Tras worker-start, comprobar la terminal.
 - Los workers a veces escriben sin tildes: revisar textos visibles antes de publicar.
 
 ## Pendiente de Jordi

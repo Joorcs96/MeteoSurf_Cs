@@ -1,4 +1,5 @@
 // forecast.js — Descarga de Open-Meteo por spot y cálculo de ola en rompiente, viento y calidad.
+// Además carga los datos reales (data/realtime.json) y el modelo ecmwf_wam025 para comparar.
 import { SPOTS } from './spots.js';
 
 const TZ = 'Europe/Madrid';
@@ -56,6 +57,31 @@ function buildUrls() {
   };
 }
 
+// ---------- Datos reales (lo que se mide, no lo que se predice) ----------
+// data/realtime.json lo escribe scripts/realtime.py desde el cron horario con la última
+// observación de la boya más cercana, del mareógrafo más cercano y de la estación de viento del
+// puerto de Castellón (todo de Puertos del Estado, sin claves).
+//
+// Aquí sólo se lee, y a propósito no lanza nunca: si el fichero aún no existe, si el cron lleva
+// tiempo caído, si el servidor devuelve un 404 o si el JSON está truncado, loadRealtime()
+// devuelve null y quien la llame sigue con la previsión sin más. Mientras el fichero no exista la
+// web funciona exactamente igual que antes.
+export async function loadRealtime({ ruta = 'data/realtime.json' } = {}) {
+  let datos;
+  try {
+    datos = await fetchJson(ruta, 8000);
+  } catch { return null; }
+  return datos && typeof datos === 'object' && !Array.isArray(datos) ? datos : null;
+}
+
+// Minutos desde la última actualización de los datos reales; null si no hay fecha legible.
+// Sirve para no pintar como "ahora" una observación vieja: el bloque trae "obsoleto", pero la
+// cuenta fina la hace quien lo pinte.
+export function antiguedadRealtime(datos) {
+  const t = Date.parse(datos?.generado || '');
+  return Number.isFinite(t) ? Math.max(0, Math.round((Date.now() - t) / 60000)) : null;
+}
+
 function readCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -101,6 +127,51 @@ function fillFrom(main, ext) {
     }
   });
   return main;
+}
+
+// ---------- Segundo modelo: ECMWF WAM025 ----------
+// El modelo por defecto de Open-Meteo va a 0.25-0.5 grados. ecmwf_wam025 es el WAM del ECMWF a
+// 0.25 grados, que en el Mediterráneo suele afinar la altura y el periodo. Va deliberadamente
+// aparte: no entra en la caché de loadForecast(), no toca loadForecast() y no cambia nada de lo
+// que ya se ve. Sólo sirve para contrastar, y quien lo pinte decide cómo.
+//
+// Tres cosas que conviene saber antes de usarlo:
+//   · WAM025 sólo publica altura, periodo y dirección totales. Si se pide el desglose por trenes
+//     de ola o el nivel del mar, Open-Meteo responde con los campos a null, así que aquí se piden
+//     sólo los tres que de verdad trae.
+//   · La malla no llega más arriba de 40.3°N, así que Vinaros y Peñíscola se quedan sin entrada.
+//     No es un fallo: es que el modelo no cubre esa parte de la costa.
+//   · El horizonte útil va hasta unos 12 días; más allá Open-Meteo empieza a devolver nulos al
+//     final, así que { dias } se recorta a ese máximo. Tres días es lo que interesa para ver si la
+//     previsión acierta con lo que hay medido ahora mismo.
+const WAM_VARS = ['wave_height', 'wave_period', 'wave_direction'];
+const WAM_DIAS_MAX = 12;
+
+export async function loadEcmwfWam({ dias = 3 } = {}) {
+  const pedido = Math.min(WAM_DIAS_MAX, Math.max(1, Math.round(dias) || 1));
+  const seaLat = SPOTS.map((s) => s.seaLat).join(',');
+  const seaLon = SPOTS.map((s) => s.seaLon).join(',');
+  const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${seaLat}&longitude=${seaLon}` +
+    `&hourly=${WAM_VARS.join(',')}&models=ecmwf_wam025&forecast_days=${pedido}` +
+    `&timezone=${TZ}&cell_selection=sea`;
+  let crudo;
+  try { crudo = await fetchJson(url); } catch { return {}; }
+  const puntos = toArray(crudo);
+  const out = {};
+  SPOTS.forEach((spot, i) => {
+    const h = puntos[i]?.hourly;
+    if (!h?.time || !h.wave_height) return;
+    // Fuera de la malla el modelo responde con la serie entera a null. Mejor no crear la entrada
+    // que dejarla con ceros falsos: así se distingue "no hay dato" de "hay cero de oleaje".
+    if (!h.wave_height.some((v) => v != null)) return;
+    out[spot.id] = {
+      time: h.time,
+      waveHeight: h.wave_height,
+      wavePeriod: h.wave_period,
+      waveDirection: h.wave_direction
+    };
+  });
+  return out;
 }
 
 // ---------- Física de rompiente ----------

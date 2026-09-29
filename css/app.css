@@ -154,12 +154,13 @@ main { width: 100%; max-width: 1180px; min-width: 0; margin: 0 auto; padding: 16
 .fav-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-height: 24px; color: var(--text); }
 .fav-row-head strong { font-size: 15px; line-height: 1.15; }
 .fav-row-head span { max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-size: 11px; font-weight: 600; text-align: right; }
-.fav-now { overflow: hidden; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; width: 100%; max-width: 100%; box-sizing: border-box; margin-top: 5px; }
+.fav-now { overflow: hidden; display: grid; grid-template-columns: 1.1fr .75fr 1fr 1fr 1.25fr; gap: 4px; width: 100%; max-width: 100%; box-sizing: border-box; margin-top: 5px; }
 .fav-now > div { min-width: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
 .fav-now span { color: var(--text-3); font-size: 10px; font-weight: 700; line-height: 1.1; }
 .fav-now b { display: block; min-width: 0; overflow: hidden; overflow-wrap: anywhere; font-size: 12px; line-height: 1.2; }
 .fav-now em { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: normal; font-size: 10px; padding: 1px 4px; vertical-align: 1px; }
-.fav-now .rating-pill { align-self: flex-start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 5px; font-size: 10px; letter-spacing: 0; }
+.fav-now .rating-pill { align-self: flex-start; max-width: 100%; white-space: normal; overflow-wrap: normal; text-align: center; line-height: 1.15; padding: 3px 5px; font-size: 10px; letter-spacing: 0; }
+.fav-now .arrow { width: 16px; height: 16px; vertical-align: -3px; }
 .fav-best { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--line); font-size: 10px; }
 .fav-best span { color: var(--text-2); font-weight: 700; }
 .fav-best strong { font-size: 11px; line-height: 1.2; }

@@ -85,7 +85,7 @@ export const SPOTS = [
     id: 'Palaciet', name: 'El Palaciet', zone: 'sur', zoneName: 'Burriana · El Coso',
     lat: 39.90453, lon: -0.01584, facing: 143,
     bottom: 'Arena fina', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO',
-    desc: 'Playa tranquila de Almassora con rompiente suave; buena opción de tablón con mar pequeño.'
+    desc: 'Playa tranquila de Burriana, junto a El Coso, con rompiente suave; buena opción de tablón con mar pequeño.'
   }),
   S({
     id: 'Burriana', name: 'Burriana', zone: 'sur', zoneName: 'Burriana · El Arenal',

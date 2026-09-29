@@ -19,8 +19,11 @@ const store = {
 };
 const DEFAULT_FAVS = ['Planetario', 'Voramar', 'MorroGos', 'Palaciet'];
 const savedFavs = store.get('favs', null);
-const favs = new Set(Array.isArray(savedFavs) && savedFavs.length ? savedFavs : DEFAULT_FAVS);
-if (!Array.isArray(savedFavs) || !savedFavs.length) store.set('favs', [...favs]);
+// Una sola vez: sin favoritos guardados (o lista vacía antigua) se cargan los 4 de Jordi; luego se respeta lo que elija
+const favsInit = !store.get('favsInit', false) && (!Array.isArray(savedFavs) || !savedFavs.length);
+const favs = new Set(favsInit ? DEFAULT_FAVS : savedFavs || []);
+if (favsInit) store.set('favs', [...favs]);
+store.set('favsInit', true);
 const toggleFav = (id) => { favs.has(id) ? favs.delete(id) : favs.add(id); store.set('favs', [...favs]); };
 
 // Planetario siempre primero; el resto en el orden de la costa

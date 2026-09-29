@@ -397,8 +397,8 @@ function renderSpot(id) {
         <div class="cam-source" id="cam-source"></div>
       </div>
       <div class="a-now" id="s-ahora">
-        <div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div>
         ${h ? nowPanel(spot, f, h) : loadingBlock()}
+        <div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div>
         <div id="spot-report" style="margin-top:12px"><div class="skeleton" style="height:56px"></div></div>
       </div>
       <div class="a-fc">

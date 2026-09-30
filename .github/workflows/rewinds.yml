@@ -1,0 +1,76 @@
+name: MeteoSurf_Cs · Rewinds (clips de las cámaras)
+
+on:
+  schedule:
+    # Cada 2 h en la franja 05:00-19:00 UTC. El script solo graba entre las 8:00 y
+    # las 20:00 de Madrid, así se respeta el cambio de hora (invierno = UTC+1,
+    # verano = UTC+2) sin tener que tocar el cron dos veces al año.
+    - cron: '0 5-19/2 * * *'
+  workflow_dispatch:
+    inputs:
+      forzar:
+        description: 'Grabar aunque sea de noche o sin oleaje (pruebas)'
+        type: boolean
+        default: false
+      camaras:
+        description: 'Solo estas cámaras (ids separados por comas; vacío = todas)'
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rewinds
+  cancel-in-progress: false
+
+jobs:
+  grabar:
+    name: MeteoSurf_Cs · Grabar clips Rewinds
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Comprobar ffmpeg
+        run: |
+          if ! command -v ffmpeg > /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+
+      - name: Probar los helpers sin red
+        run: python -m unittest scripts.test_rewind
+
+      - name: Grabar clips y subirlos a la release del mes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REWIND_FORZAR: ${{ inputs.forzar }}
+          REWIND_CAMARAS: ${{ inputs.camaras }}
+        run: |
+          args=""
+          if [ "$REWIND_FORZAR" = "true" ]; then args="$args --forzar"; fi
+          if [ -n "$REWIND_CAMARAS" ]; then args="$args --cameras $REWIND_CAMARAS"; fi
+          python scripts/rewind.py --subir $args
+
+      - name: Guardar el índice de clips
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/rewinds.json
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto: clips Rewinds de las cámaras [skip ci]"
+            git push
+          else
+            echo "Sin cambios pendientes en data/rewinds.json."
+          fi

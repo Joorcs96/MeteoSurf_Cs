@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-29T06:22:25.035187+00:00",
+  "updatedAt": "2026-09-30T06:23:15.846323+00:00",
   "webcams": [
     {
       "id": "planetario",
@@ -17,7 +17,7 @@
       "spots": [
         "Planetario"
       ],
-      "lastChecked": "2026-09-29T06:22:20.819481+00:00"
+      "lastChecked": "2026-09-30T06:23:11.611088+00:00"
     },
     {
       "id": "gurugu",
@@ -35,7 +35,7 @@
       "spots": [
         "Gurugu"
       ],
-      "lastChecked": "2026-09-29T06:22:20.819496+00:00"
+      "lastChecked": "2026-09-30T06:23:11.611102+00:00"
     },
     {
       "id": "voramar",
@@ -52,7 +52,7 @@
       "spots": [
         "Voramar"
       ],
-      "lastChecked": "2026-09-29T06:22:22.156822+00:00"
+      "lastChecked": "2026-09-30T06:23:12.545190+00:00"
     },
     {
       "id": "burriana",
@@ -69,7 +69,7 @@
       "spots": [
         "Burriana"
       ],
-      "lastChecked": "2026-09-29T06:22:22.705193+00:00"
+      "lastChecked": "2026-09-30T06:23:13.213413+00:00"
     },
     {
       "id": "peniscola",
@@ -87,7 +87,7 @@
       "spots": [
         "Peniscola N"
       ],
-      "lastChecked": "2026-09-29T06:22:23.274400+00:00"
+      "lastChecked": "2026-09-30T06:23:13.809980+00:00"
     },
     {
       "id": "oropesa",
@@ -104,7 +104,7 @@
       "spots": [
         "MorroGos"
       ],
-      "lastChecked": "2026-09-29T06:22:23.775511+00:00"
+      "lastChecked": "2026-09-30T06:23:14.540132+00:00"
     },
     {
       "id": "vinaros",
@@ -121,7 +121,7 @@
       "spots": [
         "Vinaros"
       ],
-      "lastChecked": "2026-09-29T06:22:24.376247+00:00"
+      "lastChecked": "2026-09-30T06:23:15.252307+00:00"
     },
     {
       "id": "heliopolis",
@@ -138,7 +138,7 @@
       "spots": [
         "Heliopolis"
       ],
-      "lastChecked": "2026-09-29T06:22:24.376274+00:00"
+      "lastChecked": "2026-09-30T06:23:15.252332+00:00"
     },
     {
       "id": "alcossebre",
@@ -153,7 +153,7 @@
       "reason": "HLS verificado: playlist → chunklist → segmentos .ts 1080p, CORS OK.",
       "description": "Playa de fina arena protegida por salientes rocosos con oleaje suave.",
       "spots": [],
-      "lastChecked": "2026-09-29T06:22:25.035162+00:00"
+      "lastChecked": "2026-09-30T06:23:15.846295+00:00"
     }
   ],
   "totalActive": 6,

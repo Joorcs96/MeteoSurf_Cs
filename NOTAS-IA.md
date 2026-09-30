@@ -46,6 +46,11 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Logs de más de 50 líneas: solo 20 primeras + 20 últimas.
 - Antes de integrar en main: rebase sobre el main actual y repetir la prueba.
 
+- GitHub: la rama por defecto es main desde 01/10/2026 (antes desarrollo-web-surf, y por eso los cron de main no corrían). Los cron solo corren en la rama por defecto.
+- Planetario: Jordi surfea exactamente en 39.9784738, 0.0265750 (junto al dique norte del puerto).
+- Calibración real (Jordi, 30/09 18:40-19 h, Planetario): casi sin olas y el viento de mar lo estropeaba, con 0.36-0.38 m y 5.6 s mar adentro y un viento de 6-8 km/h del ESE con rachas de 18. La web daba 0.4-0.6 m, demasiado optimista: el factor de Komar multiplica x1.44 y el estudio v3 da x0.85 a 5 s. Las rachas cuentan.
+- Estudio físico v3 (rayos OSM + EMODnet, verificado con check.py) en meteosurf_research/calculos_v3/.
+
 ## Pendiente de Jordi
 - Confirmar orientaciones medidas con OSM que cambian mucho: La Renegà 148°, Voramar 142°, El Palaciet 143°.
 - Cámara de Surfers Castellón: pedir al club enlace público o permiso.

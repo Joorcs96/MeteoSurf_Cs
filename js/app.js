@@ -1,6 +1,6 @@
 // app.js — MeteoSurf_Cs: rutas, vistas y renderizado.
 import { SPOTS, ZONES } from './spots.js';
-import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360 } from './forecast.js';
+import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360, windState } from './forecast.js';
 import { compassSVG, dirArrow } from './compass.js';
 import { loadCams, camsForSpot, playCam, stopCam, camThumb } from './cams.js';
 
@@ -354,8 +354,11 @@ function bindFavs() {
 function renderRewinds(spot) {
   const cams = camsForSpot(spot);
   if (!cams.length) return '';
-  const clips = (state.rewinds?.rewinds || []).filter(c => c.spot === spot.id);
-  
+  // Los más recientes primero; como mucho 6 para no cargar la ficha
+  const clips = (state.rewinds?.rewinds || []).filter((c) => c.spot === spot.id)
+    .sort((a, b) => new Date(b.hora) - new Date(a.hora)).slice(0, 6);
+  const dec = (x) => (x == null ? '–' : Number(x).toLocaleString('es-ES', { maximumFractionDigits: 1 }));
+
   let html = `<details class="card" style="margin-bottom:16px"><summary class="pad" style="font-weight:600;cursor:pointer">Rewinds</summary><div class="pad" style="border-top:1px solid var(--border)">`;
   if (!clips.length) {
     html += `<p style="margin:0">Aún no hay rewinds de este spot.</p>`;
@@ -363,17 +366,16 @@ function renderRewinds(spot) {
     html += `<div style="display:flex;flex-direction:column;gap:16px">`;
     for (const c of clips) {
       const ms = Date.now() - new Date(c.hora).getTime();
-      const h = Math.floor(ms / 3600000);
+      const h = Math.max(0, Math.floor(ms / 3600000));
       const d = Math.floor(h / 24);
-      const rel = d > 0 ? `Hace ${d} día${d > 1 ? 's' : ''}` : `Hace ${h} hora${h !== 1 ? 's' : ''}`;
-      
+      const rel = d > 0 ? `Hace ${d} día${d > 1 ? 's' : ''}` : h > 0 ? `Hace ${h} hora${h !== 1 ? 's' : ''}` : 'Hace menos de 1 hora';
+
       const p = c.prevision || {};
-      const isTerral = p.vientoDireccion != null && Math.abs(norm360(p.vientoDireccion) - norm360(spot.facing + 180)) <= 45;
-      const windTxt = isTerral ? 'terral' : (p.vientoDireccionTxt || '');
-      const prevTxt = p.altura != null ? `${p.altura} m ${p.direccionTxt || ''} ${p.periodo || ''} s · ${windTxt}`.trim() : '';
-      
+      const windTxt = p.viento != null && p.vientoDireccion != null ? windState(spot, p.viento, p.vientoDireccion).label.toLowerCase() : '';
+      const prevTxt = p.altura != null ? `${dec(p.altura)} m ${p.direccionTxt || ''} ${p.periodo != null ? Math.round(p.periodo) + ' s' : ''}${windTxt ? ` · ${windTxt}` : ''}` : '';
+
       html += `<div>
-        <div style="font-size:13px;margin-bottom:4px;color:var(--text-faint)">${esc(c.horaLocal)} (${rel})${prevTxt ? ` · ${prevTxt}` : ''}</div>
+        <div style="font-size:13px;margin-bottom:4px;color:var(--text-faint)">${esc(new Date(c.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ' ·'))} (${rel.toLowerCase()})${prevTxt ? ` · ${esc(prevTxt)}` : ''}</div>
         <video src="${esc(c.url)}" controls preload="none" style="width:100%;border-radius:6px;background:#000" playsinline></video>
       </div>`;
     }

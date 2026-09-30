@@ -608,6 +608,101 @@ class TestReleases(unittest.TestCase):
         self.assertEqual([c for c in self.llamadas if c[0] == "release"], [])
 
 
+class TestMain(unittest.TestCase):
+    """El guion completo: gate de horas, gate de oleaje y montaje del índice.
+
+    Se sustituyen la hora, la previsión y la grabación; ni red ni ffmpeg.
+    """
+
+    MEDIODIA = datetime(2026, 9, 29, 12, 0, tzinfo=timezone.utc)  # 14:00 de Madrid
+    NOCHE = datetime(2026, 9, 29, 3, 0, tzinfo=timezone.utc)  # 05:00 de Madrid
+
+    def setUp(self):
+        self.original = {
+            "ahora_madrid": rewind.ahora_madrid,
+            "prevision_spots": rewind.prevision_spots,
+            "grabar_camara": rewind.grabar_camara,
+        }
+        self.grabadas = []
+
+    def tearDown(self):
+        rewind.ahora_madrid = self.original["ahora_madrid"]
+        rewind.prevision_spots = self.original["prevision_spots"]
+        rewind.grabar_camara = self.original["grabar_camara"]
+
+    def _prevision(self, altura):
+        def prevision_spots(ids, spots):
+            return {
+                sid: {"altura": altura, "periodo": 5.4, "direccion": 90, "direccionTxt": "E",
+                      "viento": 8.0, "vientoDireccionTxt": "O"}
+                for sid in dict.fromkeys(ids)
+            }
+        return prevision_spots
+
+    def _grabacion_falsa(self, salida):
+        def grabar_camara(cam, spots, prevision, args, momento):
+            self.grabadas.append(cam["id"])
+            clip = Path(args.salida) / f"rewind_{cam['spotsCubiertos'][0]}_x.mp4"
+            clip.parent.mkdir(parents=True, exist_ok=True)
+            clip.write_bytes(b"x" * 1000)
+            info = {"duracion": 20.0, "bytes": 1000, "ancho": 854, "alto": 480}
+            archivo = clip.name
+            tag = rewind.etiqueta_release(momento)
+            entradas = [
+                rewind.entrada_indice(spots[sid], cam, prevision[sid], info, momento, archivo,
+                                      tag, rewind.url_descarga("Joorcs96/MeteoSurf_Cs", tag, archivo))
+                for sid in cam["spotsCubiertos"] if sid in prevision
+            ]
+            return clip, entradas
+        return grabar_camara
+
+    def _args(self, tmp, extra=()):
+        return ["--salida", str(Path(tmp) / "clips"), "--indice", str(Path(tmp) / "rewinds.json"),
+                *extra]
+
+    def test_no_graba_de_nicho(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rewind.ahora_madrid = lambda: self.NOCHE.astimezone(rewind.zona_madrid())
+            rewind.grabar_camara = self._grabacion_falsa(tmp)
+            self.assertEqual(rewind.main(self._args(tmp)), 0)
+            self.assertEqual(self.grabadas, [])
+            self.assertFalse(Path(tmp, "rewinds.json").exists())
+
+    def test_no_graba_sin_oleaje(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rewind.ahora_madrid = lambda: self.MEDIODIA.astimezone(rewind.zona_madrid())
+            rewind.prevision_spots = self._prevision(0.3)
+            rewind.grabar_camara = self._grabacion_falsa(tmp)
+            self.assertEqual(rewind.main(self._args(tmp)), 0)
+            self.assertEqual(self.grabadas, [])
+
+    def test_graba_las_tres_camaras_y_monta_el_indice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rewind.ahora_madrid = lambda: self.MEDIODIA.astimezone(rewind.zona_madrid())
+            rewind.prevision_spots = self._prevision(0.8)
+            rewind.grabar_camara = self._grabacion_falsa(tmp)
+            self.assertEqual(rewind.main(self._args(tmp)), 0)
+            self.assertEqual(len(self.grabadas), 3)
+            indice = json.loads(Path(tmp, "rewinds.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(indice["rewinds"]), 6)  # 2 spots por cámara
+            self.assertEqual(indice["timezone"], "Europe/Madrid")
+            self.assertEqual(indice["updatedAt"], "2026-09-29T14:00:00+02:00")
+            self.assertEqual(indice["dias"], 30)
+            for entrada in indice["rewinds"]:
+                self.assertEqual(entrada["release"], "rewinds-2026-09")
+                self.assertIn("rewinds-2026-09", entrada["url"])
+                self.assertEqual(entrada["prevision"]["altura"], 0.8)
+                self.assertEqual(entrada["hora"], "2026-09-29T14:00:00+02:00")
+
+    def test_filtro_de_camaras(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rewind.ahora_madrid = lambda: self.MEDIODIA.astimezone(rewind.zona_madrid())
+            rewind.prevision_spots = self._prevision(0.8)
+            rewind.grabar_camara = self._grabacion_falsa(tmp)
+            self.assertEqual(rewind.main(self._args(tmp, ["--cameras", "cv-oropesa-hls"])), 0)
+            self.assertEqual(self.grabadas, ["cv-oropesa-hls"])
+
+
 class TestConsolaConTildes(unittest.TestCase):
     def test_el_script_arranca_y_saca_ayuda(self):
         raiz = Path(__file__).resolve().parent.parent

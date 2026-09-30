@@ -92,8 +92,14 @@ producción.
 │   ├── actualizar_prevision.py    # Histórico diario y alerta WhatsApp (GitHub Actions)
 │   ├── actualizar_webcams.py      # Verificación y refresco del catálogo de webcams
 │   └── test_motor_fisica.py       # Tests unitarios del motor físico
+├── scripts/
+│   ├── rewind.py                  # Graba clips Rewinds de las cámaras y mantiene el índice
+│   └── test_rewind.py             # Tests unitarios del grabador de Rewinds
+├── data/
+│   └── rewinds.json               # Índice de clips Rewinds (lo escribe el workflow)
 ├── .github/workflows/
 │   ├── prevision_diaria.yml       # Cron diario: histórico de olas y alerta WhatsApp
+│   ├── rewinds.yml                # Cron cada 2 h en horas de luz: graba y publica clips
 │   └── webcams.yml                # Cron cada 30 min: verifica y actualiza webcams.json
 ├── historico_olas.csv             # Registro histórico de observaciones
 └── MASTER_CONTEXT.md              # Contexto de arquitectura y decisiones del proyecto
@@ -109,15 +115,30 @@ python -m http.server 8000
 
 Y abrir `http://localhost:8000/`.
 
-Para los tests del motor físico (Python, solo librería estándar):
+Para los tests (Python, solo librería estándar):
 
 ```bash
 python -m unittest backend.test_motor_fisica
+python -m unittest scripts.test_rewind
 ```
+
+Para grabar un clip de Rewinds a mano (hacen falta `ffmpeg` y `ffprobe` en el PATH):
+
+```bash
+python scripts/rewind.py --cameras cv_grao_castellon
+```
+
+Graba 20 s de las cámaras HLS de Turisme Comunitat Valenciana, los baja a 480p con desenfoque
+(para que no se reconozcan caras) y añade la previsión de ese momento al índice
+`data/rewinds.json`. Solo graba entre las 8:00 y las 20:00 de Madrid y si algún spot con cámara
+llega a 0,5 m de oleaje. Con `--subir` publica los clips como assets de la release mensual
+`rewinds-AAAA-MM`; el workflow `.github/workflows/rewinds.yml` es quien lo hace de forma
+automática.
 
 ## Despliegue
 
 Publicado como sitio estático en **GitHub Pages**, rama `main` del repositorio
 `Joorcs96/MeteoSurf_Cs`, en https://joorcs96.github.io/MeteoSurf_Cs/. No se usa Netlify ni
-ningún otro hosting; no hay backend en producción, solo dos workflows de GitHub Actions que
-mantienen actualizados el histórico de olas y el catálogo de webcams.
+ningún otro hosting; no hay backend en producción, solo tres workflows de GitHub Actions que
+mantienen actualizados el histórico de olas, el catálogo de webcams y el índice de clips
+Rewinds.

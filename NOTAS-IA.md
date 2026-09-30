@@ -23,9 +23,29 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - CARTO pide API key: el mapa usa OSM + Esri satélite.
 - Orca: workers gemini en worktree distinto fallan en agent_readiness; usar `--agent antigravity --model gemini-3.1-pro-high`. Worktrees nuevos de Orca parten de un commit viejo: resetear a main antes.
 - Si un worker Antigravity queda quieto, leer su terminal: puede ser 'Individual quota reached' (Gemini 3.1 Pro, reset ~2 h) o el prompt sin enviar (mandar Intro con `orca terminal send --enter`). Relevo: `--agent antigravity --model claude-sonnet-4-6`.
-- Estrellas (0-5) derivadas de la calidad 0-7 en js/app.js (starRating/stars); días con calidad >= 5 se resaltan ('Día bueno'/'Día muy bueno').
-- 29/09: cuotas de Antigravity agotadas (Gemini ~4 h; Claude Sonnet y GPT-OSS ~5 días). Codex como relevo (arranca con el prompt sin enviar: mandar Intro). Tras worker-start, comprobar la terminal.
 - Los workers a veces escriben sin tildes: revisar textos visibles antes de publicar.
+
+## Rewinds (clips de las cámaras)
+- `scripts/rewind.py` graba 20 s de las cámaras HLS de Turisme CV que cubren Planetario/Gurugu
+  (Grao, cv_grao_castellon), Voramar/Heliopolis (Benicàssim, cv-benicassim-vela-hls) y
+  MorroGos/Renega (Oropesa, cv-oropesa-hls); 854x480, H.264 sin audio, boxblur 2 para que no se
+  reconozcan caras, objetivo <= 3 MB (medido y reintentado con ffmpeg). Una clip por cámara y una
+  entrada de índice por cada spot que cubre (apuntan al mismo clip).
+- Índice `data/rewinds.json`: `{updatedAt, timezone, dias, rewinds: [...]}` con spot, cámara,
+  hora local Europe/Madrid (ISO con desfase), url del clip y previsión (altura, periodo,
+  dirección, viento) de Open-Meteo marine en el seaLat/seaLon de js/spots.js. El parser de
+  `js/spots.js` replica la fórmula de `S()`; contrastado con Node.
+- `gh release upload` a la release mensual `rewinds-AAAA-MM`; los assets de más de 30 días se
+  borran con `gh release delete-asset` y la release, si queda vacía, con `gh release delete`.
+- `.github/workflows/rewinds.yml`: cada 2 h de 05:00 a 19:00 UTC; el script solo graba de 8 a 20 h
+  de Madrid (así el cambio de hora no obliga a tocar el cron) y solo si algún spot llega a 0,5 m.
+- ffmpeg no está en el PATH de este portátil. Para probar en local: `npm i ffmpeg-static
+  ffprobe-static` en una carpeta temporal y usar las variables FFMPEG y FFPROBE. En GitHub
+  Actions los runners ya los traen.
+- El canal de Benicàssim Vela da 404 durante minutos cuando el servidor de Turisme CV
+  re-publica: el grabador reintenta dos veces (5 s y 12 s) antes de seguir con el resto.
+- En local NO subir nada a la release; eso lo hace el workflow.
+
 
 ## Normas de trabajo (incluir en specs)
 - Parar bucles: 3 fallos seguidos de la misma prueba = parar, causa en 3 líneas, volver al último commit bueno y preguntar.

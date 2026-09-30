@@ -31,10 +31,13 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
   MorroGos/Renega (Oropesa, cv-oropesa-hls); 854x480, H.264 sin audio, boxblur 2 para que no se
   reconozcan caras, objetivo <= 3 MB (medido y reintentado con ffmpeg). Una clip por cámara y una
   entrada de índice por cada spot que cubre (apuntan al mismo clip).
-- Índice `data/rewinds.json`: `{updatedAt, timezone, dias, rewinds: [...]}` con spot, cámara,
-  hora local Europe/Madrid (ISO con desfase), url del clip y previsión (altura, periodo,
-  dirección, viento) de Open-Meteo marine en el seaLat/seaLon de js/spots.js. El parser de
-  `js/spots.js` replica la fórmula de `S()`; contrastado con Node.
+- Índice `data/rewinds.json`: `{updatedAt, timezone, dias, rewinds: [...]}`. Cada entrada:
+  `id, spot, spotNombre, camara, camaraNombre, camaraCorta, credito, hora` (ISO con desfase de
+  Madrid), `horaLocal` ("2026-10-01 14:00"), `url`, `archivo`, `release, duracion, bytes, ancho,
+  alto, desenfoque` y `prevision` con `altura, periodo, direccion, direccionTxt, swellAltura,
+  swellPeriodo, marDeVientoAltura, temperaturaAgua, viento, vientoRacha, vientoDireccion,
+  vientoDireccionTxt, temperatura, horaApi`. La web puede pintarlo tal cual.
+- El parser de `js/spots.js` replica la fórmula de `S()` para el punto de mar; contrastado con Node.
 - `gh release upload` a la release mensual `rewinds-AAAA-MM`; los assets de más de 30 días se
   borran con `gh release delete-asset` y la release, si queda vacía, con `gh release delete`.
 - `.github/workflows/rewinds.yml`: cada 2 h de 05:00 a 19:00 UTC; el script solo graba de 8 a 20 h

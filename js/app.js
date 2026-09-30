@@ -6,7 +6,7 @@ import { loadCams, camsForSpot, playCam, stopCam, camThumb } from './cams.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
-const state = { fc: null, realtime: null, zone: 'all', dayIdx: 0, camIdx: 0, spotId: null };
+const state = { fc: null, realtime: null, rewinds: null, zone: 'all', dayIdx: 0, camIdx: 0, spotId: null };
 
 // Asistente de previsión (se carga aparte para no retrasar el primer pintado)
 let aiMod = null;
@@ -351,6 +351,38 @@ function bindFavs() {
   }));
 }
 
+function renderRewinds(spot) {
+  const cams = camsForSpot(spot);
+  if (!cams.length) return '';
+  const clips = (state.rewinds?.rewinds || []).filter(c => c.spot === spot.id);
+  
+  let html = `<details class="card" style="margin-bottom:16px"><summary class="pad" style="font-weight:600;cursor:pointer">Rewinds</summary><div class="pad" style="border-top:1px solid var(--border)">`;
+  if (!clips.length) {
+    html += `<p style="margin:0">Aún no hay rewinds de este spot.</p>`;
+  } else {
+    html += `<div style="display:flex;flex-direction:column;gap:16px">`;
+    for (const c of clips) {
+      const ms = Date.now() - new Date(c.hora).getTime();
+      const h = Math.floor(ms / 3600000);
+      const d = Math.floor(h / 24);
+      const rel = d > 0 ? `Hace ${d} día${d > 1 ? 's' : ''}` : `Hace ${h} hora${h !== 1 ? 's' : ''}`;
+      
+      const p = c.prevision || {};
+      const isTerral = p.vientoDireccion != null && Math.abs(norm360(p.vientoDireccion) - norm360(spot.facing + 180)) <= 45;
+      const windTxt = isTerral ? 'terral' : (p.vientoDireccionTxt || '');
+      const prevTxt = p.altura != null ? `${p.altura} m ${p.direccionTxt || ''} ${p.periodo || ''} s · ${windTxt}`.trim() : '';
+      
+      html += `<div>
+        <div style="font-size:13px;margin-bottom:4px;color:var(--text-faint)">${esc(c.horaLocal)} (${rel})${prevTxt ? ` · ${prevTxt}` : ''}</div>
+        <video src="${esc(c.url)}" controls preload="none" style="width:100%;border-radius:6px;background:#000" playsinline></video>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div></details>`;
+  return html;
+}
+
 // ---------- Página de spot ----------
 function renderSpot(id) {
   const spot = SPOTS.find((s) => s.id === id);
@@ -436,6 +468,7 @@ function renderSpot(id) {
           </div>
         </div>
         ${f ? `<div class="section-title">Marea · nivel del mar</div><div class="card pad tide" id="tide"></div>` : ''}
+        ${renderRewinds(spot)}
         <div class="section-title">Ficha del spot</div>
         <div class="card pad">
           <p style="margin:0 0 12px">${esc(spot.desc)}</p>
@@ -851,6 +884,15 @@ function footer() {
 }
 
 // ---------- Arranque ----------
+async function loadRewinds() {
+  try {
+    const res = await fetch('data/rewinds.json');
+    if (res.ok) state.rewinds = await res.json();
+  } catch (e) {
+    console.warn('No se pudo cargar rewinds:', e);
+  }
+}
+
 async function refresh(force = false) {
   const realtime = loadRealtime().then((data) => { state.realtime = data; updateRealtime(); });
   try {
@@ -873,7 +915,7 @@ async function init() {
     document.documentElement.dataset.theme = next; store.set('theme', next);
   });
   route(); // pinta esqueleto
-  await loadCams();
+  await Promise.all([loadCams(), loadRewinds()]);
   route();
   await refresh();
   // Refresco automático cada 30 min si la pestaña está visible

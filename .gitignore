@@ -29,3 +29,7 @@ yarn-debug.log*
 yarn-error.log*
 tmp/
 temp/
+
+# Clips Rewinds grabados en local (se publican en la release del mes)
+rewinds/
+

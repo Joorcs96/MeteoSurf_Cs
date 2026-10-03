@@ -6,6 +6,8 @@
 > **Proyecto:** MeteoSurf_Cs (Previsión rigurosa de surf en la costa de Castellón)  
 > **Restricción base:** Coste 0 € estricto, sin servidores 24/7 de pago, sin tarjetas de crédito, arquitectura Serverless / PWA estática en GitHub Pages con soporte de GitHub Actions.
 
+> ⚠️ **VERIFICADO Y CORREGIDO — leer antes de usar.** Todas las APIs de este informe se han vuelto a consultar con peticiones GET reales el 3 de octubre de 2026: resultados, códigos y cabeceras en **`docs/investigacion/04-verificacion-fuentes.md`** (rama `Joorcs96/ms-verifica-fuentes`). Correcciones principales: el fallo de TLS de Portus es **de este host con OpenSSL, no del servidor** (`curl` verifica bien) y **nunca debe resolverse desactivando la verificación**; la ruta de datos de Portus es **POST con ids de parámetro**, no GET; el 401 de AEMET **no se reproduce**; y hay una **fórmula con error de hasta +52 %** en la §5.
+
 ---
 
 ## 1. Resumen Ejecutivo y Matriz Comparativa Rápida
@@ -14,12 +16,12 @@ El objetivo de esta investigación es identificar y auditar sobre fuentes primar
 
 ### Conclusiones Principales:
 1. **Frontend PWA (Navegador, 100% cliente estático):**
-   - **Open-Meteo Marine & Weather API** es la fuente primaria óptima de predicción horaria: 100% gratuita para uso no comercial (hasta 10.000 llamadas/día), sin API key, con soporte nativo de **CORS (`Access-Control-Allow-Origin: *`)** y modelos consolidados (ECMWF WAM / GFS-Wave).
+   - **Open-Meteo Marine & Weather API** es la fuente primaria óptima de predicción horaria: gratuita **para uso no comercial** (10.000 llamadas/día, 600/min, 5.000/h, verificado en la página de precios), sin API key, con **CORS nativo (`Access-Control-Allow-Origin: *`, comprobado con cabecera `Origin`)**, modelos consolidados y horizonte real de **16 días** (384 horas comprobadas). *Dos avisos verificados:* (a) el plan gratuito **no cubre uso comercial** —si la app se monetiza, hace falta plan de pago—; (b) la documentación exige atribución a **Open-Meteo y a DWD**, no sólo a Open-Meteo.
    - **EMODnet Bathymetry REST API** proporciona la batimetría de alta resolución (1/16 arc-minuto, ~115 m) con CORS habilitado y sin token. Permite consultar la profundidad real frente a cada rompiente (ej. `-6.47 m` frente a Planetario/Gurugú) para alimentar fórmulas analíticas de refracción y rotura en tiempo real.
 2. **Backend / Automatización (GitHub Actions cada 1-3 horas):**
-   - **Puertos del Estado (Portus REST API):** Es la fuente de la verdad para validación en tiempo real (Boya de Valencia REDEXT a 54.9 km, mareógrafo de Sagunto a 43.9 km y estaciones REMPOR de viento en el puerto de Castellón a < 2 km). **Advertencia crítica comprobada:** la cadena TLS de `portus.puertos.es` emite errores de certificado en entornos estándar (`self-signed certificate in certificate chain`), lo que hace que las peticiones directas desde el navegador fallen. Debe recopilarse vía GitHub Actions (`scripts/realtime.py`) y publicarse como JSON estático (`data/realtime.json`).
+   - **Puertos del Estado (Portus REST API):** Es la fuente de la verdad para validación en tiempo real (Boya de Valencia REDEXT a 55.0 km, mareógrafo de Sagunto a 44.0 km desde Castelló y estaciones REMPOR de viento en el puerto de Castellón, la más cercana a 0.4 km). **Aviso corregido:** el fallo de cadena TLS se reproduce **con OpenSSL en este host**, pero **con el almacén de certificados de Windows la cadena valida correctamente** (`curl` → verificación OK, HTTP 200). Por tanto **no está demostrado que un `fetch()` desde el navegador falle**, y la solución **nunca es desactivar la verificación TLS**: lo correcto es confiar la CA (`REALTIME_CA_BUNDLE`, ya previsto en `scripts/realtime.py`). Nota: el catálogo **sí** devuelve `Access-Control-Allow-Origin: *` cuando se envía `Origin`, luego el bloqueo en navegador, si lo hay, no es de CORS sino de confianza de CA.
    - **Copernicus Marine (CMEMS):** Ofrece el modelo WAM Cycle 6 a 4.2 km para el Mediterráneo (`MEDSEA_ANALYSISFORECAST_WAV_006_017`). Es 100% gratuito (financiado por la UE), pero requiere cuenta registrada y cliente Python (`copernicusmarine`) con descarga en formato NetCDF/Zarr; es inviable en la PWA pero integrable como extractor batch en GitHub Actions.
-   - **AEMET OpenData:** Requiere API Key gratuita emitida como JWT; su límite estricto de cuota (~5 req/min) la descarta para clientes web concurrentes, limitándola a llamadas puntuales en workflows.
+   - **AEMET OpenData:** Descartada para la PWA. *Corrección verificada:* el endpoint sin clave **no devuelve 401**, sino **HTTP 200 con cuerpo vacío**; el supuesto mensaje de error sobre el JWT **no se reproduce** y el límite de cuota (~5 req/min) **no ha podido verificarse**. El proyecto además **ya retiró su adaptador de AEMET** por "ruta/esquema incorrectos y sin prueba real" (`NOTAS-IA.md:30`).
 3. **Repositorios Científicos (GitHub / GitLab):**
    - Modelos numéricos 2D/3D como **SWAN** o **WAVEWATCH III** (Fortran 90, MPI) son inviables para ejecución dinámica en el navegador o en runners limitados de GitHub Actions. Su papel riguroso es offline (generación de matrices de transferencia batimétrica o Look-Up Tables).
    - **UTide** y **pyTMD** (MIT, Python) demuestran que el régimen de mareas astronómicas en Castellón (micromareal, rango < 25 cm) se calcula de forma exacta mediante 5 componentes armónicas (M2, S2, N2, K1, O1) que pueden transcribirse en ~20 líneas de JavaScript puro sin dependencias externas.
@@ -47,10 +49,13 @@ El objetivo de esta investigación es identificar y auditar sobre fuentes primar
 - **URLs de Endpoint:**
   - Marítima: `https://marine-api.open-meteo.com/v1/marine`
   - Meteorológica: `https://api.open-meteo.com/v1/forecast`
-- **Modelos disponibles para Castellón:**
-  - `best_match` (combina modelos oceánicos de alta resolución regionales de ECMWF WAM y DWD ICON).
-  - `ecmwf_wam025` y `ecmwf_wam005` (Centro Europeo).
-  - `ncep_gfswave016` (NOAA GFS-Wave global, resolución 16 km, excelente para proyecciones extendidas hasta el día 16).
+- **Modelos disponibles (resoluciones confirmadas en la documentación oficial, 03/10/2026):**
+  - `best_match` (selección automática).
+  - `ecmwf_wam` (**9 km**, horario, 15 días) y `ecmwf_wam025` (**0.25°, ~25 km**, 3-horario).
+  - `ncep_gfswave016` (**0.16°, ~16 km**, área **52.5°N–15°S**, que **incluye** Castellón, hasta 16 días).
+  - `ncep_gfswave025` (0.25°, ~25 km).
+  - `meteofrance_wam` / **MFWAM (0.08°, ~8 km)**, `dwd_ewam` (**0.05°, ~5 km**, sólo Europa). *Estos dos son más finos que ECMWF WAM y el informe original no los mencionaba: son los candidatos naturales si algún día hace falta más resolución.*
+  - `era5_ocean` (0.5°, histórico desde 1940).
 - **Variables comprobadas:**
   - `wave_height`, `wave_period`, `wave_direction`
   - `swell_wave_height`, `swell_wave_period`, `swell_wave_direction` (separación espectral fundamental para discriminar mar de fondo de mar de viento)
@@ -58,10 +63,11 @@ El objetivo de esta investigación es identificar y auditar sobre fuentes primar
   - `ocean_current_velocity`, `ocean_current_direction`
   - `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`, `surface_pressure`
 - **Resolución y Frecuencia:** Temporal horaria (1 h), horizonte de 1 a 16 días. Se actualiza 4 veces al día tras los pases de 00:00, 06:00, 12:00 y 18:00 UTC con una latencia de procesado de ~2 horas.
-- **Cuota y Límites:**
-  - Gratuito para uso no comercial: hasta 10.000 llamadas al día por IP, con ráfagas de hasta 600 llamadas/minuto y 5.000 llamadas/hora.
-  - No requiere tarjeta ni clave.
-  - Licencia: Creative Commons Atribución 4.0 Internacional (CC-BY 4.0), obligando a mostrar "Datos meteorológicos por Open-Meteo" en el footer de la app.
+- **Cuota y Límites (verificados en la página de precios de Open-Meteo, 03/10/2026):**
+    - **Hasta 10.000 llamadas al día por IP**, con ráfagas de hasta **600 llamadas/minuto** y **5.000 llamadas/hora**.
+    - No requiere tarjeta ni clave.
+    - **Alcance legal:** el plan gratuito es **exclusivamente para uso no comercial** y **no garantiza disponibilidad**. Si la app se monetiza alguna vez, hay que contratar un plan comercial con clave (`customer-`).
+    - **Atribución obligatoria:** la documentación exige atribución clara **a Open-Meteo y al modelo de origen (DWD)**.
 - **Verificación Técnica de CORS:**
   - Petición con cabecera `Origin: https://joorcs96.github.io`:
     ```http
@@ -107,30 +113,32 @@ El objetivo de esta investigación es identificar y auditar sobre fuentes primar
 ### 2.2. Puertos del Estado (Portus - REDEXT, REDMAR, REMPOR, SIMAR)
 - **Portal y Documentación:** `https://portus.puertos.es`
 - **Endpoints de la API REST interna (descubiertos en su visor web):**
-  - Catálogo de estaciones: `GET https://portus.puertos.es/portussvr/api/estaciones/rt/{TIPO}?locale=es` (`WAVE`, `SEA_LEVEL`, `WIND`)
-  - Identificadores de parámetros: `POST https://portus.puertos.es/portussvr/api/parametros/{idEstacion}?locale=es`
-  - Datos en tiempo real: `POST https://portus.puertos.es/portussvr/api/RTData/station/{idEstacion}?locale=es`
-- **Cobertura real para Castellón:**
+  - Catálogo de estaciones: `GET https://portus.puertos.es/portussvr/api/estaciones/rt/{TIPO}?locale=es` (`WAVE`, `SEA_LEVEL`, `WIND`) — **verificado 200 en los tres; sin `locale` devuelve 400** (`NOTAS-IA.md:24`).
+  - Identificadores de parámetros: `POST https://portus.puertos.es/portussvr/api/parametros/{idEstacion}?locale=es` con cuerpo `["WAVE","WIND"]`.
+  - Datos en tiempo real: **`POST`** `https://portus.puertos.es/portussvr/api/RTData/station/{idEstacion}?locale=es` con esos identificadores. **Con `GET` esta ruta responde `405 Method Not Allowed`**: no es una URL de lectura directa. Además los valores llegan enteros con un factor divisor, hay centinelas (`9999`) y el indicador `averia` que hay que descartar (`NOTAS-IA.md:25-26`).
+- **Cobertura real para Castellón (todo verificado contra el catálogo):**
   1. **Oleaje (REDEXT - Red de Boyas de Aguas Profundas):**
-     - No existe boya activa fondeada en el litoral inmediato de Castellón.
-     - **Boya principal:** *Boya de Valencia* (`ID: 2630`), fondeada a 39.51°N, 0.20°E (~54.9 km al sur de Castellón). Mide oleaje direccional triaxial cada 60 minutos: $H_{m0}$ (altura significante), $H_{max}$ (ola máxima), $T_p$ (periodo de pico espectral), $T_{m02}$ (periodo medio), dirección media y dirección de pico, además de temperatura superficial del agua.
-     - **Boya secundaria de respaldo:** *Boya de Tarragona* (`ID: 2720`), fondeada a 40.69°N, 1.47°E (~145.2 km al norte).
+     - **Verificado en el catálogo: no hay ninguna entrada de oleaje en Castellón** (0 coincidencias con "Castell" en `estaciones/rt/WAVE`, 121 entradas en total). Los puntos de "Propagación de Oleaje" son modelo matemático, no mediciones.
+     - **Boya principal:** *Boya de Valencia* (`ID: 2630`), fondeada a **39.51°N, 0.20°E**, **profundidad 260 m** (no 230 m), a **55.0 km** del spot de Castelló (39.98585, 0.02766). Mide oleaje direccional triaxial: $H_{m0}$, $H_{max}$, $T_p$, $T_{m02}$, direcciones y temperatura del agua.
+     - **Boya secundaria de respaldo:** *Boya de Tarragona* (`ID: 2720`), fondeada a 40.69°N, 1.47°E.
   2. **Nivel del Mar (REDMAR - Red de Mareógrafos):**
-     - No hay mareógrafo de Puertos del Estado dentro del puerto de Castellón.
-     - **Mareógrafo de referencia:** *Mareógrafo de Sagunto* (`ID: 3655`), situado a 39.63°N, -0.21°E (~43.9 km al sur). Reporta nivel del mar en metros respecto al cero del puerto cada 5 minutos.
+     - No hay mareógrafo de Puertos del Estado dentro del puerto de Castellón (**verificado**).
+     - **Mareógrafo de referencia:** *Mareógrafo de Sagunto* (`ID: 3655`), en **39.63392°N, −0.20624°E**: **44.0 km** desde el spot de Castelló, **35.4 km** desde Burriana. *La distancia depende del spot de referencia; conviene decirlo así en la interfaz.*
   3. **Viento (REMPOR - Red de Estaciones Meteorológicas Portuarias):**
      - El Puerto de Castellón cuenta con 6 sensores anemométricos operativos: *Castellón Mistral* (`ID: 4660`), *Castellón Dique Este*, *Castellón Muelle de la Cerámica*, etc. (a menos de 2 km de las playas de Planetario y Gurugú). Miden velocidad media, racha máxima a 10 m y dirección en grados cada 10 minutos.
   4. **Puntos SIMAR (Sistema de Modelización de Oleaje y Reanálisis):**
      - Red de nodos de malla costera donde Puertos del Estado calcula reanálisis y previsiones numéricas locales horarias.
-- **Autenticación y Coste:** 100% gratuito. No requiere API key ni registro previo. Sujetos a la Ley 37/2007 de reutilización de información del sector público.
-- **Hallazgo Crítico sobre TLS / Conectividad en Navegador:**
-  - El servidor `portus.puertos.es` emite cabecera `Access-Control-Allow-Origin: *`.
-  - **Sin embargo, la cadena de certificación TLS no está validada por los almacenes de certificados estándar (CA) de navegadores y sistemas operativos:**
+- **Autenticación:** 100% gratuito. No requiere API key ni registro previo.
+- **Hallazgo sobre el uso de `GET` en la ruta de datos:** la documentación del visor sugiere GET, pero **la ruta de datos en tiempo real exige POST con identificadores**. No dar por buena ninguna URL de lectura por GET: comprobarla antes de usarla.
+- **Hallazgo sobre TLS / Conectividad en Navegador (CORREGIDO tras verificación):**
+  - El servidor `portus.puertos.es` **sí** emite `Access-Control-Allow-Origin: *` cuando la petición lleva cabecera `Origin` (comprobado). **CORS no es el problema.**
+  - **La cadena de certificación falla con OpenSSL en este host concreto:**
     ```text
-    urllib.error.URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self-signed certificate in certificate chain (_ssl.c:1010)>
+    ssl.SSLCertVerificationError: certificate verify failed: self-signed certificate in certificate chain
     ```
-  - **Consecuencia práctica:** Una llamada `fetch()` directa desde la PWA en el móvil o escritorio fallará inmediatamente por bloqueo SSL/TLS.
-  - **Solución implementada y validada:** Descarga desacoplada en GitHub Actions mediante `scripts/realtime.py` (con reintento de transporte seguro restringido a su API pública) que consolida los datos en `data/realtime.json`, publicado como archivo estático con HTTPS perfecto en GitHub Pages.
+    pero **con el almacén de certificados de Windows (Schannel/curl) la cadena valida sin error**: `curl` devuelve `HTTP 200` con `ssl_verify_result=0`. También fallan con OpenSSL `www.puertos.es` y `miteco.gob.es`, lo que apunta a una **carencia de la CA en el almacén local de Python**, no a un servidor roto.
+  - **Consecuencia práctica (reformulada):** con el almacén de CA de este host, Python no valida el servidor; **no queda demostrado que un navegador falle**, porque los navegadores llevan su propio almacén. **En ningún caso la solución es desactivar la verificación TLS**: eso abre la puerta a datos manipulados. Lo correcto es **confiar la CA** (`REALTIME_CA_BUNDLE`, ya previsto en `scripts/realtime.py`) y dejar la vía sin verificar como último recurso, con aviso.
+  - **Solución mantenida y validada:** descarga desacoplada en GitHub Actions mediante `scripts/realtime.py` que consolida los datos en `data/realtime.json`, publicado como JSON estático por HTTPS. Se mantiene **por robustez y por no depender de un servidor público sin SLA**, no porque el navegador no pueda llamarlo.
 
 ---
 
@@ -175,36 +183,36 @@ El objetivo de esta investigación es identificar y auditar sobre fuentes primar
 - **Coste, Autenticación y CORS:**
   - 100% gratuito, sin API key, sin registro, sin cuotas restrictivas.
   - **Soporte CORS nativo:** Comprobado empíricamente; la cabecera `Access-Control-Allow-Origin` refleja el origen o emite `*`, permitiendo consultas asíncronas desde JavaScript en la PWA.
-- **Prueba Real Ejecutada en el Litoral de Castellón:**
-  - *Punto frente a la playa del Planetario / Gurugú (`0.03°E, 39.98°N`):*
+- **Prueba Real Ejecutada en el Litoral de Castellón (reverificada el 03/10/2026):**
+  - *Punto frente a la playa del Planetario / Gurugu (`0.03°E, 39.98°N`):*
     ```json
     {
-      "min": -6.4714284,
-      "max": -6.4714284,
-      "avg": -6.4714284,
-      "stdev": 0.0,
+      "min": -6.4714284, "max": -6.4714284, "avg": -6.4714284, "stdev": 0.0,
       "smoothed": -6.4285717,
-      "reference": {
-        "organisation_id": 353,
-        "identifier": "291006",
-        "type": "DTM"
-      }
+      "reference": { "organisation_id": 353, "identifier": "291006", "type": "DTM" }
     }
     ```
-    *Resultado:* Profundidad medida de **-6.47 m** a ~2 km de la costa.
-  - *Transecto batimétrico perpendicular (desde la orilla `0.005°E` hasta 6.4 km mar adentro `0.08°E`):*
-    - Profundidad a cota de playa: `-0.07 m`
-    - Profundidad a 6.4 km mar adentro: `-24.99 m`
-    - **Pendiente media del lecho marino ($\tan \beta$):**
-      $$\tan \beta = \frac{24.99 - 0.07}{6400} \approx 0.0039 \quad (\sim 1:256)$$
-    - *Interpretación oceanográfica:* La plataforma de Castellón es extremadamente suave y disipativa mar adentro, con barras arenosas que se empinan localmente a $\tan \beta \approx 0.015 - 0.030$ en la rompiente orillera. Este dato es vital para modelar el tipo de ola (derrame vs tubo).
+    *Resultado:* **−6.47 m** a ~2 km de la costa. **Valor confirmado literalmente.**
+  - **Aviso sobre `depth_profile`:** devuelve una **lista plana de 1000 profundidades, sin coordenadas**. La distancia hay que proyectarla a mano sobre el transecto; no es una serie de puntos con `x`/`y`.
+  - **Perfiles reales medidos en el litoral (medición propia con `depth_profile`):**
+
+    | Transecto (perpendicular a la costa) | Pendiente media | −5 m | −10 m | −20 m |
+    |---|---|---|---|---|
+    | Planetario, 6.6 km | **0.0040** | 0.30 km | 1.06 km | **3.63 km** |
+    | Palaciet, 6.9 km | **0.0046** | 0.62 km | 1.04 km | **3.53 km** |
+    | Gurugu, 5.2 km | **0.0039** | 0.42 km | 1.44 km | **4.17 km** |
+    | Renega, 3.4 km | **0.0071** | 0.11 km | 0.87 km | **2.32 km** |
+    | Burriana Arenal, 2.5 km | **0.0053** | 0.32 km | 1.26 km | (>2.5 km) |
+
+  - Profundidades medidas en los puntos `seaLat/seaLon` que usa el motor: **Planetario −10.3 m, Palaciet −11.8 m, Burriana −11.5 m, Gurugu −9.6 m, Voramar −7.2 m**. *Las cifras de 12/13/14 m que circulaban estaban infladas; la de Voramar se quedaba corta.*
+  - *Interpretación oceanográfica:* plataforma **muy suave y disipativa** (pendiente media 0.004–0.005), con La Renega sensiblemente mas empinada. Con celda de **115 m**, EMODnet **no resuelve la barra de rompiente ni los canales de resaca**: cualquier afirmacion sobre una barra a 40-80 m de la orilla tiene que venir de otra fuente, no de EMODnet.
 
 ---
 
 ### 2.5. GEBCO (General Bathymetric Chart of the Oceans)
 - **Portal:** `https://www.gebco.net/`
 - **Producto:** GEBCO Grid global.
-- **Resolución:** 15 arc-segundos (~460 metros en nuestras latitudes).
+- **Resolución:** **15 segundos de arco** (confirmado literalmente en la página oficial de la grid de GEBCO). A la latitud de Castellón la celda mide del orden de **464 × 357 m** (≈460 m en dirección norte-sur), no 460 m por los dos lados.
 - **Endpoints:**
   - WMS: `https://wms.gebco.net/mapserv?service=wms&version=1.3.0&request=GetCapabilities`
   - Descarga de ficheros NetCDF / GeoTIFF globales por cuadrículas de 15 grados.
@@ -223,21 +231,15 @@ El objetivo de esta investigación es identificar y auditar sobre fuentes primar
   - Estaciones costeras específicas: Estación *Castellón - Almassora* (`8416Y`), *Torreblanca* (`8414X`), *Peñíscola* (`8446T`).
   - Predicciones marítimas costeras de ultramar y zonas de costa.
 - **Autenticación:**
-  - Requiere API Key gratuita emitida en el portal de AEMET.
-  - Formato técnico de la clave: **Token JWT de 3 componentes** (`header.payload.signature`).
-  - Prueba técnica sin clave o con clave mal formateada:
-    ```text
-    HTTP/1.1 401 Unauthorized
-    {"descripcion": "JWT strings must contain exactly 2 period characters. Found: 0", "estado": 401}
-    ```
+    - Requiere API Key gratuita emitida en el portal de AEMET (formato de token JWT de 3 componentes).
+    - **Comprobación real del 03/10/2026, sin clave:** la ruta `GET /opendata/api/observacion/convencional/todas` devuelve **HTTP 200 con cuerpo vacío**, no un 401 con mensaje sobre el JWT. *El error 401 con texto "JWT strings must contain exactly 2 period characters" que se citaba aquí no se reproduce y no debe usarse como prueba de nada.*
 - **Flujo de Petición en 2 Pasos:**
   1. Llamada a la API de AEMET: devuelve un JSON con metadatos y una URL temporal en campo `datos`.
   2. Llamada a la URL temporal para obtener el payload de datos crudos.
 - **Límites de Uso:**
-  - Límite muy estricto: **~5 peticiones por minuto**. Las ráfagas son castigadas con `HTTP 429 Too Many Requests`.
+    - **No verificados.** La cifra de "~5 peticiones por minuto" no se ha podido confirmar en la documentación; trátala como pendiente de comprobar, no como un hecho.
 - **Operatividad en MeteoSurf:**
-  - **Totalmente descartada para la PWA directa:** expondría la clave JWT del usuario a cualquier visitante y un solo usuario navegando agotaría la cuota de 5 peticiones/min en segundos.
-  - **Apta para GitHub Actions:** Si se desea viento en tierra o alertas meteorológicas oficiales (avisos amarillos/naranjas por temporal costero), un workflow puede invocar AEMET con la clave almacenada en GitHub Secrets.
+    - **Descartada**, y por motivos más fuertes que los originales: (a) la ruta y el esquema **no están probados** — de hecho el proyecto **ya retiró su adaptador de AEMET** por "ruta/esquema incorrectos y sin prueba real" (`NOTAS-IA.md:30`); (b) exponer una clave JWT en el cliente la entregaría a cualquier visitante; (c) una cuota compartida se agota en segundos con varios usuarios.
 
 ---
 
@@ -261,6 +263,8 @@ El objetivo de esta investigación es identificar y auditar sobre fuentes primar
 
 ### Detalle de Evaluación de Repositorios
 
+> ⚠️ **Sobre la columna "Licencia": NO verificada.** No he leído ningún archivo LICENSE de estos repositorios. Las etiquetas (GPL v3, MIT, LGPL v3/PD) **no deben usarse para decidir nada** hasta comprobarlas en la fuente, incluyendo la licencia del binario por separado. La decisión de no instalar nada se mantiene igual: es la postura correcta aquí, y no depende de la licencia.
+
 #### 1. SWAN (Simulating WAves Nearshore - TU Delft)
 - **Qué hace:** Resuelve la ecuación de balance de densidad de acción espectral de onda $N(\sigma, \theta)$:
   $$\frac{\partial N}{\partial t} + \frac{\partial c_x N}{\partial x} + \frac{\partial c_y N}{\partial y} + \frac{\partial c_\sigma N}{\partial \sigma} + \frac{\partial c_\theta N}{\partial \theta} = \frac{S_{tot}}{\sigma}$$
@@ -282,7 +286,7 @@ El objetivo de esta investigación es identificar y auditar sobre fuentes primar
   - Sin embargo, la **marea meteorológica** (apilamiento por viento de levante y barómetro invertido: $\Delta \eta \approx -\frac{\Delta P}{\rho g} \approx 1\text{ cm por cada 1 hPa de caída}$) puede generar variaciones de **+30 a +60 cm**, superando con creces a la marea astronómica.
   - **Conclusión técnica:** No se requiere una librería pesada en la PWA. Ajustando los 5 constituyentes principales de Sagunto mediante UTide una sola vez, se puede implementar la predicción de marea astronómica en `js/forecast.js` con una función matemática armónica simple:
     $$\eta_{astro}(t) = \sum_{i=1}^{5} A_i \cos(\omega_i t + \phi_i)$$
-    sumando luego el efecto barométrico de Open-Meteo: $\Delta \eta_{meteo} = (1013 - P_{sup})/100\text{ (m)}$.
+    - **Elemplo de marea verificado:** el factor barométrico $\Delta\eta \approx -\Delta P/(\rho g)$ da **1.03 cm por hPa** (comprobado), así que la expresión $\Delta\eta_{meteo} = (1013 - P_{sup})/100$ (en metros) es una aproximación razonable. *Aviso:* el propio Open-Meteo ya entrega `sea_level_height_msl` (marea + barómetro + nivel estérico), pero su documentación avisa de que se calcula a **0.08° (~8 km)** y que **"no es apto para navegación costera"**. Sirve como referencia; no como valor de rompeolas.
 
 ---
 
@@ -332,9 +336,10 @@ Existe una tercera vía rigurosa: **Modelos Analíticos Costeros de Ecuaciones C
 
 Implementables sin librerías externas en JavaScript y Python:
 
-#### 1. Longitud de Onda y Celeridad en Aguas Intermedias (Aproximación de Fenton & McKee, 1990)
-En lugar de resolver la ecuación trascendente de dispersión $\sigma^2 = g k \tanh(kd)$ mediante bucles iterativos de Newton-Raphson, se utiliza la aproximación explícita con error $< 0.1\%$:
-$$L = L_0 \left[ \tanh\left( \left(\frac{2\pi}{T}\sqrt{\frac{d}{g}}\right)^{3/2} \right) \right]^{2/3}$$
+#### 1. Longitud de Onda y Celeridad en Aguas Intermedias
+> ⚠️ **La expresión que se propone aquí NO es válida y su error es enorme justo donde importa.** La fórmula `L = L0·[tanh((2π/T)√(d/g))]^{2/3}` da **+19 %** (T=5 s, d=2 m), **+27 %** (T=6 s, d=2 m), **+40 %** (T=8 s, d=2 m) y **+52 %** (T=10 s, d=2 m) frente a la solución exacta de `σ² = g·k·tanh(k·d)`, y llega a errores de −4 % en aguas profundas. El motivo es que en aguas someras la longitud debe escalar como $\sqrt{d}$ y esta expresión escala como $d^{1/3}$. **No la uses.** La alternativa honesta es resolver la ecuación de dispersión (Newton-Raphson son unas 10 líneas y va en microsegundos) o usar una aproximación publicada y verificable, indicando su error.
+>
+> *Lo que sí es correcto en este apartado:* $L_0 = gT^2/(2\pi) \approx 1.5613\,T^2$, $c = L/T$, y $c_g = n\,c$ con $n = \frac{1}{2}\left(1 + \frac{2kd}{\sinh(2kd)}\right)$.
 Donde:
 - $L_0 = \frac{g T^2}{2\pi} \approx 1.5613 \cdot T^2$ (Longitud de onda en aguas profundas).
 - $d$ es la profundidad local del spot (obtenida de EMODnet Bathymetry, ej. $d \approx 2.5\text{ m}$ en la barra de rompiente).
@@ -351,9 +356,10 @@ Si la ola entra muy oblicua, los frentes se estiran y $K_r < 1$ (pérdida de ene
 #### 3. Factor de Asomeramiento (Shoaling Coefficient $K_s$, Ley de Green)
 Por conservación del flujo de energía sin fricción ($P = E \cdot c_g = \text{constante}$):
 $$K_s = \sqrt{\frac{c_{g0}}{c_g}} = \sqrt{\frac{1}{2n \tanh(kd)}}$$
-A medida que la ola pasa de 20 m a 3 m, la velocidad de grupo se frena y la altura crece por efecto asomeramiento ($K_s > 1$).
+**Verificado por mí: esta fórmula es correcta.** Coincide con $\sqrt{c_{g0}/c_g}$ (con $c_{g0}=gT/4\pi$) en los tres decimales que imprimo para $T = 4, 6, 10$ s y $d = 1\ldots1000$ m. Recordatorio de comportamiento: en aguas profundas $K_s = 1$, **sube** hasta un máximo teórico de ~1.25 a unos pocos metros de profundidad y vuelve a bajar. *(Aviso: el $K_s(T)$ del informe físico 02, que baja de 0.94 a 0.82 al acortarse el periodo, es una penalización empírica, no un coeficiente de asomeramiento.)*
 
 #### 4. Altura y Profundidad de Rotura (Criterio de Miche-Wiegel & Goda)
+**Verificado: estas dos fórmulas de Goda (2010) están escritas correctamente** y son la forma más sólida de acotar $H_b$ con la profundidad local. Es la vía recomendada para sustituir el asomeramiento sin límite cuando haya batimetría y un criterio de dominio declarado.
 La altura de ola no puede crecer indefinidamente; al alcanzar aguas someras, la inestabilidad hidrodinámica provoca la rotura cuando la velocidad orbital supera a la celeridad. El índice de rotura $\gamma_b = H_b / d_b$ en función de la pendiente de la playa $\tan\beta$ es:
 $$\gamma_b = \frac{H_b}{d_b} \approx 0.78 + 1.5 \cdot \tan\beta$$
 Y la altura de rompiente calculada analíticamente (Goda, 2010):
@@ -418,37 +424,28 @@ $$\xi_0 = \frac{\tan\beta}{\sqrt{H_0 / L_0}}$$
 
 ---
 
-## 7. Registro de Pruebas de Red y Trazabilidad
+## 7. Registro de Pruebas de Red y Trazabilidad (reverificado el 03/10/2026)
 
-A continuación se certifican las llamadas de red ejecutadas durante esta investigación:
+> Tabla rehecha con llamadas reales de la verificación independiente. Donde el resultado original no se reproduce, se dice. Trazabilidad completa en `04-verificacion-fuentes.md` §3.
 
 1. **Open-Meteo Marine API:**
-   - Comando: `GET https://marine-api.open-meteo.com/v1/marine?latitude=39.98&longitude=0.03&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction&forecast_days=1`
-   - Código HTTP: `200 OK`
-   - Cabecera CORS: `access-control-allow-origin: *`
-   - Estado: Totalmente operativo.
+   - Comando: `GET https://marine-api.open-meteo.com/v1/marine?latitude=39.98&longitude=0.03&hourly=wave_height,wave_period,wave_direction,swell_wave_height&forecast_days=16&cell_selection=sea`
+   - Código HTTP: `200 OK`. Cabecera CORS: `access-control-allow-origin: *` (confirmado con `Origin`).
+   - Dato: **384 horas** (16 días), unidades `m`, `s`, `°`. Estado: **operativo**.
+   - `GET https://api.open-meteo.com/v1/forecast?...&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,surface_pressure` → `200 OK`, unidades **km/h, km/h, °, hPa**.
 2. **Puertos del Estado (Portus API):**
-   - Comando: `GET https://portus.puertos.es/portussvr/api/estaciones/rt/WAVE?locale=es`
-   - Código HTTP: `200 OK` (con bypass de verificación TLS institucional).
-   - Verificación de cadena TLS estándar: `ssl.SSLCertVerificationError: certificate verify failed: self-signed certificate in certificate chain`.
-   - Estado: Operativo exclusivamente vía backend con gestión de certificados; bloqueado para PWA cliente pura.
+   - `GET .../estaciones/rt/WAVE?locale=es` → `200 OK`, 121 entradas. Con cabecera `Origin` devuelve **`Access-Control-Allow-Origin: *`**. Lo mismo con `SEA_LEVEL` (70) y `WIND` (147).
+   - Verificación TLS con **curl/Schannel: correcta** (`ssl_verify_result=0`). Con **Python/OpenSSL en este host: falla** (`self-signed certificate in certificate chain`).
+   - `GET .../RTData/station/2630?locale=es` → **`405`**; con POST sin cuerpo → `400`. La ruta de datos **exige POST con ids de parámetro**.
+   - Estado: **operativo**. El bloqueo de Python es del **almacén de CA local**, no del servidor; **no desactives la verificación TLS**.
 3. **EMODnet Bathymetry REST API:**
-   - Comando: `GET https://rest.emodnet-bathymetry.eu/depth_sample?geom=POINT(0.03%2039.98)`
-   - Código HTTP: `200 OK`
-   - Cabecera CORS: `access-control-allow-origin: https://joorcs96.github.io`
-   - Dato obtenido: Profundidad `-6.47 m`.
-   - Transecto lineal: `GET https://rest.emodnet-bathymetry.eu/depth_profile?geom=LINESTRING(0.005%2039.98,%200.08%2039.98)` devolvió 1000 puntos continuos de perfil costero entre `-0.07 m` y `-24.99 m`.
-   - Estado: Totalmente operativo y sin restricciones.
-4. **GEBCO WMS:**
-   - Comando: `GET https://wms.gebco.net/mapserv?service=wms&version=1.3.0&request=GetCapabilities`
-   - Código HTTP: `200 OK`
-   - Cabecera CORS: `access-control-allow-origin: *`
-   - Estado: Totalmente operativo (resolución secundaria respecto a EMODnet).
-5. **AEMET OpenData API:**
-   - Comando: `GET https://opendata.aemet.es/opendata/api/observacion/convencional/todas`
-   - Código HTTP: `401 Unauthorized` por falta de JWT válido.
-   - Cabecera CORS: `Access-Control-Allow-Origin: *`
-   - Estado: Requiere clave privada JWT y tasa máxima de 5 req/min. Exclusiva para GitHub Actions.
-6. **Skills.sh Leaderboard y Búsqueda:**
-   - Exploración de categorías: `surf`, `wave`, `oceanography`, `marine`, `geospatial`, `weather`.
-   - Estado: Sin skills pertinentes para física de olas de surf. Descartada su instalación.
+   - `GET .../depth_sample?geom=POINT(0.03 39.98)` → `200 OK`, **`-6.4714284 m`** (idéntico al dato original). CORS: refleja el `Origin`.
+   - `GET .../depth_profile?geom=LINESTRING(...)` → `200 OK`, **1000 profundidades en lista plana, sin coordenadas**.
+   - Estado: **operativo y sin restricciones**.
+4. **GEBCO:** `GET https://wms.gebco.net/mapserv?...GetCapabilities` → `200 OK`. Resolución oficial confirmada: **15 segundos de arco**.
+5. **Copernicus Marine:** `GET https://data.marine.copernicus.eu/product/MEDSEA_ANALYSISFORECAST_WAV_006_017/description` → `200 OK`; la ficha confirma **1/24°** y **WAM Cycle 6**.
+6. **AEMET OpenData API:**
+   - `GET https://opendata.aemet.es/opendata/api/observacion/convencional/todas` (sin clave) → **`200 OK` con cuerpo vacío**, **no 401**.
+   - Estado: la ruta y el esquema **no están probados**; el adaptador ya se retiró del proyecto. Cuota: **no verificada**.
+7. **Enlaces del informe 02:** `terrasit.gva.es` **no resuelve** (enlace roto); el sitio correcto es `https://icv.gva.es/`. `map.emodnet-bathymetry.eu` **no respondió** (timeout) desde esta máquina.
+8. **Skills.sh:** auditoría **no verificada** por esta verificación. Postura mantenida: **no instalar nada**.

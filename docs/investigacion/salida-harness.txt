@@ -1,0 +1,267 @@
+Serie sintética: 2026-10-03T00:00 … 2026-10-04T23:00 (48 h, 13 spots)
+
+== 1. ESCENARIOS: qué ve el usuario ==
+
+A · Planetario — mar pequeño y corto con viento de mar
+  entrada        Hs=0.35 T=4 dir=115 viento=14 km/h de 115° (rachas 22)
+  mar de fondo   Total 0.35m 4s 115°
+  altura rotunda 0.3–0.5 m   (mid 0.46 · mín 0.34 · máx 0.52)
+  viento         De mar 14 km/h · onshore · rachas 22
+  calidad        3 "Malo-Regular"  →  2 estrellas
+  día completo   3 "Malo-Regular" 2★ 
+  mejor franja   07–21h (0.46 m, De mar)
+  ventanas ≥3    15–22h r3
+  v3 (rayos)     factor 0.812 → 0.28 m   ·   app/v3 = 1.60×
+
+B · Planetario — mar pequeño pero limpio (terral flojo)
+  entrada        Hs=0.45 T=6 dir=80 viento=8 km/h de 300° (rachas 12)
+  mar de fondo   Total 0.45m 6s 80°
+  altura rotunda 0.5–0.7 m   (mid 0.64 · mín 0.48 · máx 0.73)
+  viento         Terral 8 km/h · offshore · rachas 12
+  calidad        5 "Regular-Bueno"  →  4 estrellas
+  día completo   5 "Regular-Bueno" 4★ · Día bueno
+  mejor franja   07–21h (0.64 m, Terral)
+  ventanas ≥3    15–22h r5
+  v3 (rayos)     factor 1.090 → 0.49 m   ·   app/v3 = 1.30×
+
+C · Planetario — mar bueno (0,9 m / 8 s / terral)
+  entrada        Hs=0.9 T=8 dir=100 viento=10 km/h de 300° (rachas 16)
+  mar de fondo   Total 0.90m 8s 100°
+  altura rotunda 1–1.5 m   (mid 1.30 · mín 0.97 · máx 1.49)
+  viento         Terral 10 km/h · offshore · rachas 16
+  calidad        7 "Épico"  →  5 estrellas
+  día completo   7 "Épico" 5★ · Día muy bueno
+  mejor franja   07–21h (1.30 m, Terral)
+  ventanas ≥3    15–22h r7
+  v3 (rayos)     factor 1.173 → 1.06 m   ·   app/v3 = 1.23×
+
+D · Planetario — el mismo mar bueno pero con rachas de 32 km/h
+  entrada        Hs=0.9 T=8 dir=100 viento=10 km/h de 300° (rachas 32)
+  mar de fondo   Total 0.90m 8s 100°
+  altura rotunda 1–1.5 m   (mid 1.30 · mín 0.97 · máx 1.49)
+  viento         Terral 10 km/h · offshore · rachas 32
+  calidad        7 "Épico"  →  5 estrellas
+  día completo   7 "Épico" 5★ · Día muy bueno
+  mejor franja   07–21h (1.30 m, Terral)
+  ventanas ≥3    15–22h r7
+  v3 (rayos)     factor 1.173 → 1.06 m   ·   app/v3 = 1.23×
+
+E · Voramar — mar pequeño del NE (fuera de su ventana [92,212])
+  entrada        Hs=0.5 T=5 dir=60 viento=10 km/h de 330° (rachas 14)
+  mar de fondo   Total 0.50m 5s 60°
+  altura rotunda 0–0.2 m   (mid 0.05 · mín 0.03 · máx 0.05)
+  viento         Terral 10 km/h · offshore · rachas 14
+  calidad        0 "Plato"  →  0 estrellas
+  día completo   0 "Plato" 0★ 
+  mejor franja   07–21h (0.05 m, Terral)
+  ventanas ≥3    ninguna
+  v3 (rayos)     factor 0.000 → 0.00 m   ·   la app da altura donde el estudio v3 no entrega nada
+
+F · Voramar — lo mismo con el mar en el borde de la ventana (92°)
+  entrada        Hs=0.5 T=5 dir=92 viento=10 km/h de 330° (rachas 14)
+  mar de fondo   Total 0.50m 5s 92°
+  altura rotunda 0.3–0.5 m   (mid 0.44 · mín 0.33 · máx 0.50)
+  viento         Terral 10 km/h · offshore · rachas 14
+  calidad        3 "Malo-Regular"  →  2 estrellas
+  día completo   3 "Malo-Regular" 2★ 
+  mejor franja   07–21h (0.44 m, Terral)
+  ventanas ≥3    15–22h r3
+  v3 (rayos)     factor 0.540 → 0.27 m   ·   app/v3 = 1.62×
+
+G · Voramar — mar bueno del SE (1,0 m / 9 s / terral)
+  entrada        Hs=1 T=9 dir=150 viento=8 km/h de 330° (rachas 12)
+  mar de fondo   Total 1.00m 9s 150°
+  altura rotunda 0.9–1.4 m   (mid 1.25 · mín 0.94 · máx 1.44)
+  viento         Terral 8 km/h · offshore · rachas 12
+  calidad        7 "Épico"  →  5 estrellas
+  día completo   7 "Épico" 5★ · Día muy bueno
+  mejor franja   07–21h (1.25 m, Terral)
+  ventanas ≥3    15–22h r7
+  v3 (rayos)     factor 1.111 → 1.11 m   ·   app/v3 = 1.13×
+
+H · El Palaciet — mar pequeño del ESE con terral flojo
+  entrada        Hs=0.5 T=5 dir=130 viento=10 km/h de 300° (rachas 14)
+  mar de fondo   Total 0.50m 5s 130°
+  altura rotunda 0.5–0.8 m   (mid 0.66 · mín 0.50 · máx 0.76)
+  viento         Terral 10 km/h · offshore · rachas 14
+  calidad        5 "Regular-Bueno"  →  4 estrellas
+  día completo   5 "Regular-Bueno" 4★ · Día bueno
+  mejor franja   07–21h (0.66 m, Terral)
+  ventanas ≥3    15–22h r5
+  v3 (rayos)     factor 1.050 → 0.52 m   ·   app/v3 = 1.26×
+
+I · El Palaciet — mismo mar pero con viento de mar de 18 km/h
+  entrada        Hs=0.5 T=5 dir=130 viento=18 km/h de 130° (rachas 26)
+  mar de fondo   Total 0.50m 5s 130°
+  altura rotunda 0.5–0.8 m   (mid 0.66 · mín 0.50 · máx 0.76)
+  viento         De mar 18 km/h · onshore · rachas 26
+  calidad        2 "Malo"  →  1 estrellas
+  día completo   2 "Malo" 1★ 
+  mejor franja   07–21h (0.66 m, De mar)
+  ventanas ≥3    ninguna
+  v3 (rayos)     factor 1.050 → 0.52 m   ·   app/v3 = 1.26×
+
+K · Planetario — satura (2,4 m / 10 s)
+  entrada        Hs=2.4 T=10 dir=100 viento=12 km/h de 300° (rachas 18)
+  mar de fondo   Total 2.40m 10s 100°
+  altura rotunda 2.3–3.6 m   (mid 3.11 · mín 2.34 · máx 3.58)
+  viento         Terral 12 km/h · offshore · rachas 18
+  calidad        7 "Épico"  →  5 estrellas
+  día completo   7 "Épico" 5★ · Día muy bueno
+  mejor franja   07–21h (3.11 m, Terral)
+  ventanas ≥3    15–22h r7
+  v3 (rayos)     factor 1.178 → 2.83 m   ·   app/v3 = 1.10×
+
+L · Planetario — sólo mar de viento del SE de 0,8 m / 3,5 s (sin mar de fondo)
+  entrada        Hs=– T=– dir=– viento=20 km/h de 130° (rachas 28)
+  mar de fondo   Viento 0.80m 3.5s 130°
+  altura rotunda 0.6–0.9 m   (mid 0.79 · mín 0.59 · máx 0.91)
+  viento         De mar 20 km/h · onshore · rachas 28
+  calidad        1 "Muy malo"  →  0 estrellas
+  día completo   1 "Muy malo" 0★ 
+  mejor franja   07–21h (0.79 m, De mar)
+  ventanas ≥3    ninguna
+
+M · Planetario — mar de fondo pequeño del NE (0,45 m / 7 s) + mar de viento de 0,5 m del SE
+  entrada        Hs=0.62 T=6 dir=60 viento=16 km/h de 130° (rachas 24)
+  mar de fondo   Viento 0.50m 4s 130° + Fondo 0.45m 7s 60°
+  altura rotunda 0.6–0.9 m   (mid 0.82 · mín 0.62 · máx 0.95)
+  viento         De mar 16 km/h · onshore · rachas 24
+  calidad        2 "Malo"  →  1 estrellas
+  día completo   2 "Malo" 1★ 
+  mejor franja   07–21h (0.82 m, De mar)
+  ventanas ≥3    ninguna
+  v3 (rayos)     factor 0.719 → 0.45 m   ·   app/v3 = 1.85×
+
+N · Planetario — día partido: terral de 8 km/h hasta las 13h y de mar de 20 desde las 14h (mar fijo 0,6 m / 6 s)
+  entrada        Hs=0.6 T=6 dir=100 viento=por horas km/h de por horas° (rachas por horas)
+  mar de fondo   Total 0.60m 6s 100°
+  altura rotunda 0.6–1 m   (mid 0.84 · mín 0.63 · máx 0.96)
+  viento         De mar 20 km/h · onshore · rachas 30
+  calidad        2 "Malo"  →  1 estrellas
+  día completo   5 "Regular-Bueno" 4★ · Día bueno
+  mejor franja   07–14h (0.84 m, Terral)
+  ventanas ≥3    ninguna
+  v3 (rayos)     factor 1.165 → 0.70 m   ·   app/v3 = 1.20×
+  hora a hora    6h=5 7h=5 8h=5 9h=5 10h=5 11h=5 12h=5 13h=5 14h=2 15h=2 16h=2 17h=2 18h=2 19h=2 20h=2 21h=2
+  resumen        7 de 14 horas de luz con calidad ≥5, pero el día se puntúa con la MEJOR → 5 "Regular-Bueno" (4★, Día bueno)
+
+
+== 2. BARRIDO DE DIRECCIÓN en Planetario (Hs 0,6 m · T 6 s · calma) ==
+   Se ve el salto de la ventana de exposicion (js/forecast.js:189-194)
+   dir  v3 factor   surf.mid   stars   calidad
+   30   0.000       0.07       0★      0 Plato
+   35   0.000       0.07       0★      0 Plato
+   40   0.000       0.53       3★      4 Regular
+   45   0.192       0.58       3★      4 Regular
+   50   0.383       0.63       4★      5 Regular-Bueno
+   55   0.551       0.67       4★      5 Regular-Bueno
+   60   0.719       0.70       4★      5 Regular-Bueno
+   65   0.828       0.73       4★      5 Regular-Bueno
+   70   0.937       0.76       4★      5 Regular-Bueno
+   75   1.014       0.78       4★      5 Regular-Bueno
+   80   1.090       0.80       4★      5 Regular-Bueno
+   85   1.034       0.82       4★      5 Regular-Bueno
+   90   0.978       0.83       4★      5 Regular-Bueno
+   95   1.072       0.83       4★      5 Regular-Bueno
+   100  1.165       0.84       4★      5 Regular-Bueno
+   105  1.152       0.84       4★      5 Regular-Bueno
+   110  1.139       0.83       4★      5 Regular-Bueno
+   115  1.054       0.82       4★      5 Regular-Bueno
+   120  0.968       0.81       4★      5 Regular-Bueno
+   125  0.978       0.80       4★      5 Regular-Bueno
+   130  0.988       0.78       4★      5 Regular-Bueno
+   135  0.910       0.75       4★      5 Regular-Bueno
+   140  0.832       0.73       4★      5 Regular-Bueno
+   145  0.804       0.69       4★      5 Regular-Bueno
+   150  0.777       0.66       4★      5 Regular-Bueno
+   155  0.723       0.62       4★      5 Regular-Bueno
+   160  0.669       0.57       3★      4 Regular
+   165  0.465       0.52       3★      4 Regular
+   170  0.260       0.46       3★      4 Regular
+   175  0.130       0.07       0★      0 Plato
+   180  0.000       0.07       0★      0 Plato
+   185  0.000       0.07       0★      0 Plato
+
+
+== 3. BARRIDO DE ALTURA en Planetario (T 6 s · dir 100 · calma) ==
+   Hs    surf.mid   estrellas  calidad
+   0.20  0.35       2★         3 Malo-Regular
+   0.30  0.48       3★         4 Regular
+   0.35  0.54       3★         4 Regular
+   0.40  0.61       4★         5 Regular-Bueno
+   0.45  0.67       4★         5 Regular-Bueno
+   0.50  0.72       4★         5 Regular-Bueno
+   0.60  0.84       4★         5 Regular-Bueno
+   0.70  0.95       5★         6 Bueno
+   0.80  1.05       5★         6 Bueno
+   0.90  1.16       5★         6 Bueno
+   1.20  1.46       5★         6 Bueno
+   1.60  1.84       5★         6 Bueno
+   2.00  2.19       5★         6 Bueno
+   2.50  2.62       5★         6 Bueno
+
+
+== 4. BARRIDO DE PERIODO en Planetario (Hs 0,6 m · dir 100 · calma) ==
+   T     surf.mid   estrellas  calidad
+   3     0.63       3★         4 Regular
+   4     0.71       4★         5 Regular-Bueno
+   5     0.78       4★         5 Regular-Bueno
+   6     0.84       4★         5 Regular-Bueno
+   7     0.89       5★         6 Bueno
+   8     0.94       5★         6 Bueno
+   9     0.99       5★         6 Bueno
+   10    1.03       5★         7 Épico
+   12    1.11       5★         7 Épico
+
+
+== 5. BARRIDO DE VIENTO en Planetario (Hs 0,6 m · T 6 s · dir 100) ==
+   viento estado          estrellas  calidad   (con rachas 3× la media)
+   4 de 300Calma           4★         5 Regular-Bueno
+   12 de 300Terral          4★         5 Regular-Bueno
+   20 de 300Terral          4★         5 Regular-Bueno
+   16 de 340Terral cruzado  3★         4 Regular
+   8 de 20Cruzado         3★         4 Regular
+   8 de 115De mar          3★         4 Regular
+   16 de 130De mar          1★         2 Malo
+   25 de 160Mar cruzado     1★         2 Malo
+
+
+== 6. EL MISMO MAR, SÓLO CAMBIANDO EL VIENTO ==
+   Mar fijo (0,6 m / 6 s / 100°); sólo cambian viento y rachas.
+   6 km/h de 300° (rachas 10)  → 5 "Regular-Bueno" 4★ [offshore]
+   6 km/h de 300° (rachas 30)  → 5 "Regular-Bueno" 4★ [offshore]
+   4 km/h de 130° (rachas 8)   → 5 "Regular-Bueno" 4★ [glassy]
+   8 km/h de 130° (rachas 14)  → 4 "Regular" 3★ [onshore]
+   6 km/h de 115° (rachas 30)  → 4 "Regular" 3★ [onshore]
+   16 km/h de 130° (rachas 30) → 2 "Malo" 1★ [onshore]
+   20 km/h de 300° (rachas 30) → 5 "Regular-Bueno" 4★ [offshore]
+   SIN cambio con el viento (las rachas no influyen)
+
+
+== 7. RESUMEN DE LA ESCALA DE ESTRELLAS (js/app.js:50) ==
+
+
+== 7. RESUMEN DE LA ESCALA DE ESTRELLAS (js/app.js:50) ==
+   rating  etiqueta        estrellas
+   0       Plato           0★
+   1       Muy malo        0★
+   2       Malo            1★
+   3       Malo-Regular    2★
+   4       Regular         3★
+   5       Regular-Bueno   4★
+   6       Bueno           5★
+   7       Épico           5★
+   8 niveles de calidad → 6 valores de estrellas: 6 y 7 son indistinguibles.
+
+
+== 8. FACTOR DE LA APP FRENTE AL FACTOR v3 (Planetario, dir = facing 102°) ==
+   app = surf.mid / Hs ;  v3 = factor_oleaje.json (rayos sobre batimetría)
+   Hs    T    app mid   app     v3      app/v3
+   0.35  4    0.46      1.32    0.84    1.57×
+   0.50  5    0.67      1.35    0.85    1.59×
+   0.45  6    0.67      1.48    1.16    1.28×
+   0.60  6    0.84      1.40    1.16    1.20×
+   0.90  8    1.30      1.44    1.17    1.24×
+   1.60  9    2.16      1.35    1.17    1.15×
+   2.40  10   3.12      1.30    1.22    1.07×

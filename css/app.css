@@ -154,7 +154,7 @@ main { width: 100%; max-width: 1180px; min-width: 0; margin: 0 auto; padding: 16
 .day .stars { margin: 2px 0 5px; }
 .day.good-day .good-day-label { margin-top: 2px; }
 .rating-pill { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--rc); color: #0b1b2b; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-.r0 { --rc: var(--r-flat); } .r1 { --rc: var(--r-vpoor); } .r2 { --rc: var(--r-poor); } .r3 { --rc: var(--r-poorfair); }
+.r-na, .r0 { --rc: var(--r-flat); } .r1 { --rc: var(--r-vpoor); } .r2 { --rc: var(--r-poor); } .r3 { --rc: var(--r-poorfair); }
 .r4 { --rc: var(--r-fair); } .r5 { --rc: var(--r-fairgood); } .r6 { --rc: var(--r-good); } .r7 { --rc: var(--r-epic); }
 .r1.rating-pill, .r5.rating-pill, .r6.rating-pill, .r7.rating-pill { color: #fff; }
 

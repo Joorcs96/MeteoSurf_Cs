@@ -36,7 +36,7 @@ function fmtRange(min, max) {
   if (b < 0.2) return '0–0.2';
   return a === b ? `${a}` : `${a}–${b}`;
 }
-const ratingWord = (r) => RATINGS[r]?.label ?? '–';
+const ratingWord = (r) => (r == null || isNaN(r) ? 'sin datos' : (RATINGS[r]?.label ?? '–'));
 const topSwell = (h) => h?.swells?.[0] ?? null;
 
 // Traje según temperatura del agua
@@ -191,14 +191,14 @@ export function bestWindows(fc, spots, { days = 4, minRating = 3 } = {}) {
           from: win.from,
           to: win.to + 1,
           rating: win.rating,
-          surfMin: Math.min(...win.hs.map((h) => h.surf.min)),
-          surfMax: Math.max(...win.hs.map((h) => h.surf.max)),
+          surfMin: Math.min(...win.hs.map((h) => h.surf?.min ?? 0)),
+          surfMax: Math.max(...win.hs.map((h) => h.surf?.max ?? 0)),
           windLabel: dominantWindLabel(win.hs)
         });
         win = null;
       };
       daylight.forEach((h) => {
-        if (h.rating >= minRating) {
+        if (h.rating != null && !isNaN(h.rating) && h.rating >= minRating && (h.surf?.mid ?? 0) >= 0.35) {
           // Un cambio de calidad abre una ventana nueva para dar franjas concretas
           if (win && h.rating !== win.rating) flush();
           if (!win) win = { from: h.hour, to: h.hour, rating: h.rating, hs: [h] };
@@ -269,7 +269,7 @@ function nextDaysParagraph(fc, spots, idxs) {
 }
 
 function trendParagraph(fc, spots, idxs, ref) {
-  const peaks = idxs.map((i) => ({ i, day: ref.days[i] })).filter(({ day }) => day && (day.rating >= 5 || day.surfMax >= 0.8));
+  const peaks = idxs.map((i) => ({ i, day: ref.days[i] })).filter(({ day }) => day && day.rating != null && day.rating >= 5 && (day.surfMax ?? 0) >= 0.7);
   if (!peaks.length) {
     const mins = idxs.map((i) => ref.days[i]?.surfMin).filter((v) => v != null);
     const maxs = idxs.map((i) => ref.days[i]?.surfMax).filter((v) => v != null);

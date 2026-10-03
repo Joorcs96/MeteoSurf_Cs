@@ -64,6 +64,14 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - En local NO subir nada a la release; eso lo hace el workflow.
 
 
+## Calidad y estrellas (03/10/2026)
+- Techos estrictos por altura en rompiente (h < 0.35m: máx r1/0★, < 0.48m: máx r2/1★, < 0.65m: máx r3/2★, < 0.75m: máx r4/3★, < 1.05m: máx r5/4★, < 1.40m: máx r6/5★). Evita que periodo o terral inflen sesiones sin tamaño surfeable.
+- Viento y rachas: `windState()` no asigna 'glassy' con viento de mar; velocidad efectiva `max(v, g * 0.65)` y penalización acumulativa por rachas fuertes (g >= 26 km/h) y rachas desproporcionadas respecto al viento medio (g >= 1.8 * v).
+- Mar de viento corto/desordenado: si domina mar de viento con periodo < 5.2 s se aplica penalización de calidad (-0.6).
+- Distinción estricta de datos: mar plato real = `rating: 0` (Plato, 0★, `0–0.2 m`), previsiones ausentes/NaN = `rating: null` (Sin datos, 0★, `– m`, clase `.r-na`).
+- Swell limpio aprovechable: mantiene calificaciones altas (0.9m+ a 8s con terral alcanza r6 Bueno, 5★).
+- Banco de pruebas: ejecutable con `node tools/test_rating_conservador.js` (16 pruebas unitarias y comparativas sintéticas).
+
 ## Normas de trabajo (incluir en specs)
 - Parar bucles: 3 fallos seguidos de la misma prueba = parar, causa en 3 líneas, volver al último commit bueno y preguntar.
 - Logs de más de 50 líneas: solo 20 primeras + 20 últimas.

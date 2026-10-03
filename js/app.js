@@ -32,8 +32,9 @@ const ordered = () => [...SPOTS].sort((a, b) => (b.id === DEFAULT_SPOT) - (a.id 
 const favoriteSpots = () => [...favs].map((id) => SPOTS.find((s) => s.id === id)).filter(Boolean);
 
 // ---------- Formato ----------
-const m = (x) => (x == null ? '–' : x < 0.95 ? x.toFixed(1) : x.toFixed(1));
+const m = (x) => (x == null || isNaN(x) ? '–' : x.toFixed(1));
 const range = (s) => {
+  if (!s || s.mid == null || isNaN(s.mid)) return '–';
   const a = Math.max(0, Math.round(s.min * 10) / 10), b = Math.round(s.max * 10) / 10;
   if (b < 0.2) return '0–0.2';
   return a === b ? `${a}` : `${a}–${b}`;
@@ -45,17 +46,21 @@ const dayName = (date, i) => {
   return i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : DOW[d.getDay()];
 };
 const dayShort = (date) => { const d = new Date(date + 'T12:00:00'); return `${d.getDate()} ${MON[d.getMonth()]}`; };
-const ratingCls = (r) => `r${r}`;
-const ratingLabel = (r) => RATINGS[r]?.label ?? '–';
-const starRating = (r) => r <= 1 ? 0 : r === 2 ? 1 : r === 3 ? 2 : r === 4 ? 3 : r === 5 ? 4 : 5;
+const ratingCls = (r) => (r == null || isNaN(r) ? 'r-na' : `r${r}`);
+const ratingLabel = (r) => (r == null || isNaN(r) ? 'Sin datos' : (RATINGS[r]?.label ?? '–'));
+const starRating = (r) => (r == null || isNaN(r) || r <= 1 ? 0 : r === 2 ? 1 : r === 3 ? 2 : r === 4 ? 3 : r === 5 ? 4 : 5);
 function stars(r) {
+  if (r == null || isNaN(r)) {
+    const icon = `<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="var(--line)" d="M10 1.5l2.5 5.1 5.6.8-4 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4-4 5.6-.8z"/></svg>`;
+    return `<span class="stars" aria-label="Sin datos">${[0, 1, 2, 3, 4].map(() => icon).join('')}</span>`;
+  }
   const n = starRating(Number(r) || 0);
   const icon = (filled) => `<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="${filled ? '#ffb400' : 'var(--line)'}" d="M10 1.5l2.5 5.1 5.6.8-4 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4-4 5.6-.8z"/></svg>`;
   return `<span class="stars" aria-label="${n} de 5 estrellas">${[0, 1, 2, 3, 4].map((i) => icon(i < n)).join('')}</span>`;
 }
-const goodDay = (d) => Number(d?.rating) >= 5;
+const goodDay = (d) => d?.rating != null && Number(d.rating) >= 5;
 const goodLabel = (r) => Number(r) >= 6 ? 'Día muy bueno' : 'Día bueno';
-const hClass = (h) => `hc${h < 0.2 ? 0 : h < 0.4 ? 1 : h < 0.6 ? 2 : h < 0.9 ? 3 : h < 1.3 ? 4 : h < 2 ? 5 : 6}`;
+const hClass = (h) => (h == null || isNaN(h) ? 'hc0' : `hc${h < 0.2 ? 0 : h < 0.4 ? 1 : h < 0.6 ? 2 : h < 0.9 ? 3 : h < 1.3 ? 4 : h < 2 ? 5 : 6}`);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ICON = {
   star: '<svg class="icon" viewBox="0 0 24 24"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>',
@@ -219,10 +224,12 @@ function bestWindowToday(f) {
   const day = f?.days?.[0];
   if (!day?.hours?.length) return null;
   const daylight = day.hours.filter((h) => h.hour >= 7 && h.hour <= 20);
-  const pool = daylight.length ? daylight : day.hours;
+  const pool = (daylight.length ? daylight : day.hours).filter((h) => h.rating != null && !isNaN(h.rating));
+  if (!pool.length) return null;
   const bestRating = Math.max(...pool.map((h) => h.rating));
+  if (bestRating < 2) return null;
   const best = pool.filter((h) => h.rating === bestRating)
-    .reduce((a, b) => (b.surf.mid > a.surf.mid ? b : a));
+    .reduce((a, b) => ((b.surf?.mid ?? 0) > (a.surf?.mid ?? 0) ? b : a));
   const bestPos = pool.indexOf(best);
   let first = bestPos;
   let last = bestPos;
@@ -251,7 +258,7 @@ function favoriteComparison(spots) {
         <div><span>Altura</span><b class="num">${range(h.surf)} m</b></div>
         <div><span>Periodo</span><b class="num">${h.wavePeriod ? Math.round(h.wavePeriod) + ' s' : '–'}</b></div>
         <div><span>Dirección</span><b>${sw ? `${dirArrow(sw.dir)} ${compass(sw.dir)}` : '–'}</b></div>
-        <div><span>Viento</span><b>${Math.round(h.windSpeed)} km/h <em class="wind-tag wind-${h.wind.key}">${esc(h.wind.label)}</em></b></div>
+        <div><span>Viento</span><b>${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : '–'} <em class="wind-tag wind-${h.wind?.key ?? 'na'}">${esc(h.wind?.label ?? '–')}</em></b></div>
         <div><span>Calidad</span><b class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</b></div>
       </div>
       <div class="fav-best"><span>Mejor franja de hoy</span><strong>${win ? `${String(win.from).padStart(2, '0')}:00–${String(win.to).padStart(2, '0')}:00 · ${range(win.best.surf)} m · ${esc(win.best.wind.label.toLowerCase())}` : 'Sin datos'}</strong></div>` : '<div class="fav-loading">Cargando previsión…</div>'}
@@ -335,7 +342,7 @@ function spotCard(s) {
       </div>
       ${h ? `<div class="meta">
           <span title="Mar de fondo">${ICON.wave}${m(sw?.h)} m · ${sw?.t ? Math.round(sw.t) + ' s' : '–'} ${dirArrow(sw?.dir)} ${compass(sw?.dir)}</span>
-          <span title="Viento">${ICON.wind}${Math.round(h.windSpeed)} km/h ${dirArrow(h.windDir)} <span class="wind-tag wind-${h.wind.key}">${h.wind.label}</span></span>
+          <span title="Viento">${ICON.wind}${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : '–'} ${dirArrow(h.windDir)} <span class="wind-tag wind-${h.wind?.key ?? 'na'}">${esc(h.wind?.label ?? '–')}</span></span>
         </div>
         <div class="spark" title="Próximos 7 días">${f.days.slice(0, 7).map((d, i) => `<div><i class="${ratingCls(d.rating)}"></i><span>${dayName(d.date, i).slice(0, 3)}</span></div>`).join('')}</div>` : ''}
     </div></a>`;
@@ -669,7 +676,7 @@ function barChart(W, hours, nowH, day) {
   s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${H - 28}" y2="${H - 28}" stroke="var(--line)"/>`;
   hours.forEach((h, i) => {
     const x = pad.l + i * bw + 1.5, w = bw - 3;
-    const color = RATINGS[h.rating].color;
+    const color = RATINGS[h.rating]?.color ?? 'var(--r-flat)';
     s += `<rect x="${x}" y="${y(h.surf.max)}" width="${w}" height="${Math.max(1, y(0) - y(h.surf.max))}" rx="2" fill="${color}" opacity=".35"/>`;
     s += `<rect x="${x}" y="${y(h.surf.min)}" width="${w}" height="${Math.max(1, y(0) - y(h.surf.min))}" rx="2" fill="${color}"/>`;
     if (i === nowH) s += `<rect x="${x - 1.5}" y="${pad.t}" width="${bw}" height="${H - pad.t - pad.b}" fill="none" stroke="var(--brand)" stroke-width="2"/>`;

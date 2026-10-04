@@ -16,7 +16,7 @@ El worker anterior murió por cuota a medias. Lo que había dejado y cómo qued�
 - **`cd0df3d`** — `desglose_oleaje()` separa fondo, fondo 2 y viento antes de
   calcular. Antes solo se pedían dos trenes, así que la altura se quedaba
   entre un 6% y un 18% corta. La API sí publica `secondary_swell_wave_*`.
-- **`fe528a9`** — `calcularCalidad()`: el periodo de 4–6 s no penaliza (el
+- `f8671d7` `calcularCalidad()`: el periodo de 4–6 s no penaliza (el
   estado heredado restaba 1 por debajo de 5 s, contra el estudio v3) y el viento
   de mar tiene un único tramo desde 12 km/h (antes se restaba dos veces por
   encima de 20).

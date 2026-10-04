@@ -106,7 +106,7 @@ def obtener_datos_marinos(
     params = {
         "latitude": f"{lat:.2f}",
         "longitude": f"{lon:.2f}",
-        "hourly": "wave_height,wave_period,wave_direction",
+        "hourly": "wave_height,wave_period,wave_direction,wind_wave_height,wind_wave_period,wind_wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction",
         "timezone": "auto",
         "forecast_days": str(forecast_days),
     }
@@ -151,6 +151,12 @@ def calcular_prevision_spots(
     meteo_hourly = datos_meteo.get("hourly", {})
 
     mar_times = mar_hourly.get("time", [])
+    wind_wave_heights = mar_hourly.get("wind_wave_height", [])
+    wind_wave_periods = mar_hourly.get("wind_wave_period", [])
+    wind_wave_directions = mar_hourly.get("wind_wave_direction", [])
+    swell_wave_heights = mar_hourly.get("swell_wave_height", [])
+    swell_wave_periods = mar_hourly.get("swell_wave_period", [])
+    swell_wave_directions = mar_hourly.get("swell_wave_direction", [])
     wave_heights = mar_hourly.get("wave_height", [])
     wave_periods = mar_hourly.get("wave_period", [])
     wave_directions = mar_hourly.get("wave_direction", [])
@@ -179,9 +185,27 @@ def calcular_prevision_spots(
             fecha = iso_time[:10]
             hora = iso_time[11:16] if len(iso_time) >= 16 else "00:00"
 
-        raw_h = wave_heights[i] if i < len(wave_heights) and wave_heights[i] is not None else 0.0
-        raw_p = wave_periods[i] if i < len(wave_periods) and wave_periods[i] is not None else 0.0
-        raw_dir = wave_directions[i] if i < len(wave_directions) and wave_directions[i] is not None else 0.0
+        # Extraer mar de viento y swell
+        hw = wind_wave_heights[i] if i < len(wind_wave_heights) and wind_wave_heights[i] is not None else 0.0
+        hs = swell_wave_heights[i] if i < len(swell_wave_heights) and swell_wave_heights[i] is not None else 0.0
+        pw = wind_wave_periods[i] if i < len(wind_wave_periods) and wind_wave_periods[i] is not None else 0.0
+        ps = swell_wave_periods[i] if i < len(swell_wave_periods) and swell_wave_periods[i] is not None else 0.0
+        dw = wind_wave_directions[i] if i < len(wind_wave_directions) and wind_wave_directions[i] is not None else 0.0
+        ds = swell_wave_directions[i] if i < len(swell_wave_directions) and swell_wave_directions[i] is not None else 0.0
+
+        # Calcular altura efectiva combinada (sqrt) y determinar componente dominante
+        raw_h = math.sqrt(hw**2 + hs**2) if (hw > 0 or hs > 0) else (wave_heights[i] if i < len(wave_heights) and wave_heights[i] is not None else 0.0)
+        
+        # En Castellón predomina el mar de viento, así que lo priorizamos en caso de empate
+        if hw >= hs and hw > 0:
+            raw_p = pw
+            raw_dir = dw
+        elif hs > hw:
+            raw_p = ps
+            raw_dir = ds
+        else:
+            raw_p = wave_periods[i] if i < len(wave_periods) and wave_periods[i] is not None else 0.0
+            raw_dir = wave_directions[i] if i < len(wave_directions) and wave_directions[i] is not None else 0.0
 
         meteo = meteo_by_time.get(iso_time, {"wind_speed": 0.0, "wind_dir": 0.0, "pressure": 1013.0})
         ws = meteo["wind_speed"] if meteo["wind_speed"] is not None else 0.0

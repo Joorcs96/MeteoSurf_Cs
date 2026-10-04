@@ -138,10 +138,18 @@ def calcularCalidad(
 
     if h_val < 0.2:
         return 0
+    # Umbral de plano más exigente para mar de viento (h < 0.4 y p < 5s)
+    if h_val < 0.4 and p_val < 5:
+        return 1
     if h_val < 0.35:
         return 1
 
     s = 2.0
+    
+    # Penalizar con fuerza periodos muy cortos
+    if p_val < 5:
+        s -= 1.0
+        
     if h_val >= 0.5:
         s += 1.0
     if h_val >= 0.9:
@@ -167,10 +175,22 @@ def calcularCalidad(
             s += 1.0
         if is_offshore and ws_val < 8:
             s += 0.5
+            
+        # Reforzar penalización onshore y brisa marina
+        if not is_offshore:
+            if ws_val > 10:
+                s -= 1.0
+            if ws_val > 15:
+                s -= 1.0
     else:
         off_gen = (260 <= wd_val <= 360) or (0 <= wd_val < 45)
         if off_gen and ws_val < 12:
             s += 1.0
+        if not off_gen:
+            if ws_val > 10:
+                s -= 1.0
+            if ws_val > 15:
+                s -= 1.0
 
     if ws_val > 20:
         s -= 1.0

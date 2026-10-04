@@ -47,12 +47,13 @@ function msg(el, title, text) {
 
 // Pinta la cámara en el contenedor .cam
 export async function playCam(el, cam, { autoplay = true } = {}) {
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   stopCam(el);
   if (!cam) { msg(el, 'Sin cámara en este spot', 'Todavía no hay una cámara pública que enfoque esta playa.'); return; }
   if (cam.embedType === 'link') {
     // Cámara que solo se ve en la web de su propietario (p. ej. acceso de socios)
-    el.insertAdjacentHTML('beforeend', `<div class="cam-msg cam-link"><div><b>${cam.name}</b>${cam.notesShort || 'Se abre en su web.'}` +
-      `<a class="cam-link-btn" href="${cam.pageUrl}" target="_blank" rel="noopener">Abrir cámara</a></div></div>`);
+    el.insertAdjacentHTML('beforeend', `<div class="cam-msg cam-link"><div><b>${esc(cam.name)}</b>${esc(cam.notesShort) || 'Se abre en su web.'}` +
+      `<a class="cam-link-btn" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">Abrir cámara</a></div></div>`);
     return;
   }
   const overlay = `<div class="cam-overlay"><span class="live-badge">${cam.embedType === 'jpg' ? 'FOTO' : 'EN DIRECTO'}</span></div>`;

@@ -22,6 +22,9 @@ credentials.json
 Thumbs.db
 desktop.ini
 
+# Capturas de pruebas en navegador (no se suben)
+.capturas/
+
 # Logs y temporales
 *.log
 npm-debug.log*

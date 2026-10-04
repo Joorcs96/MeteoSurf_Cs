@@ -16,20 +16,20 @@
 .realtime-row.is-stale, .realtime-line.is-stale { color: var(--text-2); }
 .realtime-row.is-stale .realtime-values { color: var(--text-2); }
 :root {
-  --bg: #f0f4f8;
+  --bg: #f0f9ff;
   --surface: #ffffff;
-  --surface-2: #eef1f5;
-  --line: #dadde3;
-  --text: #171717;
-  --text-2: #4a5a6a;
-  --text-3: #7d8b99;
-  --brand: #314ee6;
+  --surface-2: #e0f2fe;
+  --line: rgba(2, 132, 199, 0.15);
+  --text: #0f172a;
+  --text-2: #475569;
+  --text-3: #94a3b8;
+  --brand: #0284c7;
   --brand-ink: #ffffff;
-  --accent: #00a3c4;
-  --nav: #171717;
-  --nav-text: #ffffff;
-  --shadow: 0 1px 2px rgba(11, 27, 43, .06), 0 4px 16px rgba(11, 27, 43, .06);
-  --radius: 14px;
+  --accent: #0891b2;
+  --nav: #ffffff;
+  --nav-text: #0f172a;
+  --shadow: 0 4px 16px rgba(15, 23, 42, 0.10);
+  --radius: 18px;
 
   /* Escala de calidad (tipo Surfline) */
   --r-flat: #c3cad3;
@@ -42,33 +42,33 @@
   --r-epic: #5c00d0;
 
   /* Viento */
-  --w-offshore: #1ad64c;
+  --w-offshore: #10b981;
   --w-crossoff: #76e694;
-  --w-cross: #ffcd1e;
+  --w-cross: #f59e0b;
   --w-crosson: #ffa833;
-  --w-onshore: #ec2b2b;
+  --w-onshore: #f43f5e;
   --w-glassy: #408fff;
 
   /* Celdas de tabla (altura) */
   --h0: #eaf3fb; --h1: #cfe6f8; --h2: #a6d1f3; --h3: #6fb3ea; --h4: #3a8ee0; --h5: #1c63c2; --h6: #123f8a;
 
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font: 'Outfit', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1216; --surface: #181c22; --surface-2: #1f242c; --line: #262c36;
-    --text: #f0f4f8; --text-2: #b4bdc8; --text-3: #7d8896;
-    --brand: #5b74ff; --nav: #0b0d10; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+    --bg: #070b12; --surface: #0c1322; --surface-2: #111b30; --line: rgba(14, 165, 233, 0.12);
+    --text: #f1f5f9; --text-2: #94a3b8; --text-3: #64748b;
+    --brand: #0ea5e9; --nav: rgba(12, 19, 34, 0.96); --shadow: 0 8px 32px rgba(7, 11, 18, 0.6);
     --h0: #10263a; --h1: #123251; --h2: #154270; --h3: #1a5694; --h4: #226fbd; --h5: #3a8ee0; --h6: #6fb3ea;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0f1216; --surface: #181c22; --surface-2: #1f242c; --line: #262c36;
-  --text: #f0f4f8; --text-2: #b4bdc8; --text-3: #7d8896;
-  --brand: #5b74ff; --nav: #0b0d10; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+  --bg: #070b12; --surface: #0c1322; --surface-2: #111b30; --line: rgba(14, 165, 233, 0.12);
+  --text: #f1f5f9; --text-2: #94a3b8; --text-3: #64748b;
+  --brand: #0ea5e9; --nav: rgba(12, 19, 34, 0.96); --shadow: 0 8px 32px rgba(7, 11, 18, 0.6);
   --h0: #10263a; --h1: #123251; --h2: #154270; --h3: #1a5694; --h4: #226fbd; --h5: #3a8ee0; --h6: #6fb3ea;
   color-scheme: dark;
 }
@@ -622,3 +622,13 @@ main { width: 100%; max-width: 1180px; min-width: 0; margin: 0 auto; padding: 16
 
 /* Separación entre el panel de ahora y los datos reales */
 [data-realtime-spot] > .realtime-card { margin-top: 12px; }
+\
+/* Accesibilidad: preferencias de movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}\

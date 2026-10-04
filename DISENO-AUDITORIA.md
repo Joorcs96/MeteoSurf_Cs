@@ -133,6 +133,7 @@ Text-3:        #64748b  (--clr-text-3)     → Gris oscuro
    - La clase `dark-tiles` del mapa no se toca
    - El spinner `animate-spin` se puede reemplazar por una clase custom en CSS
    - Los `className` asignados dinámicamente usan clases Tailwind existentes → no tocar
+<<<<<<< HEAD
 ### Coherencia de datos
 
 - Todos los datos, cifras, etiquetas, nombres y rangos en esta aplicaciï¿½n son generados dinï¿½micamente o extraï¿½dos de constantes reales del dominio del surf (direcciones de viento, alturas en metros, periodos en segundos).
@@ -161,3 +162,6 @@ Text-3:        #64748b  (--clr-text-3)     → Gris oscuro
 - TipografÃ­a: Outfit.
 - Accesibilidad: prefers-reduced-motion aÃ±adido en app.css.
 - Capturas en claro/oscuro de 4 tamaÃ±os validadas.
+||||||| parent of 4d8a968 (diseno: sistema de tokens CSS, Inter, accesibilidad y animaciones premium)
+=======
+>>>>>>> 4d8a968 (diseno: sistema de tokens CSS, Inter, accesibilidad y animaciones premium)

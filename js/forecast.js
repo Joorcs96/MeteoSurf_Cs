@@ -1,6 +1,7 @@
 // forecast.js — Descarga de Open-Meteo por spot y cálculo de ola en rompiente, viento y calidad.
 // Además carga los datos reales (data/realtime.json) y el modelo ecmwf_wam025 para comparar.
 import { SPOTS } from './spots.js';
+import { TIENE_FISICA, factorOleaje } from './physics.js';
 
 const TZ = 'Europe/Madrid';
 const DAYS = 16;
@@ -194,10 +195,18 @@ function exposure(spot, dir) {
 }
 
 function surfFromTrains(spot, trains) {
-  // Suma energética de los trenes que llegan a la rompiente
+  // Suma energética de los trenes que llegan a la rompiente.
+  // En los 8 spots del estudio físico v3 el factor sale de trazar el rayo de ola sobre la
+  // batimetría real (H_rompiente / H_offshore por dirección y periodo), así que sustituye a
+  // Komar × exposure(), que era demasiado optimista: 0.36 m de 5.6 s del ESE en Planetario
+  // daban 1.44× en vez de ~1.0×. En el resto de spots se sigue con Komar, que es lo único
+  // que se puede afirmar sin medir el fondo.
+  const v3 = TIENE_FISICA(spot.id);
   let e = 0;
   for (const tr of trains) {
-    const hb = breakingHeight(tr.h, tr.t) * exposure(spot, tr.dir) * spot.exposureFactor;
+    const hb = v3
+      ? (tr.h || 0) * factorOleaje(spot.id, tr.dir, tr.t)
+      : breakingHeight(tr.h, tr.t) * exposure(spot, tr.dir) * spot.exposureFactor;
     e += hb * hb;
   }
   const hb = Math.sqrt(e);
@@ -205,17 +214,27 @@ function surfFromTrains(spot, trains) {
 }
 
 // ---------- Viento ----------
+// Las rachas cuentan. Con 7 km/h de media y rachas de 18 el agua ya está revuelta, así que
+// para decidir el estado y para castigar la nota se usa el viento efectivo
+// max(media, 0.6 × racha), no la media sola.
+export const windEfectivo = (speed, gust) => {
+  const r = gust == null ? 0 : gust * 0.6;
+  if (speed == null) return gust == null ? null : r;
+  return Math.max(speed, r);
+};
+
 // Estados: offshore (terral), cross-off, cross, cross-on, onshore. Glassy si < 6 km/h.
-export function windState(spot, speed, dirFrom) {
-  if (speed == null || dirFrom == null) return { key: 'na', label: '–' };
-  if (speed < 6) return { key: 'glassy', label: 'Calma' };
+export function windState(spot, speed, dirFrom, gust) {
+  if (speed == null || dirFrom == null) return { key: 'na', label: '–', effective: null };
+  const v = windEfectivo(speed, gust);
+  if (v < 6) return { key: 'glassy', label: 'Calma', effective: v };
   const off = norm360(spot.facing + 180);
   const d = angDiff(dirFrom, off);
-  if (d <= 35) return { key: 'offshore', label: 'Terral' };
-  if (d <= 70) return { key: 'crossoff', label: 'Terral cruzado' };
-  if (d <= 110) return { key: 'cross', label: 'Cruzado' };
-  if (d <= 145) return { key: 'crosson', label: 'Mar cruzado' };
-  return { key: 'onshore', label: 'De mar' };
+  if (d <= 35) return { key: 'offshore', label: 'Terral', effective: v };
+  if (d <= 70) return { key: 'crossoff', label: 'Terral cruzado', effective: v };
+  if (d <= 110) return { key: 'cross', label: 'Cruzado', effective: v };
+  if (d <= 145) return { key: 'crosson', label: 'Mar cruzado', effective: v };
+  return { key: 'onshore', label: 'De mar', effective: v };
 }
 
 // ---------- Valoración (escala tipo Surfline) ----------
@@ -232,14 +251,15 @@ export const RATINGS = [
 
 // Escala calibrada para el Mediterráneo: con 0.5–0.7 m en rompiente y poco viento ya hay buen baño,
 // y el periodo típico es de 4–6 s (no penaliza); a partir de 7 s es mar de fondo de calidad.
+// El viento se puntúa con el efectivo (media o racha), que es lo que revuelve el agua.
 function rate(spot, surf, period, wind, speed) {
   const h = surf.mid;
   if (h < 0.22) return 0;
   let s = h < 0.32 ? 1.5 : h < 0.45 ? 2.5 : h < 0.6 ? 3.5 : h < 0.85 ? 4.2 : h < 1.2 ? 5 : h < 1.8 ? 5.6 : 6;
   if (h > spot.maxGood) s -= 1; // el spot se satura o cierra
   if (period < 4) s -= 1; else if (period >= 9) s += 1; else if (period >= 7) s += 0.5;
-  const v = speed ?? 0;
-  s += {
+  const v = wind?.effective ?? speed ?? 0;
+  let pen = {
     glassy: 0.6,
     offshore: v < 25 ? 0.5 : v < 35 ? 0 : -1,
     crossoff: v < 20 ? 0.2 : -0.5,
@@ -248,6 +268,11 @@ function rate(spot, surf, period, wind, speed) {
     onshore: v < 10 ? -0.4 : v < 15 ? -1 : v < 22 ? -2 : -3,
     na: 0
   }[wind.key];
+  // Con el mar pequeño el viento de mar o de mar cruzado no sólo resta puntos: deshace las
+  // olas que hay. Observado el 30/09 en Planetario, 0.34 m en rompiente con ~11 km/h
+  // efectivos de ESE: "casi ninguna ola, se veía mar pero el viento lo estropeaba".
+  if (h < 0.6 && (wind.key === 'onshore' || wind.key === 'crosson') && v >= 6 && v < 12) pen = Math.min(pen, -1);
+  s += pen;
   s = Math.round(s);
   if (s >= 7 && !(h >= 1 && period >= 7 && (wind.key === 'offshore' || wind.key === 'glassy' || wind.key === 'crossoff'))) s = 6;
   return Math.max(1, Math.min(7, s));
@@ -269,35 +294,42 @@ function processAll(raw) {
   return out;
 }
 
+// Una hora concreta a partir de los arrays horarios de Open-Meteo (marine m y weather w).
+// Se exporta para que scripts/test_calibracion.mjs pueda comprobar la calibración con datos
+// reales sin tocar la red ni la caché de localStorage.
+export function horaForecast(spot, m, w, k) {
+  const time = m.time[k];
+  const trains = [
+    { h: m.swell_wave_height[k], t: m.swell_wave_period[k], dir: m.swell_wave_direction[k] },
+    { h: m.secondary_swell_wave_height[k], t: m.secondary_swell_wave_period[k], dir: m.secondary_swell_wave_direction[k] },
+    { h: m.wind_wave_height[k], t: m.wind_wave_period[k], dir: m.wind_wave_direction[k] }
+  ];
+  // Si la partición no existe, usar el total
+  if (!trains.some((t) => t.h)) trains.push({ h: m.wave_height[k], t: m.wave_period[k], dir: m.wave_direction[k] });
+  const surf = surfFromTrains(spot, trains);
+  const windSpeed = w.wind_speed_10m[k];
+  const windDir = w.wind_direction_10m[k];
+  const windGust = w.wind_gusts_10m[k];
+  const wind = windState(spot, windSpeed, windDir, windGust);
+  const period = m.wave_period[k] ?? m.swell_wave_period[k];
+  const swells = trains
+    .map((t, idx) => ({ ...t, kind: ['Fondo', 'Fondo 2', 'Viento', 'Total'][idx] }))
+    .filter((t) => t.h && t.h >= 0.05)
+    .sort((a, b) => b.h - a.h);
+  return {
+    time, date: time.slice(0, 10), hour: +time.slice(11, 13),
+    surf, rating: rate(spot, surf, period ?? 0, wind, windSpeed),
+    waveHeight: m.wave_height[k], wavePeriod: period, waveDir: m.wave_direction[k],
+    energy: energyKJ(m.wave_height[k], period),
+    swells,
+    windSpeed, windGust, windDir, wind,
+    tide: m.sea_level_height_msl[k], sst: m.sea_surface_temperature[k],
+    temp: w.temperature_2m[k], code: w.weather_code[k], isDay: w.is_day[k]
+  };
+}
+
 function processSpot(spot, m, w, daily) {
-  const hours = m.time.map((time, k) => {
-    const trains = [
-      { h: m.swell_wave_height[k], t: m.swell_wave_period[k], dir: m.swell_wave_direction[k] },
-      { h: m.secondary_swell_wave_height[k], t: m.secondary_swell_wave_period[k], dir: m.secondary_swell_wave_direction[k] },
-      { h: m.wind_wave_height[k], t: m.wind_wave_period[k], dir: m.wind_wave_direction[k] }
-    ];
-    // Si la partición no existe, usar el total
-    if (!trains.some((t) => t.h)) trains.push({ h: m.wave_height[k], t: m.wave_period[k], dir: m.wave_direction[k] });
-    const surf = surfFromTrains(spot, trains);
-    const windSpeed = w.wind_speed_10m[k];
-    const windDir = w.wind_direction_10m[k];
-    const wind = windState(spot, windSpeed, windDir);
-    const period = m.wave_period[k] ?? m.swell_wave_period[k];
-    const swells = trains
-      .map((t, idx) => ({ ...t, kind: ['Fondo', 'Fondo 2', 'Viento', 'Total'][idx] }))
-      .filter((t) => t.h && t.h >= 0.05)
-      .sort((a, b) => b.h - a.h);
-    return {
-      time, date: time.slice(0, 10), hour: +time.slice(11, 13),
-      surf, rating: rate(spot, surf, period ?? 0, wind, windSpeed),
-      waveHeight: m.wave_height[k], wavePeriod: period, waveDir: m.wave_direction[k],
-      energy: energyKJ(m.wave_height[k], period),
-      swells,
-      windSpeed, windGust: w.wind_gusts_10m[k], windDir, wind,
-      tide: m.sea_level_height_msl[k], sst: m.sea_surface_temperature[k],
-      temp: w.temperature_2m[k], code: w.weather_code[k], isDay: w.is_day[k]
-    };
-  });
+  const hours = m.time.map((time, k) => horaForecast(spot, m, w, k));
 
   const days = [];
   const byDate = new Map();

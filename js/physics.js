@@ -8,8 +8,7 @@
 // 0.36 m de 5.6 s del ESE daba 1.44× en vez de ~1.0×. Los demás spots siguen con Komar,
 // que es lo único que se puede afirmar sin medir el fondo.
 //
-// Pirámides se quitó el 05/10/2026: su tabla se calculó en un punto equivocado (al sur del
-// puerto) y el spot está en el Serradal. Usa Komar hasta que se recalcule.
+// Pirámides: su tabla se calculó en un punto equivocado (al sur del puerto); ver abajo.
 //
 // Generado con .estudio/gen_physics.mjs desde .estudio/calculos_v3/parametros.json.
 
@@ -286,6 +285,10 @@ export const FACTOR = {
     [0,0,0,0,0,0,0]
   ],
 };
+
+// Pirámides está en el Serradal, a 1 km del Gurugú y con la misma orientación: usa su tabla
+// hasta que se recalcule su fondo.
+FACTOR.Piramides = FACTOR.Gurugu;
 
 export const SPOTS_CON_FISICA = Object.keys(FACTOR);
 export const TIENE_FISICA = (id) => Object.prototype.hasOwnProperty.call(FACTOR, id);

@@ -2,9 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
+  <base href="../">
+  <meta name="robots" content="noindex">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://marine-api.open-meteo.com https://api.open-meteo.com https://generativelanguage.googleapis.com https://streaming.comunitatvalenciana.com https://*.ipcamlive.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; worker-src 'self' blob:; frame-src https://www.windy.com https://webcams.windy.com https://www.youtube-nocookie.com https://www.youtube.com https://*.ipcamlive.com https://www.skylinewebcams.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>MeteoSurf_Cs · Previsión de surf en Castellón</title>
+  <title>Vista previa del rediseño · MeteoSurf_Cs · Previsión de surf en Castellón</title>
   <meta name="description" content="Previsión de olas, viento y marea a 16 días y cámaras en directo de los spots de surf de la costa de Castellón.">
   <meta name="theme-color" content="#0b1b2b">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,10 +17,10 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="preconnect" href="https://marine-api.open-meteo.com">
   <link rel="preconnect" href="https://api.open-meteo.com">
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="rediseno/css/app.css">
 </head>
 <body>
   <header class="topbar">
@@ -46,11 +48,11 @@
   <nav id="quick-spots" class="quick-spots" aria-label="Mis spots"></nav>
 
   <nav class="tabbar" aria-label="Secciones">
-    <a href="#/" data-nav="hoy"><svg class="icon" viewBox="0 0 24 24"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>Previsión</a>
-    <a href="#/mapa" data-nav="mapa"><svg class="icon" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>Mapa</a>
-    <a href="#/camaras" data-nav="camaras"><svg class="icon" viewBox="0 0 24 24"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>Cámaras</a>
-    <a href="#/asistente" data-nav="asistente"><svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg>Asistente</a>
-    <a href="#/favoritos" data-nav="favoritos"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>Favoritos</a>
+    <a href="#/" data-nav="hoy"><span class="icon-mask" style="-webkit-mask-image: url(rediseno/assets/icons/waves.svg); mask-image: url(rediseno/assets/icons/waves.svg)"></span>Previsión</a>
+    <a href="#/mapa" data-nav="mapa"><span class="icon-mask" style="-webkit-mask-image: url(rediseno/assets/icons/map.svg); mask-image: url(rediseno/assets/icons/map.svg)"></span>Mapa</a>
+    <a href="#/camaras" data-nav="camaras"><span class="icon-mask" style="-webkit-mask-image: url(rediseno/assets/icons/video.svg); mask-image: url(rediseno/assets/icons/video.svg)"></span>Cámaras</a>
+    <a href="#/asistente" data-nav="asistente"><span class="icon-mask" style="-webkit-mask-image: url(rediseno/assets/icons/bot.svg); mask-image: url(rediseno/assets/icons/bot.svg)"></span>Asistente</a>
+    <a href="#/favoritos" data-nav="favoritos"><span class="icon-mask" style="-webkit-mask-image: url(rediseno/assets/icons/bookmark.svg); mask-image: url(rediseno/assets/icons/bookmark.svg)"></span>Favoritos</a>
   </nav>
 
   <script type="module" src="js/app.js"></script>

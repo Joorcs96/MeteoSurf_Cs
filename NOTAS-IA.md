@@ -98,6 +98,11 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - El worker que inicia `orden/relevo-cuota.ps1` puede morir dejando el worktree con cambios a medias: guarda primero un commit de checkpoint antes de corregir nada.
 
 
+- 05/10: Planetario casi plano a las 15 h con 0.6 m / 4.4 s del ENE en el modelo: Komar daba 0.75 m. Ahora la web usa la tabla v3 (`js/physics.js`) en 8 spots, viento efectivo max(media, 0.6 x racha), Calma < 6 km/h efectivos y el periodo 4-6 s no penaliza. Caso 4 en `node scripts/test_calibracion.mjs`. Los modelos (MF, ECMWF, GFS) daban casi lo mismo todo el día: el bajón real lo marcaron la boya (mar del E de 8 s que se apaga y gira a S) y la brisa de mar.
+- Pirámides está en la playa del Serradal (Jordi, 05/10), no al sur del puerto. Usa la tabla v3 del Gurugú hasta recalcular. Los otros 12 spots comprobados con costa OSM + Nominatim: en el agua y en su playa.
+- Seguridad: CSP en index/votar (permite jsdelivr, Open-Meteo, Turisme CV, IPCamLive, Windy, YouTube; vídeos https). Nada de scripts inline: el de votar está en `js/votar.js`. Si se añade una fuente externa nueva, hay que añadirla a la CSP o se bloquea.
+- Rediseño del 04/10 (ramas `seguridad-csp` y `redisenar-web`): su CSS está incompleto (borra estilos de la ficha) y el de `redisenar-web` está corrupto (UTF-16 mezclado). Solo se publica como vista previa en `/rediseno/` (usa `<base href="../">` y el JS de la raíz). Rehacerlo antes de llevarlo a la web principal.
+
 ## Pendiente de Jordi
 - Confirmar orientaciones medidas con OSM que cambian mucho: La Renegà 148°, Voramar 142°, El Palaciet 143°.
 - Cámara de Surfers Castellón: pedir al club enlace público o permiso.

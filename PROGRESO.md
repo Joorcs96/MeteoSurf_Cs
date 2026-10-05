@@ -11,6 +11,7 @@
 Sin merge a main; `js/spots.js` y `js/compass.js` intactos. Pruebas Python reproducibles con `python -m unittest scripts.test_realtime backend.test_motor_fisica scripts.test_rewind` (84 tests OK). Pruebas JS con `node tools/test_rating_conservador.js` (16 tests OK) y `node tools/test_formato_null.js` (15 tests OK).
 La excepción TLS mantiene un riesgo de autenticidad en los datos públicos; `REALTIME_CA_BUNDLE` permite exigir verificación. AEMET experimental retirado: las fuentes requeridas funcionan sin secretos.
 
+<<<<<<< HEAD
 | Pruebas y capturas móviles | Hechas: script real, 8 pruebas Python, escenarios de navegador, sintaxis JS y claro/oscuro 390–844 | Joorcs96/ms-realtime-reviewed | Capturas e informes locales en `.capturas/` |
 | Calibrar la previsión (relevo del worker sin cuota) | Hecha: trenes de oleaje separados, periodo 4–6 s sin penalizar, viento de mar penaliza desde 12 km/h. 44 pruebas en verde | Joorcs96/calibracion-prevision | Decidir DUDAS.md 1 (portar el motor v3 al backend) |
 
@@ -35,3 +36,6 @@ Verificado además contra la API real (`forecast_days=3`, sin tocar
 repartida entre 0 y 4, con el 4/5 entrando solo con terral.
 
 Sin merge a main. `js/` y `historico_olas.csv` intactos.
+=======
+| Redise�o | Hecha: adaptado a main (Outfit, motion, data preserved) | Joorcs96/redisenar-main | Revisar |
+>>>>>>> seguridad-csp

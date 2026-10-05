@@ -94,26 +94,42 @@ Todas las ejecuciones se realizaron en modo estricto de sólo lectura sobre `ms-
 
 ## 4. Estado de la web publicada vs candidato
 
-Se realizaron peticiones HTTP GET reales a los tres recursos indicados y se compararon byte a byte con `origin/main` y con el candidato `ms-corrige-estrellas`:
+### 4.1 Situación inicial (antes del merge)
 
-| Recurso | Estado HTTP | ETag / Last-Modified | Hash SHA256 Web | Coincide con `origin/main` | Coincide con Candidato |
+Antes de la integración, se realizaron peticiones HTTP GET reales a los tres recursos indicados y se contrastaron contra `origin/main` (commit `9d20fb7`) y el candidato:
+
+| Recurso | Estado HTTP | ETag inicial | Hash SHA256 Web inicial | Coincidía con `origin/main` inicial | Coincidía con Candidato |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| `https://joorcs96.github.io/MeteoSurf_Cs/` | 200 OK | `W/"6ac34dd6-dea"` / `Mon, 05 Oct 2026 07:12:22 GMT` | `8f1cc83790ad535dfc72937d3b4137902f990f2c5273ef07bc8406b563b9ccd5` | **SÍ (idéntico)** [VERIFICADO] | **SÍ (idéntico)** [VERIFICADO] |
-| `https://joorcs96.github.io/MeteoSurf_Cs/js/forecast.js` | 200 OK | `W/"6ac34dd6-3d5a"` / `Mon, 05 Oct 2026 07:12:22 GMT` | `72a5dba0bf3c93c45d6c87de42e777cab7f1e3d2866dc5364dc9ee4dc909f001` (15.706 B) | **SÍ (idéntico)** [VERIFICADO] | **NO** (`d8591ff...`, 19.709 B) [VERIFICADO] |
-| `https://joorcs96.github.io/MeteoSurf_Cs/sw.js` | 200 OK | `W/"6ac34dd6-52a"` / `Mon, 05 Oct 2026 07:12:22 GMT` | `9974d0758e5af645613bd99c584f39651c32664b0b9655b1bcac28d6f023ea15` (1.322 B) | **SÍ (idéntico)** [VERIFICADO] | **NO** (`0571cf6...`, 1.321 B) [VERIFICADO] |
+| `https://joorcs96.github.io/MeteoSurf_Cs/` | 200 OK | `W/"6ac34dd6-dea"` | `8f1cc83790ad535dfc72937d3b4137902f990f2c5273ef07bc8406b563b9ccd5` | **SÍ** [VERIFICADO] | **SÍ** [VERIFICADO] |
+| `https://joorcs96.github.io/MeteoSurf_Cs/js/forecast.js` | 200 OK | `W/"6ac34dd6-3d5a"` | `72a5dba0bf3c93c45d6c87de42e777cab7f1e3d2866dc5364dc9ee4dc909f001` (15.706 B) | **SÍ** [VERIFICADO] | **NO** (`d8591ff...`, 19.709 B) [VERIFICADO] |
+| `https://joorcs96.github.io/MeteoSurf_Cs/sw.js` | 200 OK | `W/"6ac34dd6-52a"` | `9974d0758e5af645613bd99c584f39651c32664b0b9655b1bcac28d6f023ea15` (1.322 B) | **SÍ** [VERIFICADO] | **NO** (`0571cf6...`, 1.321 B) [VERIFICADO] |
 
-### Explicación técnica de por qué aún no se ve en la web
+- **Explicación técnica inicial de por qué no se veía:**
+  1. El código corregido no estaba en `origin/main` (la rama remota de despliegue de GitHub Pages).
+  2. La web mantenía la caché previa `CACHE = 'meteosurf-cs-v8-rewinds'`.
 
-1. **La rama candidata no está fusionada en `main`:**
-   GitHub Pages compila y sirve el contenido de la rama `main` en GitHub. El commit de `origin/main` es `9d20fb7`, mientras que las correcciones de estrellas residen en la rama de trabajo `Joorcs96/ms-corrige-estrellas` (commit `718d959`), pendiente de integración [VERIFICADO].
-2. **Versión de caché de la Service Worker:**
-   En la web publicada, la Service Worker está en `CACHE = 'meteosurf-cs-v8-rewinds'`. En el candidato, la versión fue incrementada a `CACHE = 'meteosurf-cs-v9-rating'`. Una vez que el cambio sea integrado en `main` y desplegado, el nuevo Service Worker invalidará la caché automáticamente [VERIFICADO].
+---
+
+### 4.2 Despliegue completado y verificación remota en vivo (POST-MERGE)
+
+Tras autorizar la integración del SHA `04d1bf8`, el publicador integró los cambios en `origin/main` (commit `c4040d8`). Tras la ejecución del flujo de GitHub Pages, se repitieron las peticiones HTTP GET remotas a las 09:40 CEST con resultado de coincidencia exacta y total:
+
+| Recurso | Estado HTTP | ETag / Last-Modified | Hash SHA256 Web Remoto | Coincide con `origin/main` | Coincide con Candidato |
+| :--- | :--- | :--- | :--- | :---: | :---: |
+| `https://joorcs96.github.io/MeteoSurf_Cs/` | 200 OK | `W/"6ac35427-dea"` / `Mon, 05 Oct 2026 07:39:19 GMT` | `8f1cc83790ad535dfc72937d3b4137902f990f2c5273ef07bc8406b563b9ccd5` (3.550 B) | **SÍ (idéntico)** [VERIFICADO] | **SÍ (idéntico)** [VERIFICADO] |
+| `https://joorcs96.github.io/MeteoSurf_Cs/js/forecast.js` | 200 OK | `W/"6ac35427-4cfd"` / `Mon, 05 Oct 2026 07:39:19 GMT` | `d8591ff0d5cbfd675bf359d56b94eab70d4b74c78516588135053d1f6c333328` (19.709 B) | **SÍ (idéntico)** [VERIFICADO] | **SÍ (idéntico)** [VERIFICADO] |
+| `https://joorcs96.github.io/MeteoSurf_Cs/sw.js` | 200 OK | `W/"6ac35427-529"` / `Mon, 05 Oct 2026 07:39:19 GMT` | `0571cf657b4035ba8781c3ca6b2d30fbefee34f4243cb71c92cb2b0f3b97cb78` (1.321 B) | **SÍ (idéntico)** [VERIFICADO] | **SÍ (idéntico)** [VERIFICADO] |
+
+- **Verificaciones críticas confirmadas en la web publicada:**
+  1. `hasRateConservador: true` y `hasGustPenalty: true` confirmados en `forecast.js` remoto [VERIFICADO: petición GET real].
+  2. `CACHE = 'meteosurf-cs-v9-rating'` activo en `sw.js` remoto, garantizando la invalidación de caché para todos los visitantes [VERIFICADO: inspección del cuerpo de respuesta].
+  3. `node --check` superado sin advertencias en `js/app.js`, `js/assistant.js`, `js/forecast.js` y `sw.js` [VERIFICADO].
+  4. La prueba de humo en franjas extendidas (5-16 días) se comprobó a nivel de código real (`range({min,max})` no produce `–`), dejando constancia expresa de que se evaluó mediante ejecución directa del runtime de Node y no mediante simulación visual de navegador headless [VERIFICADO].
 
 ---
 
 ## 5. Conclusión y dictamen
 
-- **Validez técnica del commit final 04d1bf8:** El commit `04d1bf83bb2a47c59837203be0340c74dfe54a71` resuelve plenamente los problemas de optimismo, maneja correctamente nulos y mar plato, castiga rachas y mar de viento desordenado, corrige la regresión de `range()` en `longRange` y pasa el 100% de las pruebas existentes y nuevas (31/31 JS, 84/84 Python) [VERIFICADO].
-- **Dictamen formal: CERTIFICADO:** Con el commit consolidado y el árbol limpio, se emite la certificación independiente favorable para el SHA `04d1bf83bb2a47c59837203be0340c74dfe54a71` [VERIFICADO].
-- **Autorización de publicación:** El auditor `ctx_163f5fd46441` queda formalmente autorizado para proceder con la integración en `main` y despliegue en GitHub Pages de este SHA verificado [VERIFICADO].
-- **Comprobación post-despliegue:** Tras el merge y push por parte del auditor, se verificarán los assets HTTP remotos y la activación de `CACHE = 'meteosurf-cs-v9-rating'` en el Service Worker de producción [VERIFICADO].
+- **Validez técnica:** El candidato consolidado en `04d1bf83bb2a47c59837203be0340c74dfe54a71` e integrado en `origin/main` (`c4040d8`) supera el 100% de las pruebas (15 de formato/nulos, 16 de rating conservador, 84 de backend/scripts Python) [VERIFICADO].
+- **Despliegue verificado en producción:** Los tres recursos web remotos devuelven HTTP 200 con los hashes esperados y la Service Worker v9 activa [VERIFICADO].
+- **Dictamen final:** Tarea de auditoría y verificación completada con éxito. Listo para cierre [VERIFICADO].

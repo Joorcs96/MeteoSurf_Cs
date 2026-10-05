@@ -64,6 +64,22 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - En local NO subir nada a la release; eso lo hace el workflow.
 
 
+## Calidad y estrellas (03/10/2026)
+- Techos estrictos por altura en rompiente (h < 0.35m: máx r1/0★, < 0.48m: máx r2/1★, < 0.65m: máx r3/2★, < 0.75m: máx r4/3★, < 1.05m: máx r5/4★, < 1.40m: máx r6/5★). Evita que periodo o terral inflen sesiones sin tamaño surfeable.
+- Viento y rachas: `windState()` no asigna 'glassy' con viento de mar; velocidad efectiva `max(v, g * 0.65)` y penalización acumulativa por rachas fuertes (g >= 26 km/h) y rachas desproporcionadas respecto al viento medio (g >= 1.8 * v).
+- Mar de viento corto/desordenado: si domina mar de viento con periodo < 5.2 s se aplica penalización de calidad (-0.6).
+- Distinción estricta de datos: mar plato real = `rating: 0` (Plato, 0★, `0–0.2 m`), previsiones ausentes/NaN = `rating: null` (Sin datos, 0★, `– m`, clase `.r-na`).
+- Swell limpio aprovechable: mantiene calificaciones altas (0.9m+ a 8s con terral alcanza r6 Bueno, 5★).
+- Banco de pruebas: ejecutable con `node tools/test_rating_conservador.js` (16 pruebas unitarias y comparativas sintéticas).
+
+## Auditoría independiente de las estrellas (05/10/2026)
+- Regresión grave que quedaba viva tras 89c1d42: `range()` de `app.js` decidía la validez por `s.mid`, pero tres vistas la llaman con `{min, max}` sin `mid` (franja de 7 días, cabecera de mejor ventana y panel de 5-16 días). Mostraban siempre `– m` en vez del rango de altura. Ahora `range()` guarda por `min`/`max`. Comprobado revirtiendo el arreglo: `node tools/test_formato_null.js` pasa a 3 fallos.
+- Trampa de pruebas: `tools/test_rating_conservador.js` replicaba `range()` con el mismo bug, así que daba verde mientras la app rompía. Las réplicas de formato no sirven como prueba; `tools/test_formato_null.js` extrae el código real de `js/app.js` y `js/assistant.js` y lo evalúa.
+- Nulo que se vestía de 0: `Math.round(null)` = 0, así que sin viento se veía `0 km/h`, rachas `0` y `NaN–NaN km/h`. Ahora hay `kmh()` y `rnd()` en `app.js` y `kmh()` en `assistant.js`. El 0 medido sigue mostrándose como 0.
+- El asistente calculaba `Math.min(...horas.map(h => h.surf.min))`; con todos los nulos eso da 0 y pintaba `0–0 m`, que lee como mar plano en vez de sin datos. Ahora filtra nulos y delega en `fmtRange(null, null)` = `–`.
+- Comprobado que 5★ solo con buenas condiciones: por debajo de 1.05 m en rompiente ninguna combinación de periodo, viento y rachas llega a 5★ (barrido en `test_formato_null.js`), y 1.2 m a 7 s con calma sí las alcanza.
+- Suite nueva: `node tools/test_formato_null.js` (15 pruebas). Suite completa: `node tools/test_rating_conservador.js` (16) + `python -m unittest scripts.test_realtime backend.test_motor_fisica scripts.test_rewind` (84).
+
 ## Normas de trabajo (incluir en specs)
 - Parar bucles: 3 fallos seguidos de la misma prueba = parar, causa en 3 líneas, volver al último commit bueno y preguntar.
 - Logs de más de 50 líneas: solo 20 primeras + 20 últimas.

@@ -205,12 +205,18 @@ function surfFromTrains(spot, trains) {
 }
 
 // ---------- Viento ----------
-// Estados: offshore (terral), cross-off, cross, cross-on, onshore. Glassy si < 6 km/h.
+// Estados: offshore (terral), cross-off, cross, cross-on, onshore. Glassy si < 3 km/h o < 6 km/h con terral.
 export function windState(spot, speed, dirFrom) {
-  if (speed == null || dirFrom == null) return { key: 'na', label: '–' };
-  if (speed < 6) return { key: 'glassy', label: 'Calma' };
+  if (speed == null || dirFrom == null || isNaN(speed) || isNaN(dirFrom)) return { key: 'na', label: '–' };
+  if (speed < 3.0) return { key: 'glassy', label: 'Calma' };
   const off = norm360(spot.facing + 180);
   const d = angDiff(dirFrom, off);
+  if (speed < 6) {
+    if (d <= 70) return { key: 'glassy', label: 'Calma' };
+    if (d <= 110) return { key: 'cross', label: 'Cruzado' };
+    if (d <= 145) return { key: 'crosson', label: 'Mar cruzado' };
+    return { key: 'onshore', label: 'De mar' };
+  }
   if (d <= 35) return { key: 'offshore', label: 'Terral' };
   if (d <= 70) return { key: 'crossoff', label: 'Terral cruzado' };
   if (d <= 110) return { key: 'cross', label: 'Cruzado' };
@@ -230,27 +236,103 @@ export const RATINGS = [
   { key: 'epic', label: 'Épico', color: 'var(--r-epic)' }
 ];
 
-// Escala calibrada para el Mediterráneo: con 0.5–0.7 m en rompiente y poco viento ya hay buen baño,
-// y el periodo típico es de 4–6 s (no penaliza); a partir de 7 s es mar de fondo de calidad.
-function rate(spot, surf, period, wind, speed) {
+// Escala calibrada conservadora para el Mediterráneo:
+// Evita estrellas infladas por periodo/terral con poca altura, incorpora el impacto de rachas
+// y mar de viento desordenado como heurísticas, y distingue mar plato de datos ausentes.
+export function rate(spot, surf, period, wind, speed, gust, extra = {}) {
+  if (!surf || surf.mid == null || isNaN(surf.mid) || !isFinite(surf.mid)) return null;
   const h = surf.mid;
   if (h < 0.22) return 0;
-  let s = h < 0.32 ? 1.5 : h < 0.45 ? 2.5 : h < 0.6 ? 3.5 : h < 0.85 ? 4.2 : h < 1.2 ? 5 : h < 1.8 ? 5.6 : 6;
-  if (h > spot.maxGood) s -= 1; // el spot se satura o cierra
-  if (period < 4) s -= 1; else if (period >= 9) s += 1; else if (period >= 7) s += 0.5;
-  const v = speed ?? 0;
-  s += {
-    glassy: 0.6,
-    offshore: v < 25 ? 0.5 : v < 35 ? 0 : -1,
-    crossoff: v < 20 ? 0.2 : -0.5,
-    cross: v < 10 ? 0 : v < 18 ? -0.6 : v < 26 ? -1.2 : -2,
-    crosson: v < 8 ? 0 : v < 14 ? -0.6 : v < 22 ? -1.5 : -2.5,
-    onshore: v < 10 ? -0.4 : v < 15 ? -1 : v < 22 ? -2 : -3,
-    na: 0
-  }[wind.key];
-  s = Math.round(s);
-  if (s >= 7 && !(h >= 1 && period >= 7 && (wind.key === 'offshore' || wind.key === 'glassy' || wind.key === 'crossoff'))) s = 6;
-  return Math.max(1, Math.min(7, s));
+
+  // Base según altura en rompiente (h)
+  let s;
+  if (h < 0.32) s = 1.0;
+  else if (h < 0.45) s = 1.8;
+  else if (h < 0.60) s = 2.6;
+  else if (h < 0.75) s = 3.3;
+  else if (h < 0.95) s = 4.0;
+  else if (h < 1.25) s = 4.8;
+  else if (h < 1.60) s = 5.5;
+  else s = 6.0;
+
+  if (spot?.maxGood && h > spot.maxGood) s -= 1.0;
+
+  // Periodo (s)
+  const p = (period != null && !isNaN(period) && isFinite(period)) ? period : 0;
+  if (p < 4.0) s -= 1.2;
+  else if (p < 5.2) s -= 0.5;
+  else if (p >= 8.5) s += 0.9;
+  else if (p >= 6.8) s += 0.5;
+
+  // Viento y rachas
+  const hasWind = wind && wind.key && wind.key !== 'na' && speed != null && !isNaN(speed) && isFinite(speed);
+  if (hasWind) {
+    const v = Math.max(0, speed);
+    const g = (gust != null && !isNaN(gust) && isFinite(gust)) ? Math.max(v, gust) : v;
+    const eff = Math.max(v, g * 0.65);
+
+    let wAdj = 0;
+    switch (wind.key) {
+      case 'glassy':
+        wAdj = 0.3;
+        break;
+      case 'offshore':
+        wAdj = eff < 14 ? 0.4 : eff < 22 ? 0.1 : eff < 32 ? -0.5 : -1.2;
+        break;
+      case 'crossoff':
+        wAdj = eff < 12 ? 0.2 : eff < 20 ? -0.2 : eff < 30 ? -0.8 : -1.5;
+        break;
+      case 'cross':
+        wAdj = eff < 8 ? 0 : eff < 15 ? -0.6 : eff < 24 ? -1.3 : -2.2;
+        break;
+      case 'crosson':
+        wAdj = eff < 6 ? -0.2 : eff < 12 ? -0.8 : eff < 20 ? -1.7 : -2.6;
+        break;
+      case 'onshore':
+        wAdj = eff < 6 ? -0.4 : eff < 12 ? -1.1 : eff < 20 ? -2.0 : -3.0;
+        break;
+      default:
+        wAdj = 0;
+        break;
+    }
+
+    let gustPenalty = 0;
+    if (g >= 26) gustPenalty += (g >= 40 ? 1.0 : g >= 30 ? 0.7 : 0.4);
+    if (g >= 18 && g >= v * 1.8) gustPenalty += 0.4;
+    if ((wind.key === 'onshore' || wind.key === 'crosson') && g >= 24) gustPenalty += 0.5;
+
+    s += wAdj - gustPenalty;
+  } else {
+    if (s > 4.0) s = 4.0;
+  }
+
+  // Mar de viento corto / desordenado
+  const wh = extra?.windWaveH;
+  const wt = extra?.windWaveT;
+  const sh = extra?.swellH ?? 0;
+  if (wh != null && wh >= 0.35 && ((wt != null && wt < 4.8) || p < 4.8) && wh > sh * 1.2) {
+    s -= 0.6;
+  }
+
+  // Techo duro por altura
+  let maxCap = 7;
+  if (h < 0.35) maxCap = 1;
+  else if (h < 0.48) maxCap = 2;
+  else if (h < 0.65) maxCap = 3;
+  else if (h < 0.75) maxCap = 4;
+  else if (h < 1.05) maxCap = 5;
+  else if (h < 1.40) maxCap = 6;
+
+  let rounded = Math.round(s);
+  if (rounded >= 7) {
+    const isCleanWind = wind && (wind.key === 'offshore' || wind.key === 'glassy' || wind.key === 'crossoff');
+    if (!(h >= 1.40 && p >= 7.0 && isCleanWind && (speed ?? 0) < 25)) {
+      rounded = 6;
+    }
+  }
+
+  rounded = Math.min(rounded, maxCap);
+  return Math.max(1, Math.min(7, rounded));
 }
 
 // Energía orientativa en kJ, proporcional a H²·T² (misma idea que la fila de energía de Surf-Forecast)
@@ -271,6 +353,29 @@ function processAll(raw) {
 
 function processSpot(spot, m, w, daily) {
   const hours = m.time.map((time, k) => {
+    const hasWaveData = (m.wave_height?.[k] != null && !isNaN(m.wave_height[k])) ||
+      (m.swell_wave_height?.[k] != null && !isNaN(m.swell_wave_height[k])) ||
+      (m.wind_wave_height?.[k] != null && !isNaN(m.wind_wave_height[k]));
+
+    const windSpeed = w.wind_speed_10m?.[k];
+    const windGust = w.wind_gusts_10m?.[k];
+    const windDir = w.wind_direction_10m?.[k];
+    const wind = windState(spot, windSpeed, windDir);
+
+    if (!hasWaveData) {
+      return {
+        time, date: time.slice(0, 10), hour: +time.slice(11, 13),
+        surf: { min: null, max: null, mid: null },
+        rating: null,
+        waveHeight: null, wavePeriod: null, waveDir: null,
+        energy: 0,
+        swells: [],
+        windSpeed, windGust, windDir, wind,
+        tide: m.sea_level_height_msl?.[k], sst: m.sea_surface_temperature?.[k],
+        temp: w.temperature_2m?.[k], code: w.weather_code?.[k], isDay: w.is_day?.[k]
+      };
+    }
+
     const trains = [
       { h: m.swell_wave_height[k], t: m.swell_wave_period[k], dir: m.swell_wave_direction[k] },
       { h: m.secondary_swell_wave_height[k], t: m.secondary_swell_wave_period[k], dir: m.secondary_swell_wave_direction[k] },
@@ -279,23 +384,26 @@ function processSpot(spot, m, w, daily) {
     // Si la partición no existe, usar el total
     if (!trains.some((t) => t.h)) trains.push({ h: m.wave_height[k], t: m.wave_period[k], dir: m.wave_direction[k] });
     const surf = surfFromTrains(spot, trains);
-    const windSpeed = w.wind_speed_10m[k];
-    const windDir = w.wind_direction_10m[k];
-    const wind = windState(spot, windSpeed, windDir);
     const period = m.wave_period[k] ?? m.swell_wave_period[k];
     const swells = trains
       .map((t, idx) => ({ ...t, kind: ['Fondo', 'Fondo 2', 'Viento', 'Total'][idx] }))
       .filter((t) => t.h && t.h >= 0.05)
       .sort((a, b) => b.h - a.h);
+    const rating = rate(spot, surf, period, wind, windSpeed, windGust, {
+      swellH: m.swell_wave_height?.[k],
+      swellT: m.swell_wave_period?.[k],
+      windWaveH: m.wind_wave_height?.[k],
+      windWaveT: m.wind_wave_period?.[k]
+    });
     return {
       time, date: time.slice(0, 10), hour: +time.slice(11, 13),
-      surf, rating: rate(spot, surf, period ?? 0, wind, windSpeed),
+      surf, rating,
       waveHeight: m.wave_height[k], wavePeriod: period, waveDir: m.wave_direction[k],
       energy: energyKJ(m.wave_height[k], period),
       swells,
-      windSpeed, windGust: w.wind_gusts_10m[k], windDir, wind,
-      tide: m.sea_level_height_msl[k], sst: m.sea_surface_temperature[k],
-      temp: w.temperature_2m[k], code: w.weather_code[k], isDay: w.is_day[k]
+      windSpeed, windGust, windDir, wind,
+      tide: m.sea_level_height_msl?.[k], sst: m.sea_surface_temperature?.[k],
+      temp: w.temperature_2m?.[k], code: w.weather_code?.[k], isDay: w.is_day?.[k]
     };
   });
 
@@ -306,12 +414,25 @@ function processSpot(spot, m, w, daily) {
   for (const [date, hs] of byDate) {
     const daylight = hs.filter((h) => h.hour >= 7 && h.hour <= 20);
     const pick = daylight.length ? daylight : hs;
-    const best = pick.reduce((a, b) => (b.rating > a.rating || (b.rating === a.rating && b.surf.mid > a.surf.mid) ? b : a));
+    const valid = pick.filter((h) => h.rating != null && !isNaN(h.rating));
+    let dayRating = null;
+    let best = null;
+    if (valid.length > 0) {
+      best = valid.reduce((a, b) => (b.rating > a.rating || (b.rating === a.rating && (b.surf?.mid ?? 0) > (a.surf?.mid ?? 0)) ? b : a));
+      const topRatings = valid.map((h) => h.rating).sort((a, b) => b - a);
+      if (topRatings[0] >= 5) {
+        const countHigh = topRatings.filter((r) => r >= 5).length;
+        dayRating = countHigh >= 2 ? topRatings[0] : (topRatings[1] ?? 4);
+      } else {
+        dayRating = topRatings[0];
+      }
+    }
+    const validSurfs = pick.filter((h) => h.surf && h.surf.mid != null && !isNaN(h.surf.mid));
     days.push({
       date, hours: hs,
-      rating: best.rating, best,
-      surfMin: Math.min(...pick.map((h) => h.surf.min)),
-      surfMax: Math.max(...pick.map((h) => h.surf.max)),
+      rating: dayRating, best: best ?? hs[0],
+      surfMin: validSurfs.length ? Math.min(...validSurfs.map((h) => h.surf.min)) : null,
+      surfMax: validSurfs.length ? Math.max(...validSurfs.map((h) => h.surf.max)) : null,
       sunrise: daily?.sunrise?.[di]?.slice(11, 16), sunset: daily?.sunset?.[di]?.slice(11, 16),
       tempMax: daily?.temperature_2m_max?.[di]
     });

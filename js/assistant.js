@@ -36,7 +36,8 @@ function fmtRange(min, max) {
   if (b < 0.2) return '0–0.2';
   return a === b ? `${a}` : `${a}–${b}`;
 }
-const ratingWord = (r) => RATINGS[r]?.label ?? '–';
+const ratingWord = (r) => (r == null || isNaN(r) ? 'sin datos' : (RATINGS[r]?.label ?? '–'));
+const kmh = (x) => (x == null || isNaN(x) ? '–' : Math.round(x) + ' km/h');
 const topSwell = (h) => h?.swells?.[0] ?? null;
 
 // Traje según temperatura del agua
@@ -191,14 +192,14 @@ export function bestWindows(fc, spots, { days = 4, minRating = 3 } = {}) {
           from: win.from,
           to: win.to + 1,
           rating: win.rating,
-          surfMin: Math.min(...win.hs.map((h) => h.surf.min)),
-          surfMax: Math.max(...win.hs.map((h) => h.surf.max)),
+          surfMin: Math.min(...win.hs.map((h) => h.surf?.min ?? 0)),
+          surfMax: Math.max(...win.hs.map((h) => h.surf?.max ?? 0)),
           windLabel: dominantWindLabel(win.hs)
         });
         win = null;
       };
       daylight.forEach((h) => {
-        if (h.rating >= minRating) {
+        if (h.rating != null && !isNaN(h.rating) && h.rating >= minRating && (h.surf?.mid ?? 0) >= 0.35) {
           // Un cambio de calidad abre una ventana nueva para dar franjas concretas
           if (win && h.rating !== win.rating) flush();
           if (!win) win = { from: h.hour, to: h.hour, rating: h.rating, hs: [h] };
@@ -269,7 +270,7 @@ function nextDaysParagraph(fc, spots, idxs) {
 }
 
 function trendParagraph(fc, spots, idxs, ref) {
-  const peaks = idxs.map((i) => ({ i, day: ref.days[i] })).filter(({ day }) => day && (day.rating >= 5 || day.surfMax >= 0.8));
+  const peaks = idxs.map((i) => ({ i, day: ref.days[i] })).filter(({ day }) => day && day.rating != null && day.rating >= 5 && (day.surfMax ?? 0) >= 0.7);
   if (!peaks.length) {
     const mins = idxs.map((i) => ref.days[i]?.surfMin).filter((v) => v != null);
     const maxs = idxs.map((i) => ref.days[i]?.surfMax).filter((v) => v != null);
@@ -329,8 +330,8 @@ function answerCompare(spotA, spotB, fc, dayInfo) {
   if (!da || !db) return p('Sin previsión para ese día.');
   const winner = da.rating !== db.rating ? (da.rating > db.rating ? spotA : spotB) : (da.surfMax >= db.surfMax ? spotA : spotB);
   return `<p><b>${esc(cap(dayLabel(da.date, idx)))}:</b> Mejor <b>${esc(winner.name)}</b>.<br>` +
-    `<b>${esc(spotA.name)}:</b> ${fmtRange(da.surfMin, da.surfMax)} m, ${esc(ratingWord(da.rating))}, ${esc(da.best.wind.label.toLowerCase())} ${Math.round(da.best.windSpeed)} km/h.<br>` +
-    `<b>${esc(spotB.name)}:</b> ${fmtRange(db.surfMin, db.surfMax)} m, ${esc(ratingWord(db.rating))}, ${esc(db.best.wind.label.toLowerCase())} ${Math.round(db.best.windSpeed)} km/h.</p>`;
+    `<b>${esc(spotA.name)}:</b> ${fmtRange(da.surfMin, da.surfMax)} m, ${esc(ratingWord(da.rating))}, ${esc(da.best.wind.label.toLowerCase())} ${kmh(da.best.windSpeed)}.<br>` +
+    `<b>${esc(spotB.name)}:</b> ${fmtRange(db.surfMin, db.surfMax)} m, ${esc(ratingWord(db.rating))}, ${esc(db.best.wind.label.toLowerCase())} ${kmh(db.best.windSpeed)}.</p>`;
 }
 
 function answerBestSpot(fc, spots, dayInfo) {
@@ -346,7 +347,7 @@ function answerBestSpot(fc, spots, dayInfo) {
   if (!best) return p('Sin datos para ese día.');
   const { s, day } = best;
   return `<p><b>${esc(cap(dayLabel(day.date, idx)))}:</b> Mejor spot <b>${esc(s.name)}</b> (${esc(s.zoneName)}).<br>` +
-    `${fmtRange(day.surfMin, day.surfMax)} m, ${esc(ratingWord(day.rating))}. Mejor a las ${day.best.hour}:00 (${esc(day.best.wind.label.toLowerCase())} ${Math.round(day.best.windSpeed)} km/h).</p>`;
+    `${fmtRange(day.surfMin, day.surfMax)} m, ${esc(ratingWord(day.rating))}. Mejor a las ${day.best.hour}:00 (${esc(day.best.wind.label.toLowerCase())} ${kmh(day.best.windSpeed)}).</p>`;
 }
 
 function answerWhen(fc, targetSpots, dayInfo) {
@@ -430,7 +431,7 @@ function answerSpotStatus(fc, spot, dayInfo, franja, wantNow) {
     const h = f.hours[nowIndex(f.hours)];
     const sw = topSwell(h);
     const swTxt = sw ? `${fmtM(sw.h)} m ${sw.t ? Math.round(sw.t) : '–'} s ${compass(sw.dir)}` : 'sin mar de fondo';
-    const windTxt = `${esc(h.wind.label.toLowerCase())} ${Math.round(h.windSpeed)} km/h ${compass(h.windDir)}`;
+    const windTxt = `${esc(h.wind.label.toLowerCase())} ${kmh(h.windSpeed)} ${compass(h.windDir)}`;
     return `<p><b>${esc(spot.name)} ahora (${h.hour}:00):</b> ${fmtRange(h.surf.min, h.surf.max)} m, ${esc(ratingWord(h.rating))}.<br>` +
       `Swell ${swTxt}. Viento ${windTxt}.</p>`;
   }
@@ -443,9 +444,11 @@ function answerSpotStatus(fc, spot, dayInfo, franja, wantNow) {
   const best = hours.reduce((a, b) => (b.rating > a.rating || (b.rating === a.rating && b.surf.mid > a.surf.mid) ? b : a));
   const sw = topSwell(best);
   const swTxt = sw ? `${fmtM(sw.h)} m ${sw.t ? Math.round(sw.t) : '–'} s ${compass(sw.dir)}` : 'sin mar de fondo';
-  const windTxt = `${esc(best.wind.label.toLowerCase())} ${Math.round(best.windSpeed)} km/h ${compass(best.windDir)}`;
+  const windTxt = `${esc(best.wind.label.toLowerCase())} ${kmh(best.windSpeed)} ${compass(best.windDir)}`;
   const franjaTxt = franja ? (franja.exact ? ` a las ${franja.from}:00` : ` de ${hours[0].hour} a ${hours.at(-1).hour} h`) : '';
-  return `<p><b>${esc(spot.name)}</b> (${esc(dayLabel(day.date, idx))}${franjaTxt}): ${fmtRange(Math.min(...hours.map((h) => h.surf.min)), Math.max(...hours.map((h) => h.surf.max)))} m, ${esc(ratingWord(best.rating))}.<br>` +
+  const mins = hours.map((h) => h.surf?.min).filter((v) => v != null && !isNaN(v));
+  const maxs = hours.map((h) => h.surf?.max).filter((v) => v != null && !isNaN(v));
+  return `<p><b>${esc(spot.name)}</b> (${esc(dayLabel(day.date, idx))}${franjaTxt}): ${fmtRange(mins.length ? Math.min(...mins) : null, maxs.length ? Math.max(...maxs) : null)} m, ${esc(ratingWord(best.rating))}.<br>` +
     `Swell ${swTxt}. Viento ${windTxt}.</p>`;
 }
 

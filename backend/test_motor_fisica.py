@@ -185,16 +185,17 @@ class TestCalcularCalidad(unittest.TestCase):
     def test_period_bonuses(self):
         # p>=6 (+0.5), p>=8 (+0.5)
         # h=0.4 (base s=2)
-        # p=5.5 -> s=2
-        c_p5 = calcularCalidad(0.4, 5.5, 16, 180, 'Planetario', 1015)
+        # Viento neutro: wd=180 es de mar y ws=8 se queda por debajo del tramo
+        # de penalizacion, asi que el unico termino variable es el periodo.
+        c_p5 = calcularCalidad(0.4, 5.5, 8, 180, 'Planetario', 1015)
         self.assertEqual(c_p5, 2)
 
         # p=6.5 -> s=2.5 -> Math.round -> 3
-        c_p6 = calcularCalidad(0.4, 6.5, 16, 180, 'Planetario', 1015)
+        c_p6 = calcularCalidad(0.4, 6.5, 8, 180, 'Planetario', 1015)
         self.assertEqual(c_p6, 3)
 
         # p=8.5 -> s=3 (bonus p>=6 y p>=8)
-        c_p8 = calcularCalidad(0.4, 8.5, 16, 180, 'Planetario', 1015)
+        c_p8 = calcularCalidad(0.4, 8.5, 8, 180, 'Planetario', 1015)
         self.assertEqual(c_p8, 3)
 
     def test_wave_energy_bonuses(self):
@@ -255,12 +256,12 @@ class TestCalcularCalidad(unittest.TestCase):
         # presion < 1008: +0.5
         # presion < 995: +0.5 adicional
         # h=0.4 (base s=2)
-        # presion=1013 (sin bonus) -> s=2
-        self.assertEqual(calcularCalidad(0.4, 4.0, 16, 180, 'Planetario', 1013), 2)
+        # Viento neutro (ws=8 de mar) para que solo varye la presion.
+        self.assertEqual(calcularCalidad(0.4, 4.0, 8, 180, 'Planetario', 1013), 2)
         # presion=1005 (< 1008) -> s=2.5 -> round -> 3
-        self.assertEqual(calcularCalidad(0.4, 4.0, 16, 180, 'Planetario', 1005), 3)
+        self.assertEqual(calcularCalidad(0.4, 4.0, 8, 180, 'Planetario', 1005), 3)
         # presion=990 (< 995) -> s=3 -> 3
-        self.assertEqual(calcularCalidad(0.4, 4.0, 16, 180, 'Planetario', 990), 3)
+        self.assertEqual(calcularCalidad(0.4, 4.0, 8, 180, 'Planetario', 990), 3)
 
     def test_presion_default_fallback(self):
         # presion=None o 0 debe tomar por defecto 1013
@@ -290,6 +291,74 @@ class TestCalcularCalidad(unittest.TestCase):
             calcular_calidad(1.0, 8.0, 10, 290, 'Planetario'),
             calcularCalidad(1.0, 8.0, 10, 290, 'Planetario'),
         )
+
+
+class TestCalibracionMediterraneo(unittest.TestCase):
+    """Reglas fijadas con la calibracion real de Jordi (NOTAS-IA.md).
+
+    El engine heredado es la referencia fisica del historico diario. Su
+    algoritmo original era una traduccion del JS de MASTER_CONTEXT.md y todavia
+    no recogia dos cosas del Mediterraneo: que 4-6 s es el periodo normal y que
+    el viento de mar arruina un dia por debajo de unos 20 km/h.
+    """
+
+    def test_periodo_de_4_a_6_s_no_penaliza(self):
+        # El estudio fisico v3 fija periodo_ideal 4-9 s y NOTAS-IA que 4-6 s es
+        # lo normal: en ese rango el unico termino es la base de 2 estrellas.
+        for p in (4.0, 4.5, 5.0, 5.6):
+            with self.subTest(periodo=p):
+                self.assertEqual(calcularCalidad(0.4, p, 8, 180, 'Planetario', 1015), 2)
+
+    def test_periodo_muy_corto_si_penaliza(self):
+        # Por debajo de 4 s el tren ya no llega bien formado a la rompiente. Con
+        # terral, donde la suma cae en un medio exacto, la penalizacion se ve.
+        con_corto = calcularCalidad(0.4, 3.5, 5, 290, 'Planetario', 1015)
+        con_normal = calcularCalidad(0.4, 4.5, 5, 290, 'Planetario', 1015)
+        self.assertEqual(con_corto, 3)
+        self.assertEqual(con_normal, 4)
+
+    def test_viento_de_mar_penaliza_desde_12_kmh(self):
+        # wd=112 es ESE, de mar para Planetario (offshore 275-315).
+        # Sin viento: s = 2 + 1 (h>=0.5) + 0.5 (p>=6) = 3.5 -> 4 estrellas.
+        base = calcularCalidad(0.5, 6.0, 8, 112, 'Planetario', 1015)
+        self.assertEqual(base, 4)
+        # A 14 km/h entra el tramo de viento de mar (-0.5).
+        self.assertEqual(calcularCalidad(0.5, 6.0, 14, 112, 'Planetario', 1015), 3)
+        # A 12 no entra todavia.
+        self.assertEqual(calcularCalidad(0.5, 6.0, 12, 112, 'Planetario', 1015), 4)
+
+    def test_viento_de_mar_no_penaliza_si_no_sopla(self):
+        # Mismo caso sin viento: la brisa no puede restar.
+        self.assertEqual(calcularCalidad(0.5, 6.0, 0, 112, 'Planetario', 1015), 4)
+
+    def test_viento_fuerte_no_se_penaliza_dos_veces(self):
+        # Por encima de 20 km/h el propio tramo de viento de mar ya no resta mas:
+        # solo queda el global. Asi 25 km/h de mar resta 1.5 en total (0.5 propio
+        # + 1 global) y no 2.5, que es lo que pasaba con los dos tramos onshore.
+        a_20 = calcularCalidad(0.5, 6.0, 20, 112, 'Planetario', 1015)
+        a_25 = calcularCalidad(0.5, 6.0, 25, 112, 'Planetario', 1015)
+        a_35 = calcularCalidad(0.5, 6.0, 35, 112, 'Planetario', 1015)
+        self.assertEqual(a_20, 3)   # 3.5 - 0.5 propio
+        self.assertEqual(a_25, 2)   # 3.5 - 0.5 propio - 1 global (>20)
+        self.assertEqual(a_35, 1)   # 3.5 - 0.5 propio - 1 (>20) - 1 (>30)
+
+    def test_sesion_real_de_jordi_30_09_en_planetario(self):
+        # 30/09/2026 18:40-19h: 0.36-0.38 m y 5.6 s mar adentro con viento de
+        # 6-8 km/h del ESE y rachas de 18. Jordi la describe como "casi sin olas y
+        # el viento de mar lo estropeaba": no puede salir como un dia normal.
+        calidad = calcularCalidad(0.37, 5.6, 7, 112, 'Planetario', 1013)
+        self.assertLessEqual(calidad, 2)
+        # Mismo oleaje con terral si es claramente mejor.
+        con_terral = calcularCalidad(0.37, 5.6, 7, 295, 'Planetario', 1013)
+        self.assertGreater(con_terral, calidad)
+
+    def test_plato_no_tiene_un_salto_de_dos_estrellas(self):
+        # Con el segundo umbral antigo (h<0.4 y p<5) un plato de 0.39 m con 5.9 s
+        # se puntuaba 1 y a 0.40 m saltaba a 3. El corte queda solo en h<0.35.
+        justo_debajo = calcularCalidad(0.34, 5.9, 8, 290, 'Planetario', 1015)
+        justo_encima = calcularCalidad(0.35, 5.9, 8, 290, 'Planetario', 1015)
+        self.assertEqual(justo_debajo, 1)
+        self.assertLessEqual(abs(justo_encima - justo_debajo), 3)
 
 
 class TestGroundTruthMatrix(unittest.TestCase):

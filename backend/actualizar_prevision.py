@@ -62,6 +62,34 @@ CASTELLON_LON = 0.03
 OPEN_METEO_MARINE_URL = "https://marine-api.open-meteo.com/v1/marine"
 OPEN_METEO_WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 
+# Trenes de ola que publica Open-Meteo Marine. wave_height es el total, que es la
+# suma energetica de los trenes; sin el desglose no se puede distinguir mar de
+# fondo del mar de viento, que en Castellon es lo que decide si el dia es
+# surfeable (ver NOTAS-IA.md y el estudio fisico v3).
+VARIABLES_MARINAS = (
+    "wave_height",
+    "wave_period",
+    "wave_direction",
+    "swell_wave_height",
+    "swell_wave_period",
+    "swell_wave_direction",
+    "secondary_swell_wave_height",
+    "secondary_swell_wave_period",
+    "secondary_swell_wave_direction",
+    "wind_wave_height",
+    "wind_wave_period",
+    "wind_wave_direction",
+)
+
+# Etiqueta de cada tren, en el orden en que los pinta la web (js/forecast.js).
+# La clave es el prefijo de las variables de Open-Meteo: swell_*, secondary_swell_*
+# y wind_wave_*.
+TRENES_MARINOS = (
+    ("swell", "Fondo"),
+    ("secondary_swell", "Fondo 2"),
+    ("wind", "Viento"),
+)
+
 # Endpoint gratuito de CallMeBot WhatsApp
 CALLMEBOT_URL = "https://api.callmebot.com/whatsapp.php"
 
@@ -106,13 +134,76 @@ def obtener_datos_marinos(
     params = {
         "latitude": f"{lat:.2f}",
         "longitude": f"{lon:.2f}",
-        "hourly": "wave_height,wave_period,wave_direction",
+        "hourly": ",".join(VARIABLES_MARINAS),
         "timezone": "auto",
         "forecast_days": str(forecast_days),
     }
     query_string = urllib.parse.urlencode(params)
     url = f"{OPEN_METEO_MARINE_URL}?{query_string}"
     return _http_get_json(url)
+
+
+def _valor(serie: Optional[List[Any]], i: int, defecto: float = 0.0) -> float:
+    """Lee la posicion i de una serie horaria de la API tolerando null y huecos."""
+    if not serie or i >= len(serie):
+        return defecto
+    valor = serie[i]
+    if valor is None:
+        return defecto
+    try:
+        return float(valor)
+    except (TypeError, ValueError):
+        return defecto
+
+
+def desglose_oleaje(mar_hourly: Dict[str, Any], i: int) -> Dict[str, Any]:
+    """Separa el oleaje de una hora en trenes y devuelve el que domina.
+
+    El total que publica la API (wave_height) es la suma energetica de los
+    trenes, asi que se reconstruye con los tres (fondo, fondo 2 y viento) y se
+    elige el de mayor energia como periodo y direccion de referencia: son los
+    valores que gobiernan el factor de sombra y exposicion de cada spot, y con
+    ellos el historico deja de mezclar mar de fondo con mar de viento.
+
+    Si la API no publica el desglose (malla sin dato) se devuelve el total.
+    """
+    total_h = _valor(mar_hourly.get("wave_height"), i, 0.0)
+    total_p = _valor(mar_hourly.get("wave_period"), i, 0.0)
+    total_dir = _valor(mar_hourly.get("wave_direction"), i, 0.0)
+
+    trenes: List[Dict[str, Any]] = []
+    for clave, clase in TRENES_MARINOS:
+        altura = _valor(mar_hourly.get(f"{clave}_wave_height"), i, 0.0)
+        if altura <= 0:
+            continue
+        trenes.append({
+            "clase": clase,
+            "altura": altura,
+            "periodo": _valor(mar_hourly.get(f"{clave}_wave_period"), i, total_p),
+            "direccion": _valor(mar_hourly.get(f"{clave}_wave_direction"), i, total_dir),
+        })
+
+    if not trenes:
+        return {
+            "altura": total_h,
+            "periodo": total_p,
+            "direccion": total_dir,
+            "trenes": [],
+            "fraccion_viento": 0.0,
+        }
+
+    energia = math.sqrt(sum(t["altura"] ** 2 for t in trenes))
+    dominante = max(trenes, key=lambda t: t["altura"] ** 2)
+    energia_viento = math.sqrt(
+        sum(t["altura"] ** 2 for t in trenes if t["clase"] == "Viento")
+    )
+    return {
+        "altura": energia,
+        "periodo": dominante["periodo"],
+        "direccion": dominante["direccion"],
+        "trenes": trenes,
+        "fraccion_viento": energia_viento / energia if energia > 0 else 0.0,
+    }
 
 
 def obtener_datos_meteorologicos(
@@ -143,6 +234,13 @@ def calcular_prevision_spots(
 
     Combina las variables mar adentro de Open-Meteo con las transformaciones
     de difracción, sombra y orientación de costa de cada rompiente.
+
+    El oleaje se separa antes en trenes (mar de fondo, fondo 2 y mar de
+    viento) con desglose_oleaje(): la altura es la suma energética de los
+    trenes y el periodo y la direccion son los del tren dominante, que es el
+    que gobierna el factor de sombra del spot. Por eso la columna
+    dir_swell_deg del histórico guarda la dirección de ese tren y no la del
+    total.
     """
     if spots is None:
         spots = list(SPOT_CONFIG.keys())
@@ -151,9 +249,6 @@ def calcular_prevision_spots(
     meteo_hourly = datos_meteo.get("hourly", {})
 
     mar_times = mar_hourly.get("time", [])
-    wave_heights = mar_hourly.get("wave_height", [])
-    wave_periods = mar_hourly.get("wave_period", [])
-    wave_directions = mar_hourly.get("wave_direction", [])
 
     meteo_times = meteo_hourly.get("time", [])
     wind_speeds = meteo_hourly.get("wind_speed_10m", [])
@@ -179,9 +274,12 @@ def calcular_prevision_spots(
             fecha = iso_time[:10]
             hora = iso_time[11:16] if len(iso_time) >= 16 else "00:00"
 
-        raw_h = wave_heights[i] if i < len(wave_heights) and wave_heights[i] is not None else 0.0
-        raw_p = wave_periods[i] if i < len(wave_periods) and wave_periods[i] is not None else 0.0
-        raw_dir = wave_directions[i] if i < len(wave_directions) and wave_directions[i] is not None else 0.0
+        # Mar de fondo y mar de viento separados: el tren dominante marca el
+        # periodo y la direccion que despues usa calcularFisica.
+        oleaje = desglose_oleaje(mar_hourly, i)
+        raw_h = oleaje["altura"]
+        raw_p = oleaje["periodo"]
+        raw_dir = oleaje["direccion"]
 
         meteo = meteo_by_time.get(iso_time, {"wind_speed": 0.0, "wind_dir": 0.0, "pressure": 1013.0})
         ws = meteo["wind_speed"] if meteo["wind_speed"] is not None else 0.0

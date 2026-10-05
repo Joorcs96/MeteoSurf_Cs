@@ -142,6 +142,13 @@ def calcularCalidad(
         return 1
 
     s = 2.0
+
+    # El periodo de 4 a 6 s es el normal del Mediterraneo y no penaliza
+    # (estudio fisico v3 y NOTAS-IA). Solo por debajo de 4 s, que en este mar
+    # ya no llega a formar un tren con derivada.
+    if p_val < 4:
+        s -= 0.5
+
     if h_val >= 0.5:
         s += 1.0
     if h_val >= 0.9:
@@ -163,14 +170,23 @@ def calcularCalidad(
             is_offshore = (wd_val >= cfg['offshoreMin'] and wd_val <= cfg['offshoreMax'])
         else:
             is_offshore = (wd_val >= cfg['offshoreMin'] or wd_val <= cfg['offshoreMax'])
-        if is_offshore and ws_val < 15:
-            s += 1.0
-        if is_offshore and ws_val < 8:
-            s += 0.5
+        if is_offshore:
+            if ws_val < 15:
+                s += 1.0
+            if ws_val < 8:
+                s += 0.5
+        elif ws_val > 12:
+            # Viento de mar o cruzado: levanta el oleaje corto y lo desordena.
+            # Empieza en 12 km/h, que es donde ya se nota; por encima de 20 el
+            # tramo global de mas abajo ya castiga bastante, asi que aqui no se
+            # penaliza dos veces lo mismo.
+            s -= 0.5
     else:
         off_gen = (260 <= wd_val <= 360) or (0 <= wd_val < 45)
         if off_gen and ws_val < 12:
             s += 1.0
+        elif ws_val > 12:
+            s -= 0.5
 
     if ws_val > 20:
         s -= 1.0

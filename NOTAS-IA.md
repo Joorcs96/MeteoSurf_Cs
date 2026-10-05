@@ -89,6 +89,14 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Planetario: Jordi surfea exactamente en 39.9784738, 0.0265750 (junto al dique norte del puerto).
 - Calibración real (Jordi, 30/09 18:40-19 h, Planetario): casi sin olas y el viento de mar lo estropeaba, con 0.36-0.38 m y 5.6 s mar adentro y un viento de 6-8 km/h del ESE con rachas de 18. La web daba 0.4-0.6 m, demasiado optimista: el factor de Komar multiplica x1.44 y el estudio v3 da x0.85 a 5 s. Las rachas cuentan.
 - Estudio físico v3 (rayos OSM + EMODnet, verificado con check.py) en meteosurf_research/calculos_v3/.
+- **Hay dos motores, no uno.** La web (`js/forecast.js`) usa el v3 (Komar por trenes, `exposureFactor`, `maxGood`, `swellWindow`) y puntúa 1-7; el backend (`backend/motor_fisica.py`) usa el heredado (sigmoide, sin trenes) y puntúa 0-5, y es el que llena `historico_olas.csv`. El histórico no registra lo que ve el usuario. Decidir en `DUDAS.md` 1; no lo cambies por tu cuenta.
+- Trenes de oleaje: Open-Meteo publica `swell_*`, `secondary_swell_*` y `wind_wave_*`; el total `wave_height` es la suma energética de los tres (medido: la suma es del 0.93 al 1.03 del total). Pedir solo dos pierde hasta un 18% de altura. El prefijo del viento es `wind`, no `wind_wave`: las variables son `wind_wave_height`. `desglose_oleaje()` en `backend/actualizar_prevision.py` es puro y sin red, y devuelve además `fraccion_viento`, que todavía no usa nadie.
+- `dir_swell_deg` del histórico guarda la dirección del **tren dominante**, no la del total; si manda el mar de viento, esa es la que se registra.
+- Periodo 4-6 s en el Mediterráneo: no penaliza (estudio v3 y escala de Jordi). Por debajo de 4 s sí, -0.5. El estado heredado del worker arrived a castigar hasta 5 s, en contra del estudio.
+- Viento de mar: un solo tramo, -0.5 desde 12 km/h; por encima de 20 entra el tramo global (-1) y por encima de 30 otro (-1). No añadas un segundo tramo de viento de mar, que es como se restaba dos veces.
+- Pruebas del backend: `python -m unittest backend.test_motor_fisica backend.test_actualizar_prevision` (44). `unittest discover -s backend` falla: `backend` no es paquete importable.
+- El worker que inicia `orden/relevo-cuota.ps1` puede morir dejando el worktree con cambios a medias: guarda primero un commit de checkpoint antes de corregir nada.
+
 
 ## Pendiente de Jordi
 - Confirmar orientaciones medidas con OSM que cambian mucho: La Renegà 148°, Voramar 142°, El Palaciet 143°.

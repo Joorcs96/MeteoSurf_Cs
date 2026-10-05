@@ -386,7 +386,9 @@ main { width: 100%; max-width: 1180px; min-width: 0; margin: 0 auto; padding: 16
    ========================================= */
 
 /* Gap 1: Cifra de ola Hero */
-.now .hero-wave { font-size: 42px; font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+.now .hero-wave { font-size: clamp(32px, 10vw, 42px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
+.now .wide > div:first-child { min-width: 0; }
+.now .rating-pill { white-space: nowrap; }
 .now .hero-wave small { font-size: 18px; font-weight: 700; margin-left: 2px; }
 .now .v-sec { font-size: 19px; font-weight: 700; }
 

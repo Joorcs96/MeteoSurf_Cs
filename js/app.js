@@ -34,11 +34,13 @@ const favoriteSpots = () => [...favs].map((id) => SPOTS.find((s) => s.id === id)
 // ---------- Formato ----------
 const m = (x) => (x == null || isNaN(x) ? '–' : x.toFixed(1));
 const range = (s) => {
-  if (!s || s.mid == null || isNaN(s.mid)) return '–';
+  if (!s || s.min == null || s.max == null || isNaN(s.min) || isNaN(s.max)) return '–';
   const a = Math.max(0, Math.round(s.min * 10) / 10), b = Math.round(s.max * 10) / 10;
   if (b < 0.2) return '0–0.2';
   return a === b ? `${a}` : `${a}–${b}`;
 };
+const kmh = (x) => (x == null || isNaN(x) ? '–' : Math.round(x) + ' km/h');
+const rnd = (x) => (x == null || isNaN(x) ? '–' : Math.round(x));
 const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MON = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const dayName = (date, i) => {
@@ -406,7 +408,7 @@ function renderSpot(id) {
   let bestDayIdx = 0;
   if (f) {
     let maxR = -1;
-    f.days.forEach((d, i) => { if (d.rating > maxR) { maxR = d.rating; bestDayIdx = i; } });
+    f.days.forEach((d, i) => { if (d.rating != null && d.rating > maxR) { maxR = d.rating; bestDayIdx = i; } });
   }
   
   const isSwellOpt = h && h.swells[0] && (() => {
@@ -431,7 +433,7 @@ function renderSpot(id) {
         <div class="cam" id="cam"></div>
         ${h ? `<div class="cam-overlay-hud" style="position:absolute;bottom:10px;left:10px;pointer-events:none;display:flex;gap:6px;z-index:10">
           <span class="cam-data-pill ${ratingCls(h.rating)}">${range(h.surf)} m</span>
-          <span class="cam-data-pill">${Math.round(h.windSpeed)} km/h ${dirArrow(h.windDir)}</span>
+          <span class="cam-data-pill">${kmh(h.windSpeed)} ${dirArrow(h.windDir)}</span>
         </div>` : ''}
         </div>
         ${cams.length > 1 ? `<div class="cam-switch">${cams.map((c, i) => `<button data-cam="${i}" class="${i === state.camIdx ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
@@ -564,8 +566,8 @@ function nowPanel(spot, f, h) {
     <div class="wide"><div class="k">Mar de fondo</div>
       ${h.swells.slice(0, 3).map((s, i) => `<div class="swell-line num"><span class="dot s${i + 1}"></span>${m(s.h)} m · ${s.t ? s.t.toFixed(0) : '–'} s · ${compass(s.dir)} ${Math.round(s.dir)}° ${dirArrow(s.dir)} <span class="faint" style="font-weight:500">${s.kind}</span></div>`).join('') || '<div class="muted">Sin mar de fondo</div>'}
     </div>
-    <div><div class="k">Viento</div><div class="v-sec num">${Math.round(h.windSpeed)}<small> km/h</small></div>
-      <div class="d">${dirArrow(h.windDir)} ${compass(h.windDir)} · rachas ${Math.round(h.windGust)}</div>
+    <div><div class="k">Viento</div><div class="v-sec num">${kmh(h.windSpeed)}</div>
+      <div class="d">${dirArrow(h.windDir)} ${compass(h.windDir)} · rachas ${rnd(h.windGust)}</div>
       <div class="d"><span class="wind-tag wind-${h.wind.key}">${h.wind.label}</span></div></div>
     <div><div class="k">Marea</div><div class="v-sec num">${h.tide != null ? (h.tide >= 0 ? '+' : '') + h.tide.toFixed(2) : '–'}<small> m</small></div>
       <div class="d">${next ? `${next.type === 'high' ? 'Pleamar' : 'Bajamar'} a las ${next.hour}:00` : ''}</div></div>
@@ -635,7 +637,7 @@ function drawDay(spot, f) {
       line.setAttribute('x1', padL + i * bw + bw / 2);
       line.setAttribute('x2', padL + i * bw + bw / 2);
       line.classList.remove('hidden');
-      tip.innerHTML = `<b>${h.hour}:00</b><br>${range(h.surf)} m · ${h.swells[0]?.t ? Math.round(h.swells[0].t)+'s' : '–'} · ${Math.round(h.windSpeed)} km/h · ${h.tide != null ? h.tide.toFixed(2)+' m' : '–'}`;
+      tip.innerHTML = `<b>${h.hour}:00</b><br>${range(h.surf)} m · ${h.swells[0]?.t ? Math.round(h.swells[0].t)+'s' : '–'} · ${kmh(h.windSpeed)} · ${h.tide != null ? h.tide.toFixed(2)+' m' : '–'}`;
       tip.classList.remove('hidden');
       tip.style.left = Math.max(70, Math.min(w - 70, padL + i * bw + bw / 2)) + 'px';
     };
@@ -711,8 +713,8 @@ function hourlyTable(f, dayIdx) {
   s += row('Dir. mar', (c, i) => td(c, i, `${dirArrow(c.h.swells[0]?.dir ?? c.h.waveDir)}<br>${compass(c.h.swells[0]?.dir ?? c.h.waveDir)}`));
   s += row('Viento', (c, i) => td(c, i,
     `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
-       <span>${dirArrow(c.h.windDir)} <b>${Math.round(c.h.windSpeed)}</b></span>
-       <span class="faint" style="font-size:10px">r.${Math.round(c.h.windGust)}</span>
+<span>${dirArrow(c.h.windDir)} <b>${kmh(c.h.windSpeed)}</b></span>
+        <span class="faint" style="font-size:10px">r.${rnd(c.h.windGust)}</span>
        <span class="wind-tag wind-${c.h.wind.key}" style="font-size:9px;padding:1px 4px">${WIND_SHORT[c.h.wind.key] || c.h.wind.label}</span>
      </div>`,
     `wcell-${c.h.wind.key}`));
@@ -730,7 +732,7 @@ function longRange(f) {
     const pm = d.hours.filter((h) => h.hour >= 14 && h.hour <= 20);
     if (!am.length || !pm.length) return '';
     const a = half(am), p = half(pm), b = d.best, sw = b.swells[0];
-    const winds = d.hours.filter((h) => h.hour >= 7 && h.hour <= 20).map((h) => h.windSpeed);
+    const winds = d.hours.filter((h) => h.hour >= 7 && h.hour <= 20).map((h) => h.windSpeed).filter((v) => v != null && !isNaN(v));
     const conf = i < 7 ? 'Media' : i < 10 ? 'Baja' : 'Muy baja';
     const bestRating = Math.max(d.rating ?? 0, a.rating, p.rating);
     return `<div class="lr-row ${goodDay({ rating: bestRating }) ? `good-day ${ratingCls(bestRating)}` : ''}">
@@ -738,7 +740,7 @@ function longRange(f) {
       <div class="lr-bars" title="Mañana: ${ratingLabel(a.rating)} · Tarde: ${ratingLabel(p.rating)}"><div class="${ratingCls(a.rating)}"></div><div class="${ratingCls(p.rating)}"></div></div><div class="lr-stars">${stars(bestRating)}</div>
       <div class="lr-h num"><b>${range({ min: d.surfMin, max: d.surfMax })}</b> m</div>
       <div class="lr-sw num">${sw ? `${m(sw.h)} m ${sw.t ? Math.round(sw.t) + ' s' : ''} ${dirArrow(sw.dir)} ${compass(sw.dir)}` : '–'}</div>
-      <div class="lr-w num">${dirArrow(b.windDir)} ${Math.round(Math.min(...winds))}–${Math.round(Math.max(...winds))} km/h</div>
+      <div class="lr-w num">${dirArrow(b.windDir)} ${winds.length ? `${Math.round(Math.min(...winds))}–${Math.round(Math.max(...winds))} km/h` : '–'}</div>
       <div class="lr-c faint">${conf}</div>
     </div>`;
   }).join('');

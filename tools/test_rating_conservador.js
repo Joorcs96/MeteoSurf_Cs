@@ -20,7 +20,7 @@ const ratingCls = (r) => (r == null || isNaN(r) ? 'r-na' : `r${r}`);
 const ratingLabel = (r) => (r == null || isNaN(r) ? 'Sin datos' : (F.RATINGS[r]?.label ?? '–'));
 const starRating = (r) => (r == null || isNaN(r) || r <= 1 ? 0 : r === 2 ? 1 : r === 3 ? 2 : r === 4 ? 3 : r === 5 ? 4 : 5);
 const range = (s) => {
-  if (!s || s.mid == null || isNaN(s.mid)) return '–';
+  if (!s || s.min == null || s.max == null || isNaN(s.min) || isNaN(s.max)) return '–';
   const a = Math.max(0, Math.round(s.min * 10) / 10), b = Math.round(s.max * 10) / 10;
   if (b < 0.2) return '0–0.2';
   return a === b ? `${a}` : `${a}–${b}`;

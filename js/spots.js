@@ -74,12 +74,12 @@ export const SPOTS = [
     desc: 'Frente al Planetario, junto al dique norte del puerto. Rompiente clásica del Grao con Levante y Gregal.'
   }),
   S({
-    id: 'Piramides', name: 'Pirámides', zone: 'grao', zoneName: 'Serradal · Almassora',
-    lat: 39.95947, lon: 0.01499, facing: 95, exposureFactor: 0.9, swellWindow: [52, 182], maxGood: 1.5,
-    seaLat: 39.95304, seaLon: 0.02498,
-    bottom: 'Arena y bloques', bestTide: 'Baja a media', bestSwell: 'E a SE', bestWind: 'O y NO',
-    level: 'Intermedio', hazards: 'Bloques sumergidos',
-    desc: 'Al sur del puerto de Castellón, que la abriga del Norte y del Gregal. Pide mar del Este o Sudeste.'
+    // Playa del Serradal, entre el Gurugú y Heliópolis (confirmado por Jordi el 05/10/2026).
+    // Punto a ~80 m de la orilla sobre la costa de OSM, que aquí mira al 115.
+    id: 'Piramides', name: 'Pirámides', zone: 'grao', zoneName: 'Grao · Playa del Serradal',
+    lat: 40.00838, lon: 0.03523, facing: 112, swellWindow: [48, 182], maxGood: 2.0,
+    bottom: 'Arena', bestTide: 'Media', bestSwell: 'NE a E', bestWind: 'O y NO',
+    desc: 'Playa del Serradal, al norte del Gurugú. Picos variables sobre arena, olas largas y suaves; buena para tablón.'
   }),
   S({
     id: 'Palaciet', name: 'El Palaciet', zone: 'sur', zoneName: 'Burriana · El Coso',

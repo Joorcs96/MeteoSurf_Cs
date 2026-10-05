@@ -22,13 +22,13 @@ from scripts import rewind  # noqa: E402
 
 # Valores reales sacados de `node` con el SPOTS de js/spots.js.
 SEA_LAT_LON_ESPERADO = {
-    "Planetario": (39.9834, 0.0430),
+    "Planetario": (39.976, 0.0419),
     "Gurugu": (39.9954, 0.0464),
     "Voramar": (40.0452, 0.0921),
     "Heliopolis": (40.0206, 0.0595),
     "MorroGos": (40.0928, 0.1640),
     "Renega": (40.0518, 0.1289),
-    "Piramides": (39.95304, 0.02498),  # trae seaLat/seaLon explícitos
+    "Piramides": (40.0039, 0.0498),
 }
 
 

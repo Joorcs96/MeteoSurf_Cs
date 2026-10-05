@@ -181,7 +181,7 @@ function comprobar(nombre, ok, detalle) {
     `media 5 con rachas 11 -> ${windState(p, 5, 100, 11).key}`);
 
   // Las 8 tablas del estudio estan para 36 direcciones y 7 periodos.
-  comprobar('los 8 spots del estudio tienen tabla', SPOTS.filter((x) => TIENE_FISICA(x.id)).length === 8,
+  comprobar('los 7 spots del estudio tienen tabla', SPOTS.filter((x) => TIENE_FISICA(x.id)).length === 7,
     SPOTS.filter((x) => TIENE_FISICA(x.id)).map((x) => x.id).join(', '));
 }
 

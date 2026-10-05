@@ -1,13 +1,13 @@
-# Créditos de Recursos
+# CrÃ©ditos de Recursos
 
 ## Iconos
-- **Colección:** Lucide Icons
+- **ColecciÃ³n:** Lucide Icons
 - **Autor:** Lucide Contributors
 - **URL:** https://lucide.dev/
 - **Licencia:** MIT License
 - **Archivos:** ssets/icons/waves.svg, ssets/icons/map.svg, ssets/icons/video.svg, ssets/icons/bot.svg, ssets/icons/bookmark.svg
 
-## Tipografía
+## TipografÃ­a
 - **Fuente:** Outfit
 - **Autor:** Rodrigo Fuenzalida
 - **URL:** https://fonts.google.com/specimen/Outfit

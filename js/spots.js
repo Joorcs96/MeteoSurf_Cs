@@ -38,44 +38,44 @@ export const SPOTS = [
   }),
   S({
     id: 'MorroGos', name: 'Morro de Gos', zone: 'oropesa', zoneName: 'Oropesa del Mar',
-    lat: 40.09491, lon: 0.14854, facing: 100,
+    lat: 40.09491, lon: 0.14854, facing: 100, swellWindow: [40, 176], maxGood: 2.11,
     bottom: 'Arena con piedra', bestTide: 'Media subiendo', bestSwell: 'NE a SE', bestWind: 'O y NO',
     level: 'Intermedio', desc: 'Playa abierta al norte de Oropesa. De las más expuestas: recoge casi cualquier mar del primer cuadrante.'
   }),
   S({
     id: 'Renega', name: 'La Renegà', zone: 'oropesa', zoneName: 'Oropesa del Mar',
-    lat: 40.06195, lon: 0.1206, facing: 148, exposureFactor: 0.9, maxGood: 2.5,
+    lat: 40.06195, lon: 0.1206, facing: 148, exposureFactor: 0.9, swellWindow: [60, 212], maxGood: 1.5,
     bottom: 'Roca y lajas', bestTide: 'Alta', bestSwell: 'E con periodo', bestWind: 'O y NO',
     level: 'Avanzado', hazards: 'Fondo de roca y lajas; entrada y salida por piedras',
     desc: 'Costa rocosa entre Oropesa y Benicàssim. Necesita mar de fondo con fuerza; con tamaño rompe con más potencia que las playas.'
   }),
   S({
     id: 'Voramar', name: 'Voramar', zone: 'oropesa', zoneName: 'Benicàssim',
-    lat: 40.05464, lon: 0.08248, facing: 142, swellWindow: [92, 212], exposureFactor: 0.85, maxGood: 2.8,
+    lat: 40.05464, lon: 0.08248, facing: 142, exposureFactor: 0.85, swellWindow: [88, 204], maxGood: 1.5,
     bottom: 'Arena y roca', bestTide: 'Media a alta', bestSwell: 'E a SE', bestWind: 'NO y N',
     desc: 'Extremo norte de Benicàssim, al abrigo de la punta. Aguanta temporales grandes y queda protegido del viento del Norte.'
   }),
   S({
     id: 'Heliopolis', name: 'Heliópolis', zone: 'oropesa', zoneName: 'Benicàssim',
-    lat: 40.02567, lon: 0.04526, facing: 115,
+    lat: 40.02567, lon: 0.04526, facing: 115, swellWindow: [60, 190], maxGood: 1.98,
     bottom: 'Arena', bestTide: 'Media', bestSwell: 'NE a E', bestWind: 'O y NO',
     desc: 'Sur de Benicàssim, bancos de arena con buenas derechas cuando entra mar del Este.'
   }),
   S({
     id: 'Gurugu', name: 'Gurugú', zone: 'grao', zoneName: 'Grao · Playa del Pinar',
-    lat: 39.99872, lon: 0.03137, facing: 106,
+    lat: 39.99872, lon: 0.03137, facing: 106, swellWindow: [48, 182], maxGood: 2.04,
     bottom: 'Arena', bestTide: 'Todas', bestSwell: 'NE a E', bestWind: 'O y NO',
     desc: 'Playa del Pinar, abierta y consistente. Picos variables según los bancos; la opción más fiable del Grao.'
   }),
   S({
     id: 'Planetario', name: 'Planetario', zone: 'grao', zoneName: 'Grao · Playa del Pinar',
-    lat: 39.98585, lon: 0.02766, facing: 102, swellWindow: [40, 170],
+    lat: 39.9784738, lon: 0.026575, facing: 102, swellWindow: [42, 168], maxGood: 2.37,
     bottom: 'Arena', bestTide: 'Media subiendo', bestSwell: 'NE a E', bestWind: 'O y NO',
     desc: 'Frente al Planetario, junto al dique norte del puerto. Rompiente clásica del Grao con Levante y Gregal.'
   }),
   S({
     id: 'Piramides', name: 'Pirámides', zone: 'grao', zoneName: 'Serradal · Almassora',
-    lat: 39.95947, lon: 0.01499, facing: 95, swellWindow: [71, 181], exposureFactor: 0.9,
+    lat: 39.95947, lon: 0.01499, facing: 95, exposureFactor: 0.9, swellWindow: [52, 182], maxGood: 1.5,
     seaLat: 39.95304, seaLon: 0.02498,
     bottom: 'Arena y bloques', bestTide: 'Baja a media', bestSwell: 'E a SE', bestWind: 'O y NO',
     level: 'Intermedio', hazards: 'Bloques sumergidos',
@@ -83,7 +83,7 @@ export const SPOTS = [
   }),
   S({
     id: 'Palaciet', name: 'El Palaciet', zone: 'sur', zoneName: 'Burriana · El Coso',
-    lat: 39.90453, lon: -0.01584, facing: 143,
+    lat: 39.90453, lon: -0.01584, facing: 143, swellWindow: [56, 210], maxGood: 1.53,
     bottom: 'Arena fina', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO',
     desc: 'Playa tranquila de Burriana, junto a El Coso, con rompiente suave; buena opción de tablón con mar pequeño.'
   }),

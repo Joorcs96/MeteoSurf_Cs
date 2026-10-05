@@ -80,6 +80,13 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Comprobado que 5★ solo con buenas condiciones: por debajo de 1.05 m en rompiente ninguna combinación de periodo, viento y rachas llega a 5★ (barrido en `test_formato_null.js`), y 1.2 m a 7 s con calma sí las alcanza.
 - Suite nueva: `node tools/test_formato_null.js` (15 pruebas). Suite completa: `node tools/test_rating_conservador.js` (16) + `python -m unittest scripts.test_realtime backend.test_motor_fisica scripts.test_rewind` (84).
 
+## Publicación en main (05/10/2026)
+- PR2 https://github.com/Joorcs96/MeteoSurf_Cs/pull/2 mergeado con commit de merge `c4040d8` (estilo del repo, como PR1); HEAD probado y mergeado `04d1bf8`. main local intacto y sin force-push.
+- main solo había avanzado con `277b2d5` (auto `[skip ci]` de `data/realtime.json`), que no toca ningún fichero del PR: no hizo falta rebase y el merge fue CLEAN con blobs idénticos a los del SHA probado.
+- [VERIFICADO] Pages `pages build and deployment` run 37278886847 con headSha `c4040d8` en `success`; y GET a https://joorcs96.github.io/MeteoSurf_Cs devuelve 200 en `js/app.js`, `js/forecast.js`, `js/assistant.js` y `sw.js` con el mismo hash de blob que `c4040d8` (comparado con `git hash-object` sobre lo descargado), más `index.html` y `data/realtime.json` en 200.
+- [VERIFICADO] En producción: `range()` en app.js:36, `kmh()`/`rnd()` en app.js:42-43, `kmh()` en assistant.js:40 y caché del SW subida a `meteosurf-cs-v9-rating` (sw.js:3). El bump de versión del SW es lo que hace que los móviles recojan el arreglo.
+- Trampa de verificación: comparar "el fichero publicado" con `git hash-object` del archivo descargado, no solo con `git rev-parse`; si el SW no bumpara la caché, un GET puede devolver la versión antigua desde la caché del navegador y dar un falso verde.
+
 ## Normas de trabajo (incluir en specs)
 - Parar bucles: 3 fallos seguidos de la misma prueba = parar, causa en 3 líneas, volver al último commit bueno y preguntar.
 - Logs de más de 50 líneas: solo 20 primeras + 20 últimas.

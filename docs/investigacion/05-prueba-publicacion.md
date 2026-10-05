@@ -14,8 +14,8 @@
 - **SHA inicial al comenzar la auditoría:** `718d959547e8a1114e3a574a5fc87eca8f86c16f` [VERIFICADO: `git -C .../ms-corrige-estrellas rev-parse HEAD` a las 09:14 CEST].
 - **Motivo de la diferencia:** El commit `89c1d42` fue rebasado sobre `origin/main` (commit `9d20fb7`), generando `718d959` [VERIFICADO: entrada `HEAD@{0}: rebase (finish)` en `git reflog`].
 - **Identidad de código entre 89c1d42 y 718d959:** La diferencia de código en los ficheros de aplicación (`js/`, `sw.js`, `css/`, `tools/`, `NOTAS-IA.md`, `PROGRESO.md`) es exactamente vacía (0 líneas distintas) [VERIFICADO: `git diff 89c1d42 718d959 -- js/ sw.js css/ tools/ NOTAS-IA.md PROGRESO.md` devolvió salida vacía].
-- **SHA final al concluir las pruebas:** `718d959547e8a1114e3a574a5fc87eca8f86c16f` [VERIFICADO: `git rev-parse HEAD` repetido tras ejecutar todas las pruebas; árbol limpio sin modificaciones sin commitear].
-- **Certificación condicionada:** Se certifica el candidato sobre el commit `718d959` (idéntico en lógica a `89c1d42`). Si el auditor modifica el candidato con un commit posterior, esta certificación queda pendiente de validación sobre el nuevo SHA [VERIFICADO].
+- **Detección de modificaciones en curso por otro auditor:** Durante la auditoría, se detectaron modificaciones activas en el árbol de trabajo del candidato (`modified: js/app.js`, ajuste en comprobación de rango nulo `s.min == null || s.max == null` y helper `kmh`) [VERIFICADO: `git status` y `git diff js/app.js` en `ms-corrige-estrellas`].
+- **Dictamen de certificación:** **NO CERTIFICAR** el estado actual como definitivo. Aunque la lógica del commit `718d959` supera el 100% de las pruebas, el estado del candidato ha cambiado con modificaciones activas. Queda **pendiente repetir la certificación sobre el SHA final que consolide el auditor** [VERIFICADO].
 
 ---
 
@@ -102,6 +102,7 @@ Se realizaron peticiones HTTP GET reales a los tres recursos indicados y se comp
 ---
 
 ## 5. Conclusión y dictamen
-
-- **Validez técnica del candidato:** El candidato en `718d959` resuelve rigurosamente los problemas de optimismo, maneja correctamente nulos y mar plato, castiga rachas y mar de viento, y no presenta regresiones en ninguna suite de pruebas [VERIFICADO].
-- **Condición de certificación:** Válido para SHA `718d959` (rebase de `89c1d42`). Si el auditor realiza un nuevo commit sobre el candidato antes de fusionar, se deberá verificar el nuevo SHA resultante [VERIFICADO].
+ 
+- **Validez técnica del commit 718d959:** La lógica evaluada en `718d959` resuelve rigurosamente los problemas de optimismo, maneja correctamente nulos y mar plato, castiga rachas y mar de viento, y no presenta regresiones en ninguna suite de pruebas [VERIFICADO].
+- **Dictamen formal: NO CERTIFICADO AÚN:** Conforme a la regla de seguridad ("no certifiques si cambia"), se suspende la certificación formal definitiva porque otro auditor ha introducido modificaciones en el árbol de trabajo (`js/app.js`) que alteran el candidato respecto a `718d959`/`89c1d42` [VERIFICADO].
+- **Acción pendiente:** Queda **pendiente repetir la verificación y validación sobre el SHA final** una vez que el auditor consolide y comitee sus cambios [VERIFICADO].

@@ -62,24 +62,26 @@ export const SPOTS = [
     desc: 'Sur de Benicàssim, bancos de arena con buenas derechas cuando entra mar del Este.'
   }),
   S({
-    id: 'Gurugu', name: 'Gurugú', zone: 'grao', zoneName: 'Grao · Playa del Pinar',
-    lat: 39.99872, lon: 0.03137, facing: 106, swellWindow: [48, 182], maxGood: 2.04,
+    // Jordi, 05/10/2026: el Gurugú es el pico del Serradal (antes estaba intercambiado con Pirámides).
+    // Punto a ~80 m de la orilla sobre la costa de OSM, que aquí mira al 115.
+    id: 'Gurugu', name: 'Gurugú', zone: 'grao', zoneName: 'Grao · Playa del Serradal',
+    lat: 40.00838, lon: 0.03523, facing: 112, swellWindow: [48, 182], maxGood: 2.04,
     bottom: 'Arena', bestTide: 'Todas', bestSwell: 'NE a E', bestWind: 'O y NO',
-    desc: 'Playa del Pinar, abierta y consistente. Picos variables según los bancos; la opción más fiable del Grao.'
+    desc: 'Playa del Serradal, abierta y consistente. Picos variables según los bancos; la opción más fiable del Grao.'
+  }),
+  S({
+    // Jordi, 05/10/2026: Pirámides es el pico de la Playa del Pinar, entre el Serradal y el Planetario
+    // (antes estaba intercambiado con el Gurugú).
+    id: 'Piramides', name: 'Pirámides', zone: 'grao', zoneName: 'Grao · Playa del Pinar',
+    lat: 39.99872, lon: 0.03137, facing: 106, swellWindow: [48, 182], maxGood: 2.0,
+    bottom: 'Arena', bestTide: 'Media', bestSwell: 'NE a E', bestWind: 'O y NO',
+    desc: 'Playa del Pinar, al norte del Planetario. Picos variables sobre arena, olas largas y suaves; buena para tablón.'
   }),
   S({
     id: 'Planetario', name: 'Planetario', zone: 'grao', zoneName: 'Grao · Playa del Pinar',
     lat: 39.9784738, lon: 0.026575, facing: 102, swellWindow: [42, 168], maxGood: 2.37,
     bottom: 'Arena', bestTide: 'Media subiendo', bestSwell: 'NE a E', bestWind: 'O y NO',
     desc: 'Frente al Planetario, junto al dique norte del puerto. Rompiente clásica del Grao con Levante y Gregal.'
-  }),
-  S({
-    // Playa del Serradal, entre el Gurugú y Heliópolis (confirmado por Jordi el 05/10/2026).
-    // Punto a ~80 m de la orilla sobre la costa de OSM, que aquí mira al 115.
-    id: 'Piramides', name: 'Pirámides', zone: 'grao', zoneName: 'Grao · Playa del Serradal',
-    lat: 40.00838, lon: 0.03523, facing: 112, swellWindow: [48, 182], maxGood: 2.0,
-    bottom: 'Arena', bestTide: 'Media', bestSwell: 'NE a E', bestWind: 'O y NO',
-    desc: 'Playa del Serradal, al norte del Gurugú. Picos variables sobre arena, olas largas y suaves; buena para tablón.'
   }),
   S({
     id: 'Palaciet', name: 'El Palaciet', zone: 'sur', zoneName: 'Burriana · El Coso',

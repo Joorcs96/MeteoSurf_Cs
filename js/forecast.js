@@ -259,10 +259,13 @@ export function rate(spot, surf, period, wind, speed, gust, extra = {}) {
 
   // Base según altura en rompiente (h)
   let s;
+  // Escala mediterránea (Jordi): 0.5-0.7 m con poco viento ya es buen baño. Observado el 05/10
+  // en Planetario: 0.47 m en rompiente con terral a las 9 h "estaba bien, alguna serie mejor".
   if (h < 0.32) s = 1.0;
-  else if (h < 0.45) s = 1.8;
-  else if (h < 0.60) s = 2.6;
-  else if (h < 0.75) s = 3.3;
+  else if (h < 0.40) s = 1.8;
+  else if (h < 0.50) s = 3.2;
+  else if (h < 0.60) s = 3.5;
+  else if (h < 0.75) s = 3.9;
   else if (h < 0.95) s = 4.0;
   else if (h < 1.25) s = 4.8;
   else if (h < 1.60) s = 5.5;
@@ -328,11 +331,13 @@ export function rate(spot, surf, period, wind, speed, gust, extra = {}) {
   }
 
   // Techo duro por altura
+  // Con terral o calma el mar pequeño sí se surfea: el techo sube un escalón.
+  const limpio = wind && (wind.key === 'offshore' || wind.key === 'crossoff' || wind.key === 'glassy');
   let maxCap = 7;
   if (h < 0.35) maxCap = 1;
-  else if (h < 0.48) maxCap = 2;
-  else if (h < 0.65) maxCap = 3;
-  else if (h < 0.75) maxCap = 4;
+  else if (h < 0.40) maxCap = 2;
+  else if (h < 0.65) maxCap = limpio ? 4 : 3;
+  else if (h < 0.75) maxCap = limpio ? 5 : 4;
   else if (h < 1.05) maxCap = 5;
   else if (h < 1.40) maxCap = 6;
 

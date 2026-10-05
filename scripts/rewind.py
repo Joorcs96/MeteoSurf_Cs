@@ -1,7 +1,7 @@
 """Rewinds: clips cortos de las cámaras para repasar el mar de cada momento.
 
 Graba 20 s de las cámaras HLS de Turisme Comunitat Valenciana que cubren
-Planetario/Gurugú (Grao), Voramar/Heliópolis (Benicàssim) y Morro de Gos/La
+Planetario/Pirámides (Grao), Voramar/Heliópolis (Benicàssim) y Morro de Gos/La
 Renegà (Oropesa del Mar), los baja a 480p con desenfoque para que no se
 reconozcan caras, guarda junto a cada clip la previsión Open-Meteo de ese
 momento (punto de mar de cada spot) y mantiene el índice `data/rewinds.json`.
@@ -50,7 +50,7 @@ HOST_CV = "streaming.comunitatvalenciana.com"
 
 # Spots con cámara, por área. Es lo que el enunciado pide: Grao, Benicàssim y Oropesa.
 SPOTS_CON_CAMARA: Tuple[str, ...] = (
-    "Planetario", "Gurugu", "Voramar", "Heliopolis", "MorroGos", "Renega",
+    "Planetario", "Piramides", "Voramar", "Heliopolis", "MorroGos", "Renega",
 )
 # Orden para nombrar el clip cuando una cámara cubre más de un spot.
 PREFERENCIA_SPOT: Tuple[str, ...] = SPOTS_CON_CAMARA

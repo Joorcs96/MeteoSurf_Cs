@@ -159,6 +159,8 @@ function comprobar(nombre, ok, detalle) {
   comprobar('a las 15 h nota <= 1 (Muy malo)', ft.rating <= 1, etiqueta(ft.rating));
   comprobar('la brisa de la tarde es viento de mar', ft.wind.key === 'onshore' || ft.wind.key === 'crosson', ft.wind.key);
   comprobar('la manana sale mejor que la tarde', fm.rating > ft.rating, `${fm.rating} > ${ft.rating}`);
+  // Un amigo de Jordi entro a las 9 h: "estaba bien para hacer surf, alguna serie mejor".
+  comprobar('a las 7-9 h se puede surfear: nota >= 3', fm.rating >= 3, etiqueta(fm.rating));
 }
 
 // ---------------------------------------------------------------------------------------------

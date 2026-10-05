@@ -286,8 +286,8 @@ export const FACTOR = {
   ],
 };
 
-// Pirámides está en el Serradal, a 1 km del Gurugú y con la misma orientación: usa su tabla
-// hasta que se recalcule su fondo.
+// La tabla 'Gurugu' se calculó en 39.99872, 0.03137, que es donde está Pirámides (Jordi, 05/10).
+// El Gurugú está 1 km al norte, en el Serradal, con la misma costa: comparte tabla hasta recalcularla.
 FACTOR.Piramides = FACTOR.Gurugu;
 
 export const SPOTS_CON_FISICA = Object.keys(FACTOR);

@@ -23,12 +23,12 @@ from scripts import rewind  # noqa: E402
 # Valores reales sacados de `node` con el SPOTS de js/spots.js.
 SEA_LAT_LON_ESPERADO = {
     "Planetario": (39.976, 0.0419),
-    "Gurugu": (39.9954, 0.0464),
+    "Piramides": (39.9954, 0.0464),
     "Voramar": (40.0452, 0.0921),
     "Heliopolis": (40.0206, 0.0595),
     "MorroGos": (40.0928, 0.1640),
     "Renega": (40.0518, 0.1289),
-    "Piramides": (40.0039, 0.0498),
+    "Gurugu": (40.0039, 0.0498),
 }
 
 
@@ -38,7 +38,7 @@ class TestLeerSpots(unittest.TestCase):
 
     def test_todos_los_spots_del_catalogo(self):
         self.assertEqual(len(self.spots), 13)
-        for spot_id in ("Planetario", "Gurugu", "Voramar", "MorroGos", "Renega"):
+        for spot_id in ("Planetario", "Piramides", "Voramar", "MorroGos", "Renega"):
             self.assertIn(spot_id, self.spots)
 
     def test_punto_de_mar_igual_que_javascript(self):
@@ -52,7 +52,7 @@ class TestLeerSpots(unittest.TestCase):
             self.assertLessEqual(abs(spot["seaLon"] - spot["lon"]), 0.02)
 
     def test_nombres_con_tilde(self):
-        self.assertEqual(self.spots["Gurugu"]["name"], "Gurugú")
+        self.assertEqual(self.spots["Piramides"]["name"], "Pirámides")
         self.assertEqual(self.spots["Heliopolis"]["name"], "Heliópolis")
         self.assertEqual(self.spots["Renega"]["name"], "La Renegà")
 
@@ -75,7 +75,7 @@ class TestSeleccionCamaras(unittest.TestCase):
 
     def test_cobertura_de_spots(self):
         cams = {c["id"]: c for c in rewind.camaras_rewind(self.webcams)}
-        self.assertEqual(cams["cv_grao_castellon"]["spotsCubiertos"], ["Planetario", "Gurugu"])
+        self.assertEqual(cams["cv_grao_castellon"]["spotsCubiertos"], ["Planetario", "Piramides"])
         self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Voramar", "Heliopolis"])
         self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Renega"])
 
@@ -187,11 +187,11 @@ class TestNombresYUrls(unittest.TestCase):
         self.assertEqual(rewind.etiqueta_release(datetime(2026, 12, 31, 12, 0)), "rewinds-2026-12")
 
     def test_url_de_descarga(self):
-        url = rewind.url_descarga("Joorcs96/MeteoSurf_Cs", "rewinds-2026-09", "rewind_Gurugu_20260929-2354.mp4")
+        url = rewind.url_descarga("Joorcs96/MeteoSurf_Cs", "rewinds-2026-09", "rewind_Piramides_20260929-2354.mp4")
         self.assertEqual(
             url,
             "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-09/"
-            "rewind_Gurugu_20260929-2354.mp4",
+            "rewind_Piramides_20260929-2354.mp4",
         )
 
 
@@ -265,12 +265,12 @@ class TestIndice(unittest.TestCase):
             ruta = Path(tmp) / "rewinds.json"
             indice = {"rewinds": [
                 self._entrada("Planetario", "2026-09-29T10:00:00+02:00", "a.mp4"),
-                self._entrada("Gurugu", "2026-09-29T10:00:00+02:00", "a.mp4"),  # otro spot, mismo clip
+                self._entrada("Piramides", "2026-09-29T10:00:00+02:00", "a.mp4"),  # otro spot, mismo clip
                 self._entrada("Planetario", "2026-09-29T09:00:00+02:00", "a.mp4"),  # repetida
             ]}
             rewind.guardar_indice(indice, ruta)
             leido = json.loads(ruta.read_text(encoding="utf-8"))
-            self.assertEqual([e["spot"] for e in leido["rewinds"]], ["Planetario", "Gurugu"])
+            self.assertEqual([e["spot"] for e in leido["rewinds"]], ["Planetario", "Piramides"])
 
     def test_entrada_de_indice_lleva_todo_lo_pedido(self):
         spot = rewind.leer_spots()["Planetario"]
@@ -364,12 +364,12 @@ class TestAyudas(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             clip = Path(tmp) / "rewind_Planetario_20260929-2354.mp4"
             clip.write_bytes(b"x")
-            ficha = rewind.guardar_ficha(clip, {"prevision": {"Gurugu": {"altura": 0.7}},
+            ficha = rewind.guardar_ficha(clip, {"prevision": {"Piramides": {"altura": 0.7}},
                                                 "camara": {"nombre": "El Grao de Castellón"}})
             self.assertEqual(ficha.name, "rewind_Planetario_20260929-2354.json")
             texto = ficha.read_text(encoding="utf-8")
             self.assertIn("Castellón", texto)
-            self.assertEqual(json.loads(texto)["prevision"]["Gurugu"]["altura"], 0.7)
+            self.assertEqual(json.loads(texto)["prevision"]["Piramides"]["altura"], 0.7)
 
     def test_comprobar_clip_detecta_problemas(self):
         bien = {"codec": "h264", "audio": False, "alto": 480, "duracion": 20.0, "bytes": 400000}

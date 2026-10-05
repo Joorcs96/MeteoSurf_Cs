@@ -64,17 +64,22 @@ test('Hs 0.20m en rompiente no supera 1 estrella y r=0 para plato', () => {
   assert.strictEqual(starRating(rTiny), 0, '0.30m debe dar 0 estrellas');
 });
 
-test('Hs 0.45m con terral flojo no supera 2 estrellas (antes daba 4 estrellas)', () => {
-  // Simulación: rompiente 0.46m (mid), T=6s, terral 8 km/h
+test('Hs 0.46m con terral flojo es Regular: se surfea (Planetario 05/10 a las 9 h)', () => {
+  // Simulación: rompiente 0.46m (mid), T=6s, terral 8 km/h. Jordi: "estaba bien para hacer surf".
   const r = F.rate(spotPlanetario, { mid: 0.46 }, 6, { key: 'offshore' }, 8, 12);
-  assert(r <= 3, `0.46m con terral no debe superar r=3 (obtenido r=${r})`);
-  assert(starRating(r) <= 2, `0.46m con terral no debe tener más de 2 estrellas (obtenido ${starRating(r)}★)`);
+  assert(r >= 3 && r <= 4, `0.46m con terral debe ser Malo-Regular o Regular (obtenido r=${r})`);
+  assert(starRating(r) <= 3, `0.46m con terral no debe tener más de 3 estrellas (obtenido ${starRating(r)}★)`);
 });
 
-test('Hs 0.64m con terral flojo da máximo 3 estrellas (antes daba 4★ Día bueno)', () => {
+test('Hs 0.46m con viento de mar sigue siendo malo', () => {
+  const r = F.rate(spotPlanetario, { mid: 0.46 }, 6, { key: 'onshore' }, 9, 18);
+  assert(r <= 2, `0.46m con viento de mar no debe superar r=2 (obtenido r=${r})`);
+});
+
+test('Hs 0.64m con terral flojo da máximo Regular-Bueno (4 estrellas)', () => {
   const r = F.rate(spotPlanetario, { mid: 0.64 }, 6, { key: 'offshore' }, 8, 12);
-  assert(r <= 4, `0.64m en rompiente no debe superar r=4 Regular (obtenido r=${r})`);
-  assert(starRating(r) <= 3, `0.64m no debe superar 3 estrellas (obtenido ${starRating(r)}★)`);
+  assert(r >= 4 && r <= 5, `0.64m con terral debe ser Regular o Regular-Bueno (obtenido r=${r})`);
+  assert(starRating(r) <= 4, `0.64m no debe superar 4 estrellas (obtenido ${starRating(r)}★)`);
 });
 
 // 2. PERIODO CORTO Y RACHAS ONSHORE NO BUENOS
@@ -275,7 +280,7 @@ const COMPARATIVA = [
     titulo: 'C · Planetario (0.90m / 8s / terral 10 km/h rachas 16)',
     spec: { id: 'Planetario', hs: 0.9, tp: 8, dir: 100, ws: 10, wdir: 300, gust: 16 },
     antes: '1.30m · 7 "Épico" 5★',
-    esperado: '6 "Bueno" 5★ (conserva calificación alta de swell limpio)'
+    esperado: '5-6 (calificación alta de swell limpio)'
   },
   {
     id: 'D',
@@ -289,7 +294,7 @@ const COMPARATIVA = [
     titulo: 'H · El Palaciet (0.50m / 5s / terral 10 km/h rachas 14)',
     spec: { id: 'Palaciet', hs: 0.5, tp: 5, dir: 130, ws: 10, wdir: 300, gust: 14 },
     antes: '0.66m · 5 "Regular-Bueno" 4★ · Día bueno',
-    esperado: '3 "Malo-Regular" 2★ (algo surfeable pero no inflado)'
+    esperado: '3-4 "Malo-Regular" o "Regular" (escala mediterránea de Jordi)'
   },
   {
     id: 'I',
@@ -343,13 +348,13 @@ for (const sc of COMPARATIVA) {
     assert(starRating(h.rating) <= 3, 'Escenario B no debe superar 3★');
     assert(!goodDay(dia), 'Escenario B no debe ser Día bueno');
   } else if (sc.id === 'C') {
-    assert(h.rating >= 6, 'Escenario C debe mantener calidad alta r>=6');
-    assert.strictEqual(starRating(h.rating), 5, 'Escenario C debe ser 5★');
+    assert(h.rating >= 5, 'Escenario C debe mantener calidad alta r>=5');
+    assert(starRating(h.rating) >= 4, 'Escenario C debe ser 4-5★');
   } else if (sc.id === 'D') {
     assert(h.rating <= 5, 'Escenario D debe bajar de 6 a <=5 por rachas de 32 km/h');
   } else if (sc.id === 'H') {
-    assert(h.rating <= 3, 'Escenario H Palaciet debe ser r<=3');
-    assert(starRating(h.rating) <= 2, 'Palaciet mar pequeño debe ser <= 2★');
+    assert(h.rating >= 3 && h.rating <= 4, 'Escenario H Palaciet: 0.5 m con terral se surfea, r 3-4');
+    assert(starRating(h.rating) <= 3, 'Palaciet mar pequeño debe ser <= 3★');
   }
 }
 

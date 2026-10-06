@@ -165,5 +165,5 @@ summary { min-height:48px; padding:14px 0; cursor:pointer; font-size:14px; font-
 @media(max-width:380px) { #view { padding-left:16px; padding-right:16px; }.hero-wave { font-size:30px; }.compass-card { flex-direction:column; }.quick-spot { font-size:10px; padding:0 6px; } }
 
 /* Carriles horizontales (filtros, cámaras, días, cercanos): se desplazan con el dedo, sin barra visible */
-.chips, .cam-switch, .days, .subnav { scrollbar-width: none; }
-.chips::-webkit-scrollbar, .cam-switch::-webkit-scrollbar, .days::-webkit-scrollbar, .subnav::-webkit-scrollbar { display: none; }
+.chips, .cam-switch, .days, .subnav, .nearby { scrollbar-width: none; }
+.chips::-webkit-scrollbar, .cam-switch::-webkit-scrollbar, .days::-webkit-scrollbar, .subnav::-webkit-scrollbar, .nearby::-webkit-scrollbar { display: none; }

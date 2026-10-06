@@ -1,6 +1,7 @@
 // cams.js — Reproductor de webcams incrustadas: iframe, YouTube, HLS, MJPEG y JPG refrescado.
 let catalog = null;
 let hlsLib = null;
+let hlsLoading = null;
 const active = new Map(); // contenedor → limpieza
 const recordings = new Map();
 const sessions = new WeakMap();
@@ -23,6 +24,7 @@ export function camsForSpot(spot) {
 
 export function stopCam(el) {
   sessions.set(el, {});
+  delete el.dataset.cameraType;
   recordings.get(el)?.();
   const clean = active.get(el);
   if (clean) { try { clean(); } catch { /* nada */ } active.delete(el); }
@@ -35,12 +37,14 @@ const isApple = () => /iPad|iPhone|iPod/.test(navigator.userAgent) ||
 
 async function getHls() {
   if (hlsLib) return hlsLib;
-  await new Promise((res, rej) => {
+  hlsLoading ??= new Promise((res, rej) => {
     const s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js';
-    s.onload = res; s.onerror = rej;
+    s.onload = res;
+    s.onerror = () => { s.remove(); rej(new Error('No se pudo cargar el reproductor.')); };
     document.head.appendChild(s);
-  });
+  }).catch((error) => { hlsLoading = null; throw error; });
+  await hlsLoading;
   hlsLib = window.Hls;
   return hlsLib;
 }
@@ -91,7 +95,8 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     v.setAttribute('playsinline', '');
     el.appendChild(v);
     let hls = null;
-    const fail = () => { stopCam(el); msg(el, 'Cámara sin señal', 'La emisión no responde ahora mismo. Prueba otra cámara o vuelve en un rato.'); };
+    const fail = () => { if (sessions.get(el) !== session) return; stopCam(el); msg(el, 'Cámara sin señal', 'La emisión no responde ahora mismo. Prueba otra cámara o vuelve en un rato.'); };
+    active.set(el, () => { hls?.destroy(); v.pause(); v.removeAttribute('src'); v.load(); });
     if (isApple() && v.canPlayType('application/vnd.apple.mpegurl')) {
       v.src = cam.embedUrl;
       v.addEventListener('error', fail, { once: true });
@@ -104,12 +109,11 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
           hls = new Hls({ lowLatencyMode: true, backBufferLength: 30 });
           hls.loadSource(cam.embedUrl);
           hls.attachMedia(v);
-          hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) { hls.destroy(); hls = null; fail(); } });
+          hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fail(); });
         }
       } catch { fail(); return; }
     }
     v.play?.().catch(() => { /* el usuario pulsa play */ });
-    active.set(el, () => { hls?.destroy(); v.removeAttribute('src'); v.load(); });
     return;
   }
 
@@ -120,10 +124,10 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     const base = cam.embedUrl;
     const bust = () => base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
     img.src = t === 'jpg' ? bust() : base;
-    img.onerror = () => { stopCam(el); msg(el, 'Cámara sin señal', 'La imagen no se puede cargar ahora mismo.'); };
+    img.onerror = () => { if (sessions.get(el) !== session) return; stopCam(el); msg(el, 'Cámara sin señal', 'La imagen no se puede cargar ahora mismo.'); };
     el.appendChild(img);
     let timer = null;
-    if (t === 'jpg') timer = setInterval(() => { const n = new Image(); n.onload = () => { img.src = n.src; }; n.src = bust(); }, (cam.refreshSeconds || 30) * 1000);
+    if (t === 'jpg') timer = setInterval(() => { const n = new Image(); n.onload = () => { if (sessions.get(el) === session) img.src = n.src; }; n.src = bust(); }, (cam.refreshSeconds || 30) * 1000);
     active.set(el, () => { clearInterval(timer); img.src = ''; });
   }
 }
@@ -157,6 +161,7 @@ export function recordClip(el, segundos = 20, onTick = () => {}) {
     }
     if (video.readyState < 2 || video.paused) { reject(new Error('Espera a que el directo se esté reproduciendo.')); return; }
     if (recordings.has(el)) { reject(new Error('Ya hay una grabación en curso.')); return; }
+    if (!Number.isFinite(segundos) || segundos <= 0) { reject(new Error('La duración del clip no es válida.')); return; }
     let stream, recorder, timer, deadline, cancelled = false, failure = null;
     const chunks = [];
     const cleanup = () => { clearInterval(timer); clearTimeout(deadline); stream?.getTracks().forEach((track) => track.stop()); recordings.delete(el); };

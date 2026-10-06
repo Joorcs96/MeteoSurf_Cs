@@ -107,3 +107,10 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 ## Pendiente de Jordi
 - Confirmar orientaciones medidas con OSM que cambian mucho: La Renegà 148°, Voramar 142°, El Palaciet 143°.
 - Cámara de Surfers Castellón: pedir al club enlace público o permiso.
+
+
+## Rediseño y clips · 06/10/2026
+- [VERIFICADO] SPEC completado en rama Joorcs96/rediseno-surfline; resultados y límites en INFORME-REDISENO.md. Capturas sólo locales en .capturas/rediseno/.
+- [VERIFICADO] stopCam invalida la sesión y cancela recordClip; callbacks HLS/JPG/clip deben respetar esa sesión para no borrar un reproductor posterior.
+- [VERIFICADO] Leaflet carga CSS después del nuestro: usar #map en controles para que se conserven los 44 px. shot.mjs necesita carpeta absoluta para el perfil Chrome en este host.
+- [VERIFICADO] Node --check con dos archivos sólo comprueba el primero: ejecutar también js/cams.js por separado. Safari físico pendiente; ocultación sin captureStream comprobada en Chrome.

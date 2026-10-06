@@ -364,7 +364,7 @@ const clipTime = (date) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/
 function renderRewinds(spot) {
   const clips = clipsForSpot(spot);
   const today = madridDate(new Date());
-  const yesterday = madridDate(new Date(Date.now() - 86400000));
+  const yesterday = madridDate(new Date(Date.parse(today + 'T12:00:00Z') - 86400000));
   const groups = new Map();
   clips.forEach((c, i) => {
     const day = madridDate(new Date(c.hora));

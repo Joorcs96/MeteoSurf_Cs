@@ -148,6 +148,8 @@ function route() {
   if (page !== 'spot') state.spotId = null;
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
   renderQuickSpots();
+  const savedClip = $('#save-clip');
+  if (savedClip?.dataset.url) URL.revokeObjectURL(savedClip.dataset.url);
   document.querySelectorAll('.cam').forEach(stopCam);
   if (page === 'spot' && arg) return renderSpot(decodeURIComponent(arg));
   if (page === 'mapa') return renderMap();
@@ -380,6 +382,7 @@ function bindClips(spot, camEl, showCam) {
   $('#live-cam').addEventListener('click', showCam);
   view.querySelectorAll('[data-clip]').forEach((b) => b.addEventListener('click', () => {
     const clip = clips[Number(b.dataset.clip)];
+    status.textContent = '';
     playClip(camEl, clip);
     view.querySelectorAll('[data-clip]').forEach((x) => x.classList.toggle('on', x === b));
     $('#live-cam').hidden = false; record.hidden = true;
@@ -527,6 +530,7 @@ function renderSpot(id) {
   const camEl = $('#cam');
   const showCam = () => {
     $('#clip-info').hidden = true;
+    $('#record-status').textContent = '';
     $('#live-cam').hidden = true;
     view.querySelectorAll('[data-clip]').forEach((b) => b.classList.remove('on'));
     $('#record-clip').hidden = cams[state.camIdx]?.embedType !== 'hls' || !HTMLVideoElement.prototype.captureStream || !window.MediaRecorder;

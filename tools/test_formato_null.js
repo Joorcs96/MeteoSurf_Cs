@@ -27,7 +27,7 @@ const load = (file, name) => new Function(extractFn(file, name) + `\nreturn ${na
 const range = load(APP, 'range');
 const kmh = load(APP, 'kmh');
 const rnd = load(APP, 'rnd');
-const starRating = load(APP, 'starRating');
+
 const fmtRange = load(ASSISTANT, 'fmtRange');
 const kmhAs = load(ASSISTANT, 'kmh');
 
@@ -126,7 +126,7 @@ test('Math.min de nulos no llega a formatear alturas', () => {
   assert.strictEqual(fmtRange(mins.length ? Math.min(...mins) : null, maxs.length ? Math.max(...maxs) : null), '–');
 });
 
-console.log('\n4. Cinco estrellas tienen que justificar buenas condiciones');
+console.log('\n4. La calidad alta tiene que justificar buenas condiciones');
 const winds = [
   { key: 'glassy', label: 'Calma' },
   { key: 'offshore', label: 'Terral' },
@@ -135,38 +135,35 @@ const winds = [
   { key: 'onshore', label: 'De mar' }
 ];
 const periods = [3, 4, 5, 6, 7, 8, 9, 11];
-test('con menos de 1.05 m en rompiente nunca salen 5 estrellas', () => {
+test('con menos de 1.05 m en rompiente nunca alcanza calidad buena', () => {
   let nasty = null;
   for (let h = 0.22; h < 1.05; h += 0.01) {
     for (const p of periods) {
       for (const w of winds) {
         for (const v of [0, 5, 12, 25, 40]) {
           const r = F.rate(spot, { mid: h }, p, w, v, v + 6);
-          if (starRating(r) >= 5) nasty = `h=${h.toFixed(2)} p=${p} ${w.key} ${v}km/h -> r${r} ${starRating(r)}★`;
+          if (r >= 6) nasty = `h=${h.toFixed(2)} p=${p} ${w.key} ${v}km/h -> r${r} ${r}`;
         }
       }
     }
   }
-  assert.strictEqual(nasty, null, `5★ con mar pequeño: ${nasty}`);
+  assert.strictEqual(nasty, null, `Calidad buena con mar pequeño: ${nasty}`);
 });
-test('1.2 m limpios (7 s y calma) sí alcanzan 5 estrellas', () => {
+test('1.2 m limpios (7 s y calma) sí alcanzan calidad buena', () => {
   const r = F.rate(spot, { mid: 1.2 }, 7, { key: 'glassy', label: 'Calma' }, 8, 10);
-  assert.strictEqual(starRating(r), 5, `1.2 m/7 s/calma dio r${r} (${starRating(r)}★)`);
   assert.ok(r >= 6, `1.2 m/7 s/calma dio r${r}, se esperaba r>=6`);
 });
-test('las estrellas no bajan al subir la altura con viento limpio', () => {
+test('la calidad no baja al subir la altura con viento limpio', () => {
   let prev = -1;
   for (let h = 0.3; h <= 2.2; h += 0.05) {
-    const st = starRating(F.rate(spot, { mid: h }, 8, { key: 'offshore', label: 'Terral' }, 10, 12));
-    assert.ok(st >= prev, `estrellas bajaron de ${prev} a ${st} con h=${h.toFixed(2)}`);
+    const st = F.rate(spot, { mid: h }, 8, { key: 'offshore', label: 'Terral' }, 10, 12);
+    assert.ok(st >= prev, `calidad bajó de ${prev} a ${st} con h=${h.toFixed(2)}`);
     prev = st;
   }
 });
 test('mar plato es 0 y sin datos es null: nunca se confunden', () => {
   assert.strictEqual(F.rate(spot, { mid: 0.15 }, 8, { key: 'glassy' }, 2, 4), 0);
   assert.strictEqual(F.rate(spot, { mid: null }, 8, { key: 'glassy' }, 2, 4), null);
-  assert.strictEqual(starRating(0), 0);
-  assert.strictEqual(starRating(null), 0);
 });
 
 console.log('\n======================================================================');

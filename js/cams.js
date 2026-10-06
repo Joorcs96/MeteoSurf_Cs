@@ -2,6 +2,8 @@
 let catalog = null;
 let hlsLib = null;
 const active = new Map(); // contenedor → limpieza
+const recordings = new Map();
+const sessions = new WeakMap();
 
 export async function loadCams() {
   if (catalog) return catalog;
@@ -20,6 +22,8 @@ export function camsForSpot(spot) {
 }
 
 export function stopCam(el) {
+  sessions.set(el, {});
+  recordings.get(el)?.();
   const clean = active.get(el);
   if (clean) { try { clean(); } catch { /* nada */ } active.delete(el); }
   el.innerHTML = '';
@@ -49,6 +53,8 @@ function msg(el, title, text) {
 export async function playCam(el, cam, { autoplay = true } = {}) {
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   stopCam(el);
+  const session = sessions.get(el);
+  el.dataset.cameraType = cam?.embedType || '';
   if (!cam) { msg(el, 'Sin cámara en este spot', 'Todavía no hay una cámara pública que enfoque esta playa.'); return; }
   if (cam.embedType === 'link') {
     // Cámara que solo se ve en la web de su propietario (p. ej. acceso de socios)
@@ -92,6 +98,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     } else {
       try {
         const Hls = await getHls();
+        if (sessions.get(el) !== session || !el.isConnected) return;
         if (!Hls.isSupported()) { v.src = cam.embedUrl; }
         else {
           hls = new Hls({ lowLatencyMode: true, backBufferLength: 30 });
@@ -119,6 +126,63 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     if (t === 'jpg') timer = setInterval(() => { const n = new Image(); n.onload = () => { img.src = n.src; }; n.src = bust(); }, (cam.refreshSeconds || 30) * 1000);
     active.set(el, () => { clearInterval(timer); img.src = ''; });
   }
+}
+
+// Reutiliza el reproductor y libera la emisión anterior antes de cargar el archivo.
+export function playClip(el, clip) {
+  stopCam(el);
+  el.dataset.cameraType = 'clip';
+  const video = document.createElement('video');
+  Object.assign(video, { controls: true, playsInline: true, autoplay: true, src: clip.url });
+  video.setAttribute('playsinline', '');
+  el.appendChild(video);
+  const label = document.createElement('div');
+  label.className = 'cam-overlay';
+  const badge = document.createElement('span');
+  badge.className = 'live-badge';
+  badge.textContent = 'Rewind · ' + new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  label.appendChild(badge); el.appendChild(label);
+  video.addEventListener('error', () => { msg(el, 'Clip no disponible', 'Puedes intentar descargarlo o volver al directo.'); }, { once: true });
+  video.play().catch(() => {});
+  active.set(el, () => { video.pause(); video.removeAttribute('src'); video.load(); });
+  return video;
+}
+
+// No cambia ni detiene el directo; sólo finaliza las pistas capturadas.
+export function recordClip(el, segundos = 20, onTick = () => {}) {
+  return new Promise((resolve, reject) => {
+    const video = el.querySelector('video');
+    if (el.dataset.cameraType !== 'hls' || !video?.captureStream || !window.MediaRecorder) {
+      reject(new Error('Este navegador no permite grabar esta cámara.')); return;
+    }
+    if (video.readyState < 2 || video.paused) { reject(new Error('Espera a que el directo se esté reproduciendo.')); return; }
+    if (recordings.has(el)) { reject(new Error('Ya hay una grabación en curso.')); return; }
+    let stream, recorder, timer, deadline, cancelled = false, failure = null;
+    const chunks = [];
+    const cleanup = () => { clearInterval(timer); clearTimeout(deadline); stream?.getTracks().forEach((track) => track.stop()); recordings.delete(el); };
+    try {
+      stream = video.captureStream();
+      if (!stream.getVideoTracks().length) throw new Error('La cámara todavía no ofrece vídeo para grabar.');
+      const type = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t));
+      if (!type) throw new Error('No hay un formato de grabación compatible.');
+      recorder = new MediaRecorder(stream, { mimeType: type });
+      recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      recorder.onerror = () => { failure = new Error('No se ha podido grabar el clip.'); if (recorder.state !== 'inactive') recorder.stop(); else { cleanup(); reject(failure); } };
+      recorder.onstop = () => {
+        cleanup();
+        if (cancelled || failure) { reject(failure || new Error('Grabación cancelada al cambiar de cámara.')); return; }
+        const blob = new Blob(chunks, { type: recorder.mimeType });
+        if (!blob.size) { reject(new Error('La cámara no ha generado vídeo para guardar.')); return; }
+        onTick(0); resolve({ blob, extension: recorder.mimeType.startsWith('video/mp4') ? 'mp4' : 'webm' });
+      };
+      recordings.set(el, () => { cancelled = true; if (recorder.state !== 'inactive') recorder.stop(); });
+      const duration = Math.max(1, Math.min(60, segundos));
+      const started = Date.now();
+      recorder.start(1000); onTick(duration);
+      timer = setInterval(() => onTick(Math.max(0, Math.ceil(duration - (Date.now() - started) / 1000))), 250);
+      deadline = setTimeout(() => { if (recorder.state !== 'inactive') recorder.stop(); }, duration * 1000);
+    } catch (error) { cleanup(); reject(new Error(error.message || 'No se ha podido iniciar la grabación.')); }
+  });
 }
 
 // Miniatura estática para tarjetas (solo tipos que tienen imagen)

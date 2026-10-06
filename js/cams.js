@@ -135,6 +135,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
 // Reutiliza el reproductor y libera la emisión anterior antes de cargar el archivo.
 export function playClip(el, clip) {
   stopCam(el);
+  const session = sessions.get(el);
   el.dataset.cameraType = 'clip';
   const video = document.createElement('video');
   Object.assign(video, { controls: true, playsInline: true, autoplay: true, src: clip.url });
@@ -146,7 +147,7 @@ export function playClip(el, clip) {
   badge.className = 'live-badge';
   badge.textContent = 'Rewind · ' + new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   label.appendChild(badge); el.appendChild(label);
-  video.addEventListener('error', () => { msg(el, 'Clip no disponible', 'Puedes intentar descargarlo o volver al directo.'); }, { once: true });
+  video.addEventListener('error', () => { if (sessions.get(el) === session) msg(el, 'Clip no disponible', 'Puedes intentar descargarlo o volver al directo.'); }, { once: true });
   video.play().catch(() => {});
   active.set(el, () => { video.pause(); video.removeAttribute('src'); video.load(); });
   return video;

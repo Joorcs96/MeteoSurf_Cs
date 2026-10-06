@@ -2,7 +2,7 @@
 import { SPOTS, ZONES } from './spots.js';
 import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360, windState } from './forecast.js';
 import { compassSVG, dirArrow } from './compass.js';
-import { loadCams, camsForSpot, playCam, stopCam, camThumb } from './cams.js';
+import { loadCams, camsForSpot, playCam, stopCam, playClip, recordClip } from './cams.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -50,22 +50,12 @@ const dayName = (date, i) => {
 const dayShort = (date) => { const d = new Date(date + 'T12:00:00'); return `${d.getDate()} ${MON[d.getMonth()]}`; };
 const ratingCls = (r) => (r == null || isNaN(r) ? 'r-na' : `r${r}`);
 const ratingLabel = (r) => (r == null || isNaN(r) ? 'Sin datos' : (RATINGS[r]?.label ?? '–'));
-const starRating = (r) => (r == null || isNaN(r) || r <= 1 ? 0 : r === 2 ? 1 : r === 3 ? 2 : r === 4 ? 3 : r === 5 ? 4 : 5);
-function stars(r) {
-  if (r == null || isNaN(r)) {
-    const icon = `<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="var(--line)" d="M10 1.5l2.5 5.1 5.6.8-4 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4-4 5.6-.8z"/></svg>`;
-    return `<span class="stars" aria-label="Sin datos">${[0, 1, 2, 3, 4].map(() => icon).join('')}</span>`;
-  }
-  const n = starRating(Number(r) || 0);
-  const icon = (filled) => `<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="${filled ? '#ffb400' : 'var(--line)'}" d="M10 1.5l2.5 5.1 5.6.8-4 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4-4 5.6-.8z"/></svg>`;
-  return `<span class="stars" aria-label="${n} de 5 estrellas">${[0, 1, 2, 3, 4].map((i) => icon(i < n)).join('')}</span>`;
-}
 const goodDay = (d) => d?.rating != null && Number(d.rating) >= 5;
 const goodLabel = (r) => Number(r) >= 6 ? 'Día muy bueno' : 'Día bueno';
 const hClass = (h) => (h == null || isNaN(h) ? 'hc0' : `hc${h < 0.2 ? 0 : h < 0.4 ? 1 : h < 0.6 ? 2 : h < 0.9 ? 3 : h < 1.3 ? 4 : h < 2 ? 5 : 6}`);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ICON = {
-  star: '<svg class="icon" viewBox="0 0 24 24"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>',
+  star: '<svg class="icon" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
   back: '<svg class="icon" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M15 18l-6-6 6-6"/></svg>',
   wave: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>',
   wind: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8"/></svg>',
@@ -155,6 +145,7 @@ function toast(t) {
 function route() {
   const h = location.hash.replace(/^#\/?/, '');
   const [page, arg] = h.split('/');
+  if (page !== 'spot') state.spotId = null;
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
   renderQuickSpots();
   document.querySelectorAll('.cam').forEach(stopCam);
@@ -194,9 +185,9 @@ function renderHome() {
 
     ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
     <div class="chips" role="tablist">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
-    <div class="section-title">Ahora mismo<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">Próximos 7 días ▸</span></div>
+    <div class="section-title">Ahora mismo<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">Próximos 7 días</span></div>
     ${state.zone === 'fav' ? `<div data-realtime-list>${realtimeLine()}</div>` : ''}
-    <div class="spot-grid">${spots.length ? spots.map(spotCard).join('') : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa la estrella de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
+    <div class="spot-grid">${spots.length ? [...new Set(spots.map((s) => s.zone))].map((zone) => `<h2 class="zone-heading">${esc(ZONES.find((z) => z.id === zone)?.name || zone)}</h2>${spots.filter((s) => s.zone === zone).map(spotCard).join('')}`).join('') : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa el marcador de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
     ${footer()}`;
 
   if (state.zone === 'fav') {
@@ -328,18 +319,15 @@ function spotCard(s) {
   const f = state.fc?.spots[s.id];
   const h = f ? f.hours[nowIndex(f.hours)] : null;
   const cam = camsForSpot(s)[0];
-  const thumb = camThumb(cam);
   const sw = h?.swells[0];
   return `<a class="card spot-card ${h ? ratingCls(h.rating) : ''}" href="#/spot/${encodeURIComponent(s.id)}">
-    ${thumb ? `<div class="thumb"><img src="${esc(thumb)}" alt="" loading="lazy" onerror="this.parentNode.remove()"><span class="live"><span class="live-badge">CÁMARA</span></span></div>` : ''}
     <div class="body">
       <div class="top">
         <div style="min-width:0;flex:1">
           <div class="name">${esc(s.name)}${cam ? ' <span class="cam-dot" title="Cámara en directo">' + ICON.cam + '</span>' : ''}</div>
           <div class="zone">${esc(s.zoneName)}</div>
-          ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span>${stars(h.rating)}</div>` : '<div class="skeleton" style="height:28px;margin-top:6px"></div>'}
+          ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span></div><div class="human">${surfWords(h.surf.mid)}</div>` : '<div class="human">Previsión no disponible</div>'}
         </div>
-        <div class="mini-compass">${compassSVG(s, { swellDir: sw?.dir, windDir: h?.windDir, mini: true })}</div>
         <button class="fav-btn fav ${favs.has(s.id) ? 'on' : ''}" data-fav="${esc(s.id)}" aria-label="Favorito">${ICON.star}</button>
       </div>
       ${h ? `<div class="meta">
@@ -360,38 +348,73 @@ function bindFavs() {
   }));
 }
 
+function clipsForSpot(spot) {
+  const ids = new Set(camsForSpot(spot).map((c) => c.id));
+  const seen = new Set();
+  return (state.rewinds?.rewinds || []).filter((c) => {
+    if (!ids.has(c.camara) || seen.has(c.url) || !/^https:\/\//.test(c.url) || !Number.isFinite(Date.parse(c.hora))) return false;
+    seen.add(c.url); return true;
+  }).sort((a, b) => Date.parse(b.hora) - Date.parse(a.hora));
+}
+const madridDate = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+const clipTime = (date) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(date);
 function renderRewinds(spot) {
-  const cams = camsForSpot(spot);
-  if (!cams.length) return '';
-  // Los más recientes primero; como mucho 6 para no cargar la ficha
-  const clips = (state.rewinds?.rewinds || []).filter((c) => c.spot === spot.id)
-    .sort((a, b) => new Date(b.hora) - new Date(a.hora)).slice(0, 6);
-  const dec = (x) => (x == null ? '–' : Number(x).toLocaleString('es-ES', { maximumFractionDigits: 1 }));
-
-  let html = `<details class="card" style="margin-bottom:16px"><summary class="pad" style="font-weight:600;cursor:pointer">Rewinds</summary><div class="pad" style="border-top:1px solid var(--border)">`;
-  if (!clips.length) {
-    html += `<p style="margin:0">Aún no hay rewinds de este spot.</p>`;
-  } else {
-    html += `<div style="display:flex;flex-direction:column;gap:16px">`;
-    for (const c of clips) {
-      const ms = Date.now() - new Date(c.hora).getTime();
-      const h = Math.max(0, Math.floor(ms / 3600000));
-      const d = Math.floor(h / 24);
-      const rel = d > 0 ? `Hace ${d} día${d > 1 ? 's' : ''}` : h > 0 ? `Hace ${h} hora${h !== 1 ? 's' : ''}` : 'Hace menos de 1 hora';
-
-      const p = c.prevision || {};
-      const windTxt = p.viento != null && p.vientoDireccion != null ? windState(spot, p.viento, p.vientoDireccion).label.toLowerCase() : '';
-      const prevTxt = p.altura != null ? `${dec(p.altura)} m ${p.direccionTxt || ''} ${p.periodo != null ? Math.round(p.periodo) + ' s' : ''}${windTxt ? ` · ${windTxt}` : ''}` : '';
-
-      html += `<div>
-        <div style="font-size:13px;margin-bottom:4px;color:var(--text-faint)">${esc(new Date(c.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ' ·'))} (${rel.toLowerCase()})${prevTxt ? ` · ${esc(prevTxt)}` : ''}</div>
-        <video src="${esc(c.url)}" controls preload="none" style="width:100%;border-radius:6px;background:#000" playsinline></video>
-      </div>`;
-    }
-    html += `</div>`;
-  }
-  html += `</div></details>`;
-  return html;
+  const clips = clipsForSpot(spot);
+  const today = madridDate(new Date());
+  const yesterday = madridDate(new Date(Date.now() - 86400000));
+  const groups = new Map();
+  clips.forEach((c, i) => {
+    const day = madridDate(new Date(c.hora));
+    if (!groups.has(day)) groups.set(day, []);
+    groups.get(day).push({ c, i });
+  });
+  return `<div id="rewind-strip" class="rewind-strip" hidden>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot.</p>'}</div>`;
+}
+function bindClips(spot, camEl, showCam) {
+  const clips = clipsForSpot(spot);
+  const record = $('#record-clip'), status = $('#record-status'), save = $('#save-clip');
+  $('#rewind-toggle').addEventListener('click', (e) => {
+    const strip = $('#rewind-strip'); strip.hidden = !strip.hidden;
+    e.currentTarget.setAttribute('aria-expanded', String(!strip.hidden));
+  });
+  $('#live-cam').addEventListener('click', showCam);
+  view.querySelectorAll('[data-clip]').forEach((b) => b.addEventListener('click', () => {
+    const clip = clips[Number(b.dataset.clip)];
+    playClip(camEl, clip);
+    view.querySelectorAll('[data-clip]').forEach((x) => x.classList.toggle('on', x === b));
+    $('#live-cam').hidden = false; record.hidden = true;
+    const info = $('#clip-info'), p = clip.prevision || {};
+    info.hidden = false;
+    info.innerHTML = `<b>Rewind · ${esc(new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</b><p>${esc(clip.camaraNombre || clip.camaraCorta || '')}</p><p>Previsión de ese momento: ${m(p.altura)} m · ${rnd(p.periodo)} s · ${esc(p.direccionTxt || 'Sin dirección')} · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')} · rachas ${kmh(p.vientoRacha)}</p><a href="${esc(clip.url)}" target="_blank" rel="noopener" download>Descargar</a>`;
+  }));
+  record.addEventListener('click', async () => {
+    record.disabled = true; save.hidden = true;
+    try {
+      const result = await recordClip(camEl, 20, (left) => { status.textContent = `Grabando · ${left} s`; });
+      if (!camEl.isConnected) return;
+      const stamp = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date()).replace(/[-:]/g, '').replace(' ', '-');
+      const url = URL.createObjectURL(result.blob);
+      if (save.dataset.url) URL.revokeObjectURL(save.dataset.url);
+      save.dataset.url = url; save.href = url;
+      save.download = `MeteoSurf_${spot.id}_${stamp}.${result.extension}`;
+      save.hidden = false; save.click(); status.textContent = 'Clip listo para guardar.';
+    } catch (e) { if (status.isConnected) status.textContent = e.message; }
+    finally { record.disabled = false; }
+  });
+}
+function nearbySpots(spot) {
+  return SPOTS.filter((s) => s.id !== spot.id).sort((a, b) => Math.hypot(a.lat - spot.lat, a.lon - spot.lon) - Math.hypot(b.lat - spot.lat, b.lon - spot.lon)).slice(0, 5).map((s) => {
+    const f = state.fc?.spots[s.id], h = f?.hours[nowIndex(f.hours)];
+    return `<a href="#/spot/${encodeURIComponent(s.id)}" class="${ratingCls(h?.rating)}"><b>${esc(s.name)}</b><strong class="num">${range(h?.surf)} m</strong><span class="rating-pill ${ratingCls(h?.rating)}">${ratingLabel(h?.rating)}</span></a>`;
+  }).join('');
+}
+function windChart(day) {
+  const hours = day.hours, max = Math.max(10, ...hours.map((h) => h.windSpeed || 0));
+  const x = (hour) => 24 + hour * 13.6;
+  const y = (speed) => 76 - speed / max * 60;
+  let path = '', open = false;
+  hours.forEach((h) => { if (h.windSpeed == null) { open = false; return; } path += `${open ? 'L' : 'M'}${x(h.hour)} ${y(h.windSpeed)} `; open = true; });
+  return `<svg class="chart" viewBox="0 0 360 105" role="img" aria-label="Viento por horas en kilómetros por hora"><path d="${path}" fill="none" stroke="var(--text-2)" stroke-width="1.8"/>${hours.filter((h) => h.hour % 3 === 0).map((h) => `<text x="${x(h.hour)}" y="${h.windSpeed == null ? 60 : y(h.windSpeed) - 7}" text-anchor="middle" font-size="10" fill="var(--text)">${rnd(h.windSpeed)}</text><text x="${x(h.hour)}" y="100" text-anchor="middle" font-size="10" fill="var(--text-2)">${h.hour}h</text>`).join('')}</svg>`;
 }
 
 // ---------- Página de spot ----------
@@ -424,45 +447,41 @@ function renderSpot(id) {
       <button class="fav-btn ${favs.has(id) ? 'on' : ''}" data-fav="${esc(id)}" style="background:var(--surface-2);color:var(--text-2)" aria-label="Favorito">${ICON.star}</button>
     </div>
     <nav class="subnav" aria-label="Secciones del spot">
-      <a href="#s-ahora" data-jump="s-ahora">Ahora</a><a href="#s-prevision" data-jump="s-prevision">4 días</a>
+      <a href="#s-ahora" data-jump="s-ahora">Ahora</a><a href="#s-prevision" data-jump="s-prevision">Previsión</a>
       <a href="#s-tendencia" data-jump="s-tendencia">16 días</a><a href="#s-spot" data-jump="s-spot">Spot</a>
     </nav>
     <div class="spot-layout">
       <div class="a-cam">
-        <div style="position:relative">
         <div class="cam" id="cam"></div>
-        ${h ? `<div class="cam-overlay-hud" style="position:absolute;bottom:10px;left:10px;pointer-events:none;display:flex;gap:6px;z-index:10">
-          <span class="cam-data-pill ${ratingCls(h.rating)}">${range(h.surf)} m</span>
-          <span class="cam-data-pill">${kmh(h.windSpeed)} ${dirArrow(h.windDir)}</span>
-        </div>` : ''}
-        </div>
         ${cams.length > 1 ? `<div class="cam-switch">${cams.map((c, i) => `<button data-cam="${i}" class="${i === state.camIdx ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
         <div class="cam-source" id="cam-source"></div>
+        <div class="cam-actions"><button id="rewind-toggle" aria-expanded="false" aria-controls="rewind-strip">Rewind</button><button id="record-clip" hidden>Grabar clip</button><button id="live-cam" hidden>Volver al directo</button></div>
+        ${renderRewinds(spot)}<div id="clip-info" class="clip-info" hidden></div><p id="record-status" class="record-status" role="status"></p><a id="save-clip" class="save-clip" hidden>Guardar clip</a>
       </div>
       <div class="a-now" id="s-ahora">
         ${h ? nowPanel(spot, f, h) : loadingBlock()}
-        <div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div>
+        <details><summary>Observaciones reales cercanas</summary><div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div></details>
         <div id="spot-report" style="margin-top:12px"><div class="skeleton" style="height:56px"></div></div>
       </div>
       <div class="a-fc">
         ${f ? `
-        <div class="section-title" id="s-prevision">Previsión detallada · próximos 4 días</div>
+        <div class="section-title" id="s-prevision">Previsión por horas</div>
         <div class="days">${f.days.map((d, i) => `<button class="day ${i === state.dayIdx ? 'on' : ''} ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}" data-day="${i}">
           ${i === bestDayIdx ? '<span class="day-badge-watch">MEJOR</span>' : ''}
           <div class="dn">${dayName(d.date, i)}</div><div class="dd">${dayShort(d.date)}</div>
-          ${goodDay(d) ? `<span class="good-day-label">${goodLabel(d.rating)}</span>` : ''}<div class="dh num">${range({ min: d.surfMin, max: d.surfMax })}<small> m</small></div>${stars(d.rating)}
+          ${goodDay(d) ? `<span class="good-day-label">${goodLabel(d.rating)}</span>` : ''}<div class="dh num">${range({ min: d.surfMin, max: d.surfMax })}<small> m</small></div><span class="rating-pill ${ratingCls(d.rating)}">${ratingLabel(d.rating)}</span>
           <div class="rating-bar ${ratingCls(d.rating)}"></div></button>`).join('')}</div>
         <div class="card pad chart-wrap" style="margin-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
             <b id="chart-title"></b><span class="faint" style="font-size:12px">Altura en rompiente (m) · color = calidad · flechas = viento</span></div>
           <div id="chart"></div>
         </div>
-        <div class="ftable-wrap" id="ftable" style="margin-top:12px"></div>
+        <h3>Viento por horas · km/h</h3><div id="wind-chart"></div><h3>Marea · nivel del mar</h3><div class="tide" id="tide"></div><details><summary>Ver tabla horaria</summary><div class="ftable-wrap" id="ftable"></div></details>
         <div class="section-title" id="s-tendencia">Tendencia · días 5 a 16<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">fiabilidad decreciente</span></div>
         <div class="card" id="longrange"></div>` : loadingBlock()}
       </div>
       <div class="a-side" id="s-spot">
-        <div class="section-title">Orientación y condiciones ideales</div>
+        <h2>Spots cercanos</h2><div class="nearby">${nearbySpots(spot)}</div><details><summary>Ficha del spot y orientación</summary><div class="section-title">Orientación y condiciones ideales</div>
         <div class="card pad compass-card">
           ${compassSVG(spot, { swellDir: h?.swells[0]?.dir, windDir: h?.windDir })}
           <div class="legend">
@@ -478,8 +497,6 @@ function renderSpot(id) {
             <div><i style="background:#ff8a00"></i>Viento ahora</div>
           </div>
         </div>
-        ${f ? `<div class="section-title">Marea · nivel del mar</div><div class="card pad tide" id="tide"></div>` : ''}
-        ${renderRewinds(spot)}
         <div class="section-title">Ficha del spot</div>
         <div class="card pad">
           <p style="margin:0 0 12px">${esc(spot.desc)}</p>
@@ -493,7 +510,7 @@ function renderSpot(id) {
           </div>
           <div style="margin-top:12px;font-size:13px"><a href="https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lon}" target="_blank" rel="noopener">Cómo llegar</a></div>
         </div>
-      </div>
+      </details></div>
     </div>
     ${footer()}`;
 
@@ -509,6 +526,10 @@ function renderSpot(id) {
 
   const camEl = $('#cam');
   const showCam = () => {
+    $('#clip-info').hidden = true;
+    $('#live-cam').hidden = true;
+    view.querySelectorAll('[data-clip]').forEach((b) => b.classList.remove('on'));
+    $('#record-clip').hidden = cams[state.camIdx]?.embedType !== 'hls' || !HTMLVideoElement.prototype.captureStream || !window.MediaRecorder;
     const cam = cams[state.camIdx];
     playCam(camEl, cam);
     $('#cam-source').innerHTML = cam
@@ -516,6 +537,7 @@ function renderSpot(id) {
       : '';
   };
   showCam();
+  bindClips(spot, camEl, showCam);
   view.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => {
     state.camIdx = +b.dataset.cam;
     view.querySelectorAll('[data-cam]').forEach((x) => x.classList.toggle('on', x === b));
@@ -551,33 +573,29 @@ function renderSpot(id) {
   if (f) drawDay(spot, f);
 }
 
-function loadingBlock() { return '<div class="skeleton" style="height:220px;margin-top:16px"></div>'; }
+function loadingBlock() { return '<div class="banner">La previsión todavía no está disponible. Puedes consultar las cámaras y los clips guardados.</div>'; }
 
 function nowPanel(spot, f, h) {
   const today = f.days[0];
   const ex = tideExtremes(f.hours.slice(Math.max(0, nowIndex(f.hours) - 1), nowIndex(f.hours) + 26));
   const next = ex[0];
-  return `<div class="now">
-    <div class="wide" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-      <div><div class="k">Ahora · ${h.hour}:00</div><div class="hero-wave num">${range(h.surf)}<small> m</small></div>
-        <div class="d">${surfWords(h.surf.mid)}</div></div>
-      <span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>${stars(h.rating)}
-    </div>
+  return `<h2>Condiciones actuales</h2><div class="now">
+    <div class="wide"><div class="k">Calidad · ${h.hour}:00</div><span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span></div>
+    <div><div class="k">Surf</div><div class="hero-wave num">${range(h.surf)}<small> m</small></div><div class="d">${surfWords(h.surf.mid)}</div></div>
+    <div><div class="k">Viento</div><div class="v-sec num">${kmh(h.windSpeed)}</div><div class="d">${compass(h.windDir)} · ${h.wind.label}</div><div class="d">Rachas ${kmh(h.windGust)}</div></div>
     <div class="wide"><div class="k">Mar de fondo</div>
       ${h.swells.slice(0, 3).map((s, i) => `<div class="swell-line num"><span class="dot s${i + 1}"></span>${m(s.h)} m · ${s.t ? s.t.toFixed(0) : '–'} s · ${compass(s.dir)} ${Math.round(s.dir)}° ${dirArrow(s.dir)} <span class="faint" style="font-weight:500">${s.kind}</span></div>`).join('') || '<div class="muted">Sin mar de fondo</div>'}
     </div>
-    <div><div class="k">Viento</div><div class="v-sec num">${kmh(h.windSpeed)}</div>
-      <div class="d">${dirArrow(h.windDir)} ${compass(h.windDir)} · rachas ${rnd(h.windGust)}</div>
-      <div class="d"><span class="wind-tag wind-${h.wind.key}">${h.wind.label}</span></div></div>
     <div><div class="k">Marea</div><div class="v-sec num">${h.tide != null ? (h.tide >= 0 ? '+' : '') + h.tide.toFixed(2) : '–'}<small> m</small></div>
       <div class="d">${next ? `${next.type === 'high' ? 'Pleamar' : 'Bajamar'} a las ${next.hour}:00` : ''}</div></div>
     <div><div class="k">Agua</div><div class="v-sec num">${h.sst != null ? Math.round(h.sst) : '–'}<small> °C</small></div>
       <div class="d">${wetsuit(h.sst)}</div></div>
-    <div><div class="k">Aire · sol</div><div class="v-sec num">${h.temp != null ? Math.round(h.temp) : '–'}<small> °C</small></div>
+    <div><div class="k">Tiempo</div><div class="v-sec num">${h.temp != null ? Math.round(h.temp) : '–'}<small> °C</small></div>
       <div class="d">Sol ${today.sunrise ?? '–'} – ${today.sunset ?? '–'}</div></div>
   </div>`;
 }
 function surfWords(h) {
+  if (h == null || !Number.isFinite(h)) return 'Sin datos de altura';
   if (h < 0.2) return 'Plato';
   if (h < 0.4) return 'Tobillo a rodilla';
   if (h < 0.6) return 'Rodilla a muslo';
@@ -590,7 +608,7 @@ function surfWords(h) {
 function wetsuit(t) {
   if (t == null) return '';
   if (t >= 24) return 'Bañador o licra';
-  if (t >= 21) return 'Neopreno 2 mm / shorty';
+  if (t >= 21) return 'Neopreno corto de 2 mm';
   if (t >= 18) return 'Neopreno 3/2 mm';
   if (t >= 15) return 'Neopreno 4/3 mm';
   return 'Neopreno 5/4 mm y escarpines';
@@ -601,6 +619,7 @@ function drawDay(spot, f) {
   const day = f.days[state.dayIdx];
   $('#chart-title').textContent = `${dayName(day.date, state.dayIdx)} ${dayShort(day.date)} · ${ratingLabel(day.rating)}`;
   $('#chart').innerHTML = barChart($('#chart').clientWidth || 640, day.hours, f.days[0].date === day.date ? nowIndex(f.hours) % 24 : -1, day);
+  $('#wind-chart').innerHTML = windChart(day);
   $('#ftable').innerHTML = hourlyTable(f, state.dayIdx);
   const tideEl = $('#tide');
   if (tideEl) tideEl.innerHTML = tideChart(day);
@@ -704,8 +723,7 @@ function hourlyTable(f, dayIdx) {
   s += `<tr><th class="lbl"></th>${days.map((d, i) => `<th colspan="${cols.filter((c) => c.d === d).length}" class="daysep ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}">${dayName(d.date, dayIdx + i)} ${dayShort(d.date)}</th>`).join('')}</tr>`;
   s += `<tr><th class="lbl">Hora</th>${cols.map((c) => `<th class="${c.first ? 'daysep' : ''}">${c.h.hour}h</th>`).join('')}</tr></thead><tbody>`;
   const kjCls = (e) => e == null ? '' : e < 50 ? 'kj-0' : e < 150 ? 'kj-1' : e < 400 ? 'kj-2' : 'kj-3';
-  s += row('Calidad', (c, i) => td(c, i, `<div class="${ratingCls(c.h.rating)}" title="${ratingLabel(c.h.rating)}"></div>`, 'cell-r'));
-  s += row('Estrellas', (c, i) => td(c, i, stars(c.h.rating), 'star-cell'));
+  s += row('Calidad', (c, i) => td(c, i, `<div class="${ratingCls(c.h.rating)}" title="${ratingLabel(c.h.rating)}">${ratingLabel(c.h.rating)}</div>`, 'cell-r'));
   s += row('Surf (m)', (c, i) => td(c, i, range(c.h.surf), `big hcell ${hClass(c.h.surf.mid)}`));
   s += row('Mar total', (c, i) => td(c, i, `${m(c.h.waveHeight)}`));
   s += row('Energía', (c, i) => td(c, i, c.h.energy || '–', kjCls(c.h.energy)));
@@ -737,14 +755,14 @@ function longRange(f) {
     const bestRating = Math.max(d.rating ?? 0, a.rating, p.rating);
     return `<div class="lr-row ${goodDay({ rating: bestRating }) ? `good-day ${ratingCls(bestRating)}` : ''}">
       <div class="lr-day"><b>${dayName(d.date, i)}</b><span class="faint">${dayShort(d.date)}</span></div>
-      <div class="lr-bars" title="Mañana: ${ratingLabel(a.rating)} · Tarde: ${ratingLabel(p.rating)}"><div class="${ratingCls(a.rating)}"></div><div class="${ratingCls(p.rating)}"></div></div><div class="lr-stars">${stars(bestRating)}</div>
+      <div class="lr-bars" title="Mañana: ${ratingLabel(a.rating)} · Tarde: ${ratingLabel(p.rating)}"><div class="${ratingCls(a.rating)}"></div><div class="${ratingCls(p.rating)}"></div></div><div class="rating-pill ${ratingCls(bestRating)}">${ratingLabel(bestRating)}</div>
       <div class="lr-h num"><b>${range({ min: d.surfMin, max: d.surfMax })}</b> m</div>
       <div class="lr-sw num">${sw ? `${m(sw.h)} m ${sw.t ? Math.round(sw.t) + ' s' : ''} ${dirArrow(sw.dir)} ${compass(sw.dir)}` : '–'}</div>
       <div class="lr-w num">${dirArrow(b.windDir)} ${winds.length ? `${Math.round(Math.min(...winds))}–${Math.round(Math.max(...winds))} km/h` : '–'}</div>
       <div class="lr-c faint">${conf}</div>
     </div>`;
   }).join('');
-  return `<div class="lr-head"><span>Día</span><span>Mañ · Tarde</span><span>Estrellas</span><span>Surf</span><span>Mar de fondo</span><span>Viento</span><span>Fiab.</span></div>${rows}`;
+  return `<div class="lr-head"><span>Día</span><span>Mañ · Tarde</span><span>Calidad</span><span>Surf</span><span>Mar de fondo</span><span>Viento</span><span>Fiab.</span></div>${rows}`;
 }
 
 function tideChart(day) {
@@ -773,7 +791,7 @@ function tideChart(day) {
 let leaflet = null;
 async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
-  view.innerHTML = '<div id="map"></div>';
+  view.innerHTML = '<div class="region-head"><h1>Mapa de spots</h1><p>Toca un punto para consultar su previsión.</p></div><div id="map"></div>';
   if (!window.L) {
     await new Promise((res) => {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l);
@@ -784,7 +802,8 @@ async function renderMap() {
   leaflet = L.map('map', { zoomControl: true });
   const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
   const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagen © Esri', maxZoom: 19 });
-  sat.addTo(leaflet);
+  osm.addTo(leaflet);
+  leaflet.attributionControl.setPrefix('Leaflet');
   L.control.layers({ 'Satélite': sat, 'Mapa': osm }, null, { position: 'topright' }).addTo(leaflet);
   const bounds = [];
   SPOTS.forEach((s) => {
@@ -837,7 +856,6 @@ function renderCams() {
         const c = cams[0];
         const f = state.fc?.spots[s.id];
         const h = f ? f.hours[nowIndex(f.hours)] : null;
-        const thumb = camThumb(c);
         return `<div class="cam-card">
           <div class="cam-card-head">
             <div class="cam-card-spot">
@@ -850,21 +868,20 @@ function renderCams() {
             </div>` : ''}
           </div>
           <div class="cam cam-card-video" data-camspot="${esc(s.id)}">
-            <div class="cam-placeholder">
-              ${thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy" class="cam-placeholder-img" onerror="this.remove()">` : ''}
+            <button class="cam-placeholder" aria-label="Reproducir cámara de ${esc(s.name)}">
               <div class="cam-placeholder-overlay">
                 <span class="cam-live-badge">EN DIRECTO</span>
                 ${PLAY_SVG}
                 <span class="cam-short-name">${esc(c.short || c.name)}</span>
               </div>
-            </div>
+            </button>
           </div>
           <div class="cam-card-footer">
             <a href="#/spot/${encodeURIComponent(s.id)}" class="cam-forecast-link">Ver previsión</a>
             <span class="faint" style="font-size:12px;font-weight:600">${esc(c.credit || '')}</span>
           </div>
         </div>`;
-      }).join('') : `<div class="card pad muted">No hay camaras en esta zona.</div>`}
+      }).join('') : `<div class="card pad muted">No hay cámaras en esta zona.</div>`}
     </div>${footer()}`;
 
   // Chips de zona

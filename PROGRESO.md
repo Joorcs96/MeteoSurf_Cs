@@ -1,3 +1,16 @@
+# Rediseño Surfline · 06/10/2026
+
+| Tarea | Estado | Rama | Siguiente paso |
+| --- | --- | --- | --- |
+| Completar WIP 8053158 | Hecho; cámara, Rewind, grabación y limpieza al navegar | Joorcs96/rediseno-surfline | Revisión independiente |
+| Afinar móvil claro/oscuro | Hecho; controles 44 px, cifras legibles, formulario y barras | Joorcs96/rediseno-surfline | Revisar capturas locales |
+| Aceptación del SPEC | 20 + 17 + 15 pruebas, sintaxis, shot, CSP y 65 comprobaciones correctas | Joorcs96/rediseno-surfline | Ver INFORME-REDISENO.md |
+| Publicación | Pendiente; sin integración ni push a main | Joorcs96/rediseno-surfline | Coordinar revisión y publicación |
+
+Capturas y logs: `.capturas/rediseno/` (no subir a git). Grabación MP4 real de 20 s y alternativa WebM comprobadas. Se conserva a continuación el historial anterior.
+
+---
+
 # Datos reales · 05/10/2026
 
 | Tarea | Estado | Rama | Siguiente paso |

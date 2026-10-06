@@ -143,6 +143,7 @@ function toast(t) {
 
 // ---------- Rutas ----------
 function route() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   const h = location.hash.replace(/^#\/?/, '');
   const [page, arg] = h.split('/');
   if (page !== 'spot') state.spotId = null;
@@ -815,7 +816,7 @@ async function renderMap() {
     const h = f ? f.hours[nowIndex(f.hours)] : null;
     bounds.push([s.lat, s.lon]);
     const html = `<div class="map-pin ${h ? ratingCls(h.rating) : ''}"><span class="dot"></span><span class="lbl"><b>${esc(s.name)}</b>${h ? ' ' + range(h.surf) + ' m' : ''}</span></div>`;
-    const mk = L.marker([s.lat, s.lon], { icon: L.divIcon({ html, className: '', iconSize: [18, 18], iconAnchor: [9, 9] }), title: s.name }).addTo(leaflet);
+    const mk = L.marker([s.lat, s.lon], { icon: L.divIcon({ html, className: '', iconSize: [44, 44], iconAnchor: [22, 22] }), title: s.name }).addTo(leaflet);
     mk.on('click', () => { location.hash = `#/spot/${encodeURIComponent(s.id)}`; });
     // Cuña que indica hacia dónde mira la playa y su ventana de mar
     const cosLat = Math.cos(s.lat * Math.PI / 180);
@@ -828,7 +829,7 @@ async function renderMap() {
       }
       return pts;
     };
-    L.polygon(wedge(s.swellWindow[0], s.swellWindow[1], 0.012), { color: '#00a3c4', weight: 1, fillOpacity: 0.12, interactive: false }).addTo(leaflet);
+    L.polygon(wedge(s.swellWindow[0], s.swellWindow[1], 0.012), { color: '#677680', weight: 1, fillOpacity: 0.12, interactive: false }).addTo(leaflet);
     L.polyline([[s.lat, s.lon], [s.lat + 0.016 * Math.cos(s.facing * Math.PI / 180), s.lon + 0.016 * Math.sin(s.facing * Math.PI / 180) / cosLat]], { color: '#fff', weight: 2, interactive: false }).addTo(leaflet);
   });
   leaflet.fitBounds(bounds, { padding: [30, 30] });
@@ -847,7 +848,7 @@ function renderCams() {
     .filter((x) => x.cams.length > 0);
   const filtered = camZone === 'all' ? allWithCams : allWithCams.filter(({ s }) => s.zone === camZone);
 
-  const PLAY_SVG = '<svg viewBox="0 0 48 48" width="56" height="56" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/><polygon points="19,14 38,24 19,34" fill="white"/></svg>';
+  const PLAY_SVG = '<svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m10 7 7 5-7 5z"/></svg>';
 
   view.innerHTML = `
     <div class="region-head"><div><h1>Cámaras en directo</h1>

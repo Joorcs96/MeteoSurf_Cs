@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-07T09:04:31.376138+00:00",
+  "updatedAt": "2026-10-07T09:40:18.881528+00:00",
   "webcams": [
     {
       "id": "cv_grao_castellon",
@@ -20,7 +20,7 @@
       "verified": true,
       "notes": "HLS en directo, CORS Access-Control-Allow-Origin:* en playlist, chunklist y segmentos .ts. Sin token en la URL. Comprobado en vivo hoy 27/09/2026 (MEDIA-SEQUENCE avanzó de 19870 a 19872 en 15s). Cámara del espigón/puerto del Grao: Planetario está pegado (~0.2km), Gurugú algo más al norte (~1.6km, estimado por ubicación conocida del espigón, no por coordenadas exactas scrapeadas). Es vista de puerto, no del pico exacto de la ola; útil para mar de fondo/viento general. Distancia dada es para Planetario; para Gurugú usar ~1.6km.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -42,7 +42,7 @@
       "verified": true,
       "notes": "Mismo origen que la cámara CV del Grao (la propia ficha de Windy cita comunitatvalenciana.com como fuente). Embed player sin X-Frame-Options -> se puede meter en <iframe> directamente. Alternativa de respaldo si hls.js falla; la imagen current/original.jpg tiene CORS * y Last-Modified de hace ~3 minutos al comprobarlo (27/09/2026 ~23:19 CEST).",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -63,7 +63,7 @@
       "verified": true,
       "notes": "HLS en directo, mismo patron CORS abierto y sin token que El Grao. Comprobado en vivo hoy (MEDIA-SEQUENCE avanzó de 20086 a 20087 en 12s). Cámara en el puerto de Burriana, playa del Arenal al fondo; ~1.6km del punto de pico dado (39.870/-0.059), coherente con zona de puerto/Arenal.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -84,7 +84,7 @@
       "verified": true,
       "notes": "HLS en directo confirmado hoy (MEDIA-SEQUENCE avanzó de 2101 a 2102 en 12s), CORS abierto, sin token. Es la playa de Chilches/Xilxes en si (spot bonus pedido por el usuario, no listado como id formal). Como referencia de Almenara/Casablanca queda a ~4.4km (separado por Moncofa) -> solo sirve de pista aproximada de mar/viento, no como vista real del spot. Para Nules queda aun mas lejos (~7.5km) y no se recomienda ofrecerla ahi.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -105,7 +105,7 @@
       "verified": true,
       "notes": "Cámara AXIS sobre la propia playa de Voramar, mirando a la rompiente. Streaming MJPEG continuo (multipart/x-mixed-replace), sin token, sin XFO/CSP. Se comprobó recibiendo >10 MB en 8 s (vídeo real). Riesgo: <img> con multipart/x-mixed-replace es poco fiable en Chrome; si falla, usar fallback JPG con sondeo cada 5-10 s: https://cam1.voramar.net:445/axis-cgi/jpg/image.cgi?ts=<cache-buster> (confirmado que el Content-Length cambia entre peticiones, o sea que es una imagen nueva cada vez).",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -126,7 +126,7 @@
       "verified": true,
       "notes": "Reenvía la misma cámara del Hotel Voramar, pero como fotos sueltas que Windy va guardando (no vídeo continuo). Sin X-Frame-Options en la respuesta del embed -> incrustable. Usar sólo como respaldo si falla la cámara directa.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -148,7 +148,7 @@
       "verified": true,
       "notes": "Única cámara con vídeo real en directo cerca de Heliópolis (2,6 km) y razonablemente cerca de Voramar (1,9 km) — para Voramar se recomienda mejor la cámara del Hotel Voramar (prioridad 1 de ese spot); esta queda de prioridad 2 ahí. HLS con CORS * confirmado en manifest, sub-lista (chunklist_w*.m3u8) y segmentos .ts.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -169,7 +169,7 @@
       "verified": true,
       "notes": "Hotel justo en la playa de Heliópolis, pero sólo hay foto fija (sin vídeo) porque la página con vídeo de Skyline bloquea el iframe (X-Frame-Options: SAMEORIGIN, confirmado con curl). La imagen se cachea 1080 s (18 min) en el CDN — no tiene sentido pedirla más a menudo que eso, aunque el propio servidor la actualiza antes; usar como imagen de referencia, no como 'en directo' minuto a minuto.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -191,7 +191,7 @@
       "verified": true,
       "notes": "Coordenadas de la cámara (40.0844/0.1415, zona del castillo/La Concha): 1,3 km de Morro de Gos, 3,0 km de la Renegà. Es la mejor cámara con vídeo real para ambos spots aunque no esté encima de ninguno de los dos. HLS con CORS * confirmado en toda la cadena (manifest + chunklist + .ts).",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -213,7 +213,7 @@
       "verified": true,
       "notes": "Hotel justo en la playa de Morro de Gos (más cerca que la cámara de CV) pero sólo foto fija cada ~18 min, sin vídeo, mismo bloqueo de iframe que el resto de Skyline.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -234,7 +234,7 @@
       "verified": true,
       "notes": "Así la incrusta oficialmente el propio Gran Hotel Peñíscola en su web (mismo alias, sin token en la URL). Vista desde la azotea del hotel hacia la playa Norte y el castillo de Papa Luna. Sin X-Frame-Options en la respuesta -> incrustable de verdad. Se verificó con una captura nocturna con la fecha/hora quemada en la imagen (27-09-2026 23:25) coincidiendo con la hora real de la petición.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -255,8 +255,8 @@
       "verified": false,
       "notes": "Misma cámara que la fila anterior pero jugando directamente el HLS (CORS *, sin token) con hls.js, sin marca de IPCamLive ni iframe. Más control, pero el streamId/servidor (s29, 1dcj5orke9msb6jxq) podría cambiar si la cámara se reconecta con otros parámetros; el iframe con alias es la opción que IPCamLive garantiza estable a largo plazo. Recomendado como mejora opcional, no como única opción.",
       "enabled": false,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
-      "failCount": 245
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
+      "failCount": 246
     },
     {
       "id": "cv-peniscola-hls",
@@ -276,7 +276,7 @@
       "verified": true,
       "notes": "Cámara distinta, más orientada al pueblo/castillo que a la playa Norte. Buena tercera fuente/alternativa si las dos de IPCamLive fallan. HLS con CORS * confirmado.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -297,7 +297,7 @@
       "verified": true,
       "notes": "El propio Hotel Papa Luna incrusta la página de Skyline en un iframe, pero NO funciona en un navegador real por el X-Frame-Options SAMEORIGIN de skylinewebcams.com (confirmado con curl). Sólo sirve la miniatura JPG fija, de refuerzo/último recurso.",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {
@@ -318,7 +318,7 @@
       "verified": true,
       "notes": "Coincidencia casi exacta de coordenadas con El Fortí (0,12 km). Mejor match geográfico de todo el informe. HLS con CORS * confirmado en manifest + chunklist + segmentos .ts (media_w*.ts, ~2-5 MB cada uno, vídeo real).",
       "enabled": true,
-      "lastChecked": "2026-10-07T09:04:31.376138+00:00",
+      "lastChecked": "2026-10-07T09:40:18.881528+00:00",
       "failCount": 0
     },
     {

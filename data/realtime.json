@@ -1,30 +1,118 @@
 {
-  "generado": "2026-10-08T16:26:48Z",
-  "generado_local": "2026-10-08T16:26:48+00:00",
-  "ok": false,
+  "generado": "2026-10-09T13:07:12Z",
+  "generado_local": "2026-10-09T13:07:12+00:00",
+  "ok": true,
   "referencia": {
     "lugar": "Castellón de la Plana",
     "lat": 39.9858,
     "lon": 0.0277
   },
-  "oleaje": null,
-  "nivel_mar": null,
-  "viento": null,
-  "errores": [
-    {
-      "bloque": "oleaje",
-      "fuente": "Puertos del Estado",
-      "mensaje": "no se pudo obtener el catálogo de boyas: HTTP 500 "
+  "oleaje": {
+    "principal": {
+      "estacion": "Boya de Valencia",
+      "estacion_id": 2630,
+      "lat": 39.51,
+      "lon": 0.2,
+      "distancia_km": 54.9,
+      "fecha": "2026-10-09T13:00:00Z",
+      "altura_m": 0.94,
+      "altura_max_m": 1.28,
+      "periodo_s": 7.23,
+      "periodo_medio_s": 4.84,
+      "direccion_grados": 41,
+      "direccion_pico_grados": 56,
+      "temperatura_agua_c": 23.39,
+      "cadencia_min": 60,
+      "direccion": "NE",
+      "direccion_pico": "NE",
+      "fuente": "Puertos del Estado · red de boyas REDEXT",
+      "obsoleto": false
     },
-    {
-      "bloque": "nivel_mar",
-      "fuente": "Puertos del Estado",
-      "mensaje": "no se pudo obtener el catálogo de mareógrafos: HTTP 500 "
-    },
-    {
-      "bloque": "viento",
-      "fuente": "Puertos del Estado",
-      "mensaje": "no se pudo obtener el catálogo de estaciones de viento: HTTP 500 "
-    }
-  ]
+    "boyas_cercanas": [
+      {
+        "estacion": "Boya de Valencia",
+        "estacion_id": 2630,
+        "lat": 39.51,
+        "lon": 0.2,
+        "distancia_km": 54.9,
+        "fecha": "2026-10-09T13:00:00Z",
+        "altura_m": 0.94,
+        "altura_max_m": 1.28,
+        "periodo_s": 7.23,
+        "periodo_medio_s": 4.84,
+        "direccion_grados": 41,
+        "direccion_pico_grados": 56,
+        "temperatura_agua_c": 23.39,
+        "cadencia_min": 60,
+        "direccion": "NE",
+        "direccion_pico": "NE"
+      },
+      {
+        "estacion": "Boya de Tarragona",
+        "estacion_id": 2720,
+        "lat": 40.69,
+        "lon": 1.47,
+        "distancia_km": 145.2,
+        "fecha": "2026-10-09T13:00:00Z",
+        "altura_m": 1.05,
+        "altura_max_m": 1.59,
+        "periodo_s": 4.49,
+        "periodo_medio_s": 4.22,
+        "direccion_grados": 325,
+        "direccion_pico_grados": 304,
+        "temperatura_agua_c": 24.72,
+        "cadencia_min": 60,
+        "direccion": "NO",
+        "direccion_pico": "NO"
+      },
+      {
+        "estacion": "Boya de Tarragona",
+        "estacion_id": 1712,
+        "lat": 41.07,
+        "lon": 1.19,
+        "distancia_km": 155.5,
+        "fecha": "2026-10-09T12:00:00Z",
+        "altura_m": 0.47,
+        "altura_max_m": 0.72,
+        "periodo_s": 8.7,
+        "periodo_medio_s": 5.3,
+        "direccion_grados": 140,
+        "direccion_pico_grados": null,
+        "temperatura_agua_c": 24.5,
+        "cadencia_min": 60,
+        "direccion": "SE",
+        "direccion_pico": null
+      }
+    ]
+  },
+  "nivel_mar": {
+    "fuente": "Puertos del Estado · mareógrafo",
+    "estacion": "Mareografo de Sagunto",
+    "estacion_id": 3655,
+    "lat": 39.63392,
+    "lon": -0.20624,
+    "distancia_km": 43.9,
+    "fecha": "2026-10-09T13:06:00Z",
+    "nivel_m": 0.061,
+    "obsoleto": false,
+    "nota": "Puertos del Estado no tiene mareógrafo en Castellón; se publica el más cercano, junto con su distancia."
+  },
+  "viento": {
+    "fuente": "Puertos del Estado · estaciones meteorológicas REMPOR",
+    "estacion": "Estación Meteorológica de Castellón Mistral",
+    "estacion_id": 4660,
+    "lat": 39.97736,
+    "lon": 0.02505,
+    "distancia_km": 1.0,
+    "fecha": "2026-10-09T12:50:00Z",
+    "velocidad_ms": 3.2,
+    "racha_ms": 5.0,
+    "direccion_grados": 145,
+    "direccion": "SE",
+    "temperatura_c": 20.4,
+    "cadencia_min": 10,
+    "obsoleto": false,
+    "nota": "La dirección es la de procedencia, de dónde viene el viento."
+  },
+  "errores": []
 }

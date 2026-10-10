@@ -3,6 +3,7 @@ import { SPOTS, ZONES } from './spots.js';
 import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360, windState } from './forecast.js';
 import { compassSVG, dirArrow } from './compass.js';
 import { loadCams, camsForSpot, playCam, stopCam, playClip, recordClip } from './cams.js';
+import { aplicarNowcast } from './nowcast.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -586,7 +587,7 @@ function nowPanel(spot, f, h) {
   const next = ex[0];
   return `<h2>Condiciones actuales</h2><div class="now">
     <div class="wide"><div class="k">Calidad · ${h.hour}:00</div><span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span></div>
-    <div><div class="k">Surf</div><div class="hero-wave num">${range(h.surf)}<small> m</small></div><div class="d">${surfWords(h.surf.mid)}</div></div>
+    <div><div class="k">Surf</div><div class="hero-wave num">${range(h.surf)}<small> m</small></div><div class="d">${surfWords(h.surf.mid)}</div>${h.nowcastRatio ? `<div class="d" style="color:var(--brand);font-weight:600;margin-top:4px">Ajustado con boya (x${h.nowcastRatio.toFixed(1)})</div>` : ''}</div>
     <div><div class="k">Viento</div><div class="v-sec num">${kmh(h.windSpeed)}</div><div class="d">${compass(h.windDir)} · ${h.wind.label}</div><div class="d">Rachas ${kmh(h.windGust)}</div></div>
     <div class="wide"><div class="k">Mar de fondo</div>
       ${h.swells.slice(0, 3).map((s, i) => `<div class="swell-line num"><span class="dot s${i + 1}"></span>${m(s.h)} m · ${s.t ? s.t.toFixed(0) : '–'} s · ${compass(s.dir)} ${Math.round(s.dir)}° ${dirArrow(s.dir)} <span class="faint" style="font-weight:500">${s.kind}</span></div>`).join('') || '<div class="muted">Sin mar de fondo</div>'}
@@ -661,7 +662,7 @@ function drawDay(spot, f) {
       line.setAttribute('x1', padL + i * bw + bw / 2);
       line.setAttribute('x2', padL + i * bw + bw / 2);
       line.classList.remove('hidden');
-      tip.innerHTML = `<b>${h.hour}:00</b><br>${range(h.surf)} m · ${h.swells[0]?.t ? Math.round(h.swells[0].t)+'s' : '–'} · ${kmh(h.windSpeed)} · ${h.tide != null ? h.tide.toFixed(2)+' m' : '–'}`;
+      tip.innerHTML = `<b>${h.hour}:00</b><br>${range(h.surf)} m · ${h.swells[0]?.t ? Math.round(h.swells[0].t)+'s' : '–'} · ${kmh(h.windSpeed)} · ${h.tide != null ? h.tide.toFixed(2)+' m' : '–'}${h.nowcastRatio ? `<br><span style="color:var(--brand);font-weight:600">Ajustado con boya (x${h.nowcastRatio.toFixed(1)})</span>` : ''}`;
       tip.classList.remove('hidden');
       tip.style.left = Math.max(70, Math.min(w - 70, padL + i * bw + bw / 2)) + 'px';
     };
@@ -936,6 +937,7 @@ async function refresh(force = false) {
   } finally {
     await realtime;
   }
+  aplicarNowcast(state.fc, state.realtime);
   route();
 }
 

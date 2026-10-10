@@ -1,3 +1,12 @@
+# Ajuste con boya · 10/10/2026
+
+| Tarea | Estado | Rama | Siguiente paso |
+| --- | --- | --- | --- |
+| Diagnóstico sesión de Jordi 09/10 8-14 h Planetario | Hecho: la física acierta; el modelo se quedó corto (0.31-0.58 m vs boya 0.94 m, x1.6). Web daba Muy malo a las 8-9 h | main | — |
+| Corrección con boya (js/nowcast.js) | Publicado: ratio boya/modelo limitado a 0.7-1.6, decae a 0 en 12 h, solo obs <= 3 h y spots <= 60 km. Caso 6: 1 -> 4 | main | Vigilar: el cron de realtime corre cada 4-5 h (retrasos de GitHub), así que la boya a menudo llega vieja y no corrige |
+
+---
+
 # Rediseño Surfline · 06/10/2026
 
 | Tarea | Estado | Rama | Siguiente paso |

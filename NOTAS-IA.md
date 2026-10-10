@@ -116,3 +116,4 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - [VERIFICADO] stopCam invalida la sesión y cancela recordClip; callbacks HLS/JPG/clip deben respetar esa sesión para no borrar un reproductor posterior.
 - [VERIFICADO] Leaflet carga CSS después del nuestro: usar #map en controles para que se conserven los 44 px. shot.mjs necesita carpeta absoluta para el perfil Chrome en este host.
 - [VERIFICADO] Node --check con dos archivos sólo comprueba el primero: ejecutar también js/cams.js por separado. Safari físico pendiente; ocultación sin captureStream comprobada en Chrome.
+- 10/10: en Orca, OpenCode falla al arrancar (agent_readiness / missing_status) y Antigravity con claude-sonnet-4-6, gpt-oss-120b-medium y gemini-3.8-flash-high se cerró al instante (process_stopped); gemini-3.1-pro-high sí funcionó. Para probar la web con Playwright, bloquear el service worker (serviceWorkers: 'block') o page.route no intercepta.

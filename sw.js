@@ -1,8 +1,8 @@
 // sw.js — MeteoSurf_Cs. Archivos propios: red primero (siempre la última versión), caché si no hay conexión.
 // Streams de cámaras y APIs externas no se interceptan.
-const CACHE = 'meteosurf-cs-v13-surfline';
+const CACHE = 'meteosurf-cs-v14-nowcast';
 const SHELL = ['./', './index.html', './css/app.css', './js/app.js', './js/spots.js', './js/forecast.js',
-  './js/compass.js', './js/cams.js', './js/assistant.js', './js/physics.js', './webcams.json', './manifest.json', './icon.svg'];
+  './js/compass.js', './js/cams.js', './js/assistant.js', './js/physics.js', './js/nowcast.js', './webcams.json', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));

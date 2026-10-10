@@ -7,7 +7,8 @@
       "short": "El Grao CV",
       "spots": [
         "Planetario",
-        "Piramides"
+        "Piramides",
+        "Gurugu"
       ],
       "priority": 1,
       "embedType": "hls",
@@ -29,9 +30,10 @@
       "short": "Windy Grao",
       "spots": [
         "Planetario",
-        "Piramides"
+        "Piramides",
+        "Gurugu"
       ],
-      "priority": 2,
+      "priority": 3,
       "embedType": "iframe",
       "embedUrl": "https://webcams.windy.com/webcams/public/embed/player/1349781016/day",
       "pageUrl": "https://www.windy.com/webcams/1349781016",
@@ -323,25 +325,26 @@
     },
     {
       "id": "surfers_castellon",
-      "name": "Cámara Surfers Castellón",
+      "name": "Surfers Castellón (Playa del Pinar)",
       "short": "Surfers Castellón",
       "spots": [
         "Planetario",
-        "Piramides"
+        "Piramides",
+        "Gurugu"
       ],
-      "priority": 3,
-      "embedType": "link",
-      "embedUrl": "https://surferscastellon.com/live-webcam/",
+      "priority": 1,
+      "embedType": "iframe",
+      "embedUrl": "https://g0.ipcamlive.com/player/player.php?alias=609a27d8a9c83&autoplay=1",
       "pageUrl": "https://surferscastellon.com/live-webcam/",
-      "credit": "Club Surfers Castellón",
-      "notesShort": "Cámara del club en su web, con acceso de socios.",
-      "distanceKm": 0.2,
+      "credit": "Club Surfers Castellón / IPCamLive",
+      "notesShort": "Cámara del Club Surfers Castellón en Playa del Pinar.",
+      "distanceKm": 0.1,
       "tokenRefresh": null,
       "enabled": true,
       "verified": true,
-      "lastChecked": "2026-09-28T21:15:34.650615+00:00",
+      "lastChecked": "2026-10-10T14:15:00.000000+00:00",
       "failCount": 0,
-      "notes": "Solo enlace: la cámara está tras el login de socios del club. No incrustar sin permiso del club."
+      "notes": "Cámara directa en la arena de Playa del Pinar, enfocando el pico y rompiente del Grao. Embed oficial de IPCamLive (alias 609a27d8a9c83), sin X-Frame-Options ni bloqueo de dominio."
     }
   ]
 }

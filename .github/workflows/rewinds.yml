@@ -61,7 +61,7 @@ jobs:
           args=""
           if [ "$REWIND_FORZAR" = "true" ]; then args="$args --forzar"; fi
           if [ -n "$REWIND_CAMARAS" ]; then args="$args --cameras $REWIND_CAMARAS"; fi
-          python scripts/rewind.py --subir $args
+          python scripts/rewind.py --subir --incluir-ipcamlive $args
 
       - name: Guardar el índice de clips
         run: |

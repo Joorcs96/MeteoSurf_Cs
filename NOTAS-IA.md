@@ -63,7 +63,19 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - El canal de Benicàssim Vela da 404 durante minutos cuando el servidor de Turisme CV
   re-publica: el grabador reintenta dos veces (5 s y 12 s) antes de seguir con el resto.
 - En local NO subir nada a la release; eso lo hace el workflow.
-
+## Imágenes libres, clips Planetario y evidencia de surf (11/10/2026)
+- Fotografías de spots (`js/spots.js`): 13 spots equipados con objeto `photo: { title, thumb, file, author, license, licenseUrl, url }`. Todas las fuentes provienen de Wikimedia Commons (CC BY-SA 4.0, CC BY-SA 3.0, CC BY 4.0), verificadas en vivo y accesibles bajo CSP `img-src 'self' data: blob: https:;`.
+- Iconos SVG sin emojis: Se añadieron iconos SVG limpios (viewBox="0 0 24 24") para rewind, search, pin, wave, wind, cam, star. Cumplen la regla estricta de Jordi: 0 emojis y 0 símbolos tipo check.
+- Surfers Castellón IPCamLive en Rewind (`scripts/rewind.py`):
+  - Resolución dinámica: parsea `player.php?alias=609a27d8a9c83` para extraer edge dinámico y `streamid` (`sXXX.ipcamlive.com/streams/<streamid>/stream.m3u8` y `snapshot.jpg`), sin eludir seguridad y con CORS abierto.
+  - Olas pequeñas mediterráneas: ventana de captura activada con Hs >= 0.35 m cuando el viento es terral o calma, permitiendo no perder baños reales pequeños.
+  - Metadatos enriquecidos: hora UTC y local Madrid, altura, periodo, dirección swell, viento medio, racha, dirección viento, modelo histórico de procedencia (`open-meteo-marine-v1`, `puertos-del-estado-redext-2630`), razón de captura y evidencia de surf.
+- Detector cinemático experimental (`scripts/rewind.py`):
+  - Rechazo explícito de falsos positivos: boyas fijas oscilantes (desplazamiento neto ~ 0), bañistas lentos en orilla (< 5 km/h), nadadores/surfistas a la espera, espuma y reflejos de luz.
+  - Marcado honesto como "posible ola" para candidatos con trayectoria continua > 15 km/h en ROI rompiente.
+- Comparador y evidencia de sesiones en UI (`js/app.js`, `css/app.css`):
+  - Comparador por distancia normalizada multidimensional para escala mediterránea.
+  - Registro de evidencia con botones "He surfeado hoy" y "Mar plano / Inviable", persistido en localStorage para evitar falsos negativos sin alterar precipitadamente los modelos de previsión.
 
 ## Calidad y estrellas (03/10/2026)
 - Techos estrictos por altura en rompiente (h < 0.35m: máx r1/0★, < 0.48m: máx r2/1★, < 0.65m: máx r3/2★, < 0.75m: máx r4/3★, < 1.05m: máx r5/4★, < 1.40m: máx r6/5★). Evita que periodo o terral inflen sesiones sin tamaño surfeable.

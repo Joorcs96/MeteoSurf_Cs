@@ -60,7 +60,10 @@ const ICON = {
   back: '<svg class="icon" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M15 18l-6-6 6-6"/></svg>',
   wave: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>',
   wind: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8"/></svg>',
-  cam: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>'
+  cam: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>',
+  rewind: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/></svg>',
+  search: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  pin: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
 };
 
 const WIND_SHORT = { glassy: 'Calma', offshore: 'Terral', crossoff: 'T.cruz', cross: 'Cruz', crosson: 'M.cruz', onshore: 'Mar' };
@@ -392,6 +395,49 @@ function bindClips(spot, camEl, showCam) {
     info.hidden = false;
     info.innerHTML = `<b>Rewind · ${esc(new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</b><p>${esc(clip.camaraNombre || clip.camaraCorta || '')}</p><p>Previsión de ese momento: ${m(p.altura)} m · ${rnd(p.periodo)} s · ${esc(p.direccionTxt || 'Sin dirección')} · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')} · rachas ${kmh(p.vientoRacha)}</p><a href="${esc(clip.url)}" target="_blank" rel="noopener" download>Descargar</a>`;
   }));
+  view.querySelectorAll('[data-similar-id]').forEach((b) => b.addEventListener('click', () => {
+    const clipId = b.dataset.similarId;
+    const clip = (state.rewinds?.rewinds || []).find((c) => c.id === clipId);
+    if (!clip) return;
+    status.textContent = '';
+    playClip(camEl, clip);
+    view.querySelectorAll('[data-clip]').forEach((x) => x.classList.remove('on'));
+    $('#live-cam').hidden = false; record.hidden = true;
+    const info = $('#clip-info'), p = clip.prevision || {};
+    info.hidden = false;
+    info.innerHTML = `<b>Rewind histórico similar · ${esc(new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</b><p>${esc(clip.camaraNombre || clip.camaraCorta || '')}</p><p>Condiciones de ese día: ${m(p.altura)} m · ${rnd(p.periodo)} s · ${esc(p.direccionTxt || 'Sin dirección')} · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')}</p><a href="${esc(clip.url)}" target="_blank" rel="noopener" download>Descargar</a>`;
+  }));
+  const btnSurfeado = $('#btn-surfeado-hoy');
+  const btnPlano = $('#btn-mar-plano');
+  const evStatus = $('#evidence-status');
+  if (btnSurfeado && btnPlano && evStatus) {
+    const guardarSesion = (surfeado) => {
+      try {
+        const ses = JSON.parse(localStorage.getItem('ms_sesiones_usuario') || '[]');
+        const ahora = new Date();
+        const f = state.fc?.spots[spot.id];
+        const h = f?.hours?.[nowIndex(f.hours || [])];
+        const nueva = {
+          spot: spot.id,
+          fecha: ahora.toISOString(),
+          surfeado: Boolean(surfeado),
+          altura: h?.surf?.mid ?? h?.surfMin ?? null
+        };
+        ses.push(nueva);
+        localStorage.setItem('ms_sesiones_usuario', JSON.stringify(ses));
+        btnSurfeado.disabled = true; btnPlano.disabled = true;
+        if (surfeado) {
+          evStatus.textContent = 'Sesión guardada en local: baño confirmado. Preservado para calibración de olas pequeñas.';
+        } else {
+          evStatus.textContent = 'Observación guardada: mar plano registrado.';
+        }
+      } catch (e) {
+        evStatus.textContent = 'No se pudo guardar la sesión en el almacenamiento local.';
+      }
+    };
+    btnSurfeado.addEventListener('click', () => guardarSesion(true));
+    btnPlano.addEventListener('click', () => guardarSesion(false));
+  }
   record.addEventListener('click', async () => {
     record.disabled = true; save.hidden = true;
     try {
@@ -420,6 +466,110 @@ function windChart(day) {
   let path = '', open = false;
   hours.forEach((h) => { if (h.windSpeed == null) { open = false; return; } path += `${open ? 'L' : 'M'}${x(h.hour)} ${y(h.windSpeed)} `; open = true; });
   return `<svg class="chart" viewBox="0 0 360 105" role="img" aria-label="Viento por horas en kilómetros por hora"><path d="${path}" fill="none" stroke="var(--text-2)" stroke-width="1.8"/>${hours.filter((h) => h.hour % 3 === 0).map((h) => `<text x="${x(h.hour)}" y="${h.windSpeed == null ? 60 : y(h.windSpeed) - 7}" text-anchor="middle" font-size="10" fill="var(--text)">${rnd(h.windSpeed)}</text><text x="${x(h.hour)}" y="100" text-anchor="middle" font-size="10" fill="var(--text-2)">${h.hour}h</text>`).join('')}</svg>`;
+}
+
+function renderSpotPhoto(spot) {
+  const p = spot.photo;
+  if (!p || !p.thumb) return '';
+  const licUrl = p.licenseUrl || 'https://creativecommons.org/licenses/';
+  return `
+    <div class="spot-photo-wrap">
+      <div class="spot-photo-container">
+        <img class="spot-photo-img" src="${esc(p.thumb)}" alt="${esc(p.title || spot.name)}" loading="lazy">
+        <div class="spot-photo-overlay">
+          <span class="spot-photo-title">${esc(p.title || spot.name)}</span>
+          <span class="spot-photo-attribution">Foto: ${esc(p.author || 'Wikimedia Commons')} · <a href="${esc(licUrl)}" target="_blank" rel="noopener">${esc(p.license || 'CC BY-SA')}</a> (<a href="${esc(p.url || p.file)}" target="_blank" rel="noopener">fuente</a>)</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function findSimilarConditions(spot, h) {
+  if (!h) return [];
+  const currentWave = h.surf?.mid ?? h.surfMin ?? (h.swells?.[0]?.h || 0);
+  const currentPeriod = h.swells?.[0]?.t ?? 4.0;
+  const currentDir = h.swells?.[0]?.dir ?? spot.facing ?? 90;
+  const currentWind = h.windSpeed ?? 10;
+
+  const angDiff = (a, b) => {
+    let d = Math.abs((Number(a || 0) - Number(b || 0)) % 360);
+    return d > 180 ? 360 - d : d;
+  };
+
+  const pool = clipsForSpot(spot);
+  const candidates = pool.length ? pool : (state.rewinds?.rewinds || []).slice(0, 100);
+  
+  const results = [];
+  for (const clip of candidates) {
+    const p = clip.prevision;
+    if (!p || p.altura == null) continue;
+    const clipWave = p.altura;
+    const clipPeriod = p.periodo || 4.0;
+    const clipDir = p.direccion ?? p.direccionDeg ?? currentDir;
+    const clipWind = p.viento || 10;
+
+    const dH = Math.abs(currentWave - clipWave) / 0.15;
+    const dT = Math.abs(currentPeriod - clipPeriod) / 1.0;
+    const dDir = angDiff(currentDir, clipDir) / 30.0;
+    const dW = Math.abs(currentWind - clipWind) / 6.0;
+
+    const distance = 0.35 * dH + 0.25 * dT + 0.20 * dDir + 0.20 * dW;
+    if (distance <= 2.2) {
+      results.push({ clip, distance });
+    }
+  }
+
+  results.sort((a, b) => a.distance - b.distance);
+  return results.slice(0, 3);
+}
+
+function renderSimilarConditions(spot, h) {
+  if (!h) return '';
+  const matches = findSimilarConditions(spot, h);
+  if (!matches || !matches.length) {
+    return `
+      <div class="similar-conditions-card">
+        <div class="similar-head">${ICON.search} Comparador de condiciones históricas</div>
+        <p style="margin:0;font-size:12px;color:var(--text-2)">Aún no hay grabaciones archivadas con condiciones similares a las de este momento (${m(h.surf?.mid ?? h.surfMin)} m · ${kmh(h.windSpeed)} de viento).</p>
+      </div>`;
+  }
+  const items = matches.slice(0, 2).map((item, idx) => {
+    const c = item.clip;
+    const p = c.prevision || {};
+    const dStr = new Date(c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short' });
+    const hStr = clipTime(new Date(c.hora));
+    return `
+      <div class="similar-item">
+        <div class="similar-meta">
+          <span class="similar-badge ${idx === 0 ? 'best' : ''}">${idx === 0 ? 'Mayor similitud' : 'Parecido'}</span>
+          <b>${esc(dStr)} ${esc(hStr)}</b>
+          <span>${m(p.altura)} m · ${rnd(p.periodo)} s · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')}</span>
+          ${c.evidencia?.posibleOla ? '<span class="similar-badge" style="background:#e0f2fe;color:#0369a1">Posible ola</span>' : ''}
+        </div>
+        <button class="similar-play-btn" data-similar-id="${esc(c.id)}">${ICON.rewind} Ver cómo rompía</button>
+      </div>`;
+  }).join('');
+  return `
+    <div class="similar-conditions-card">
+      <div class="similar-head">${ICON.search} Días históricos similares a la previsión actual</div>
+      <div class="similar-list">${items}</div>
+    </div>`;
+}
+
+function renderSessionEvidence(spot, h) {
+  const currentSurf = h?.surf?.mid ?? h?.surfMin ?? 0;
+  return `
+    <div class="session-evidence-card">
+      <div class="evidence-head">
+        <b>Registro de baño y observaciones reales</b>
+        <span class="evidence-sub">¿Has entrado al agua hoy en este spot? Tu confirmación ayuda a calibrar días de olas pequeñas sin alterar la previsión de golpe.</span>
+      </div>
+      <div class="evidence-actions">
+        <button id="btn-surfeado-hoy" class="btn-evidence">${ICON.wave} He surfeado hoy (${m(currentSurf)} m)</button>
+        <button id="btn-mar-plano" class="btn-evidence">Mar plano / Inviable</button>
+      </div>
+      <div id="evidence-status" class="evidence-status" role="status"></div>
+    </div>`;
 }
 
 // ---------- Página de spot ----------
@@ -464,8 +614,11 @@ function renderSpot(id) {
         ${renderRewinds(spot)}<div id="clip-info" class="clip-info" hidden></div><p id="record-status" class="record-status" role="status"></p><a id="save-clip" class="save-clip" hidden>Guardar clip</a>
       </div>
       <div class="a-now" id="s-ahora">
+        ${renderSpotPhoto(spot)}
         ${h ? nowPanel(spot, f, h) : loadingBlock()}
         <details><summary>Observaciones reales cercanas</summary><div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div></details>
+        ${renderSimilarConditions(spot, h)}
+        ${renderSessionEvidence(spot, h)}
         <div id="spot-report" style="margin-top:12px"><div class="skeleton" style="height:56px"></div></div>
       </div>
       <div class="a-fc">

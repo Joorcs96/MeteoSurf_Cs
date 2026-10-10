@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --font: Inter, system-ui, sans-serif;
   --bg: #ffffff; --surface: #ffffff; --surface-2: #f3f4f5;
   --text: #191d21; --text-2: #535b63; --text-3: #636c76;
@@ -167,3 +167,30 @@ summary { min-height:48px; padding:14px 0; cursor:pointer; font-size:14px; font-
 /* Carriles horizontales (filtros, cámaras, días, cercanos): se desplazan con el dedo, sin barra visible */
 .chips, .cam-switch, .days, .subnav, .nearby { scrollbar-width: none; }
 .chips::-webkit-scrollbar, .cam-switch::-webkit-scrollbar, .days::-webkit-scrollbar, .subnav::-webkit-scrollbar, .nearby::-webkit-scrollbar { display: none; }
+
+/* Fotos reales por spot, condiciones similares y evidencia de surf */
+.spot-photo-wrap { margin-bottom: 14px; border-radius: 6px; overflow: hidden; background: var(--surface-2); border: 1px solid var(--line); }
+.spot-photo-container { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 260px; overflow: hidden; }
+.spot-photo-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.spot-photo-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.78)); color: #fff; font-size: 11px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 4px; }
+.spot-photo-title { font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+.spot-photo-attribution { font-size: 10px; opacity: 0.9; }
+.spot-photo-attribution a { color: #fff; text-decoration: underline; }
+
+.similar-conditions-card { background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-top: 14px; }
+.similar-head { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px; font-weight: 600; }
+.similar-list { display: flex; flex-direction: column; gap: 8px; }
+.similar-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; padding: 8px 10px; background: var(--surface); border-radius: 4px; border: 1px solid var(--line); flex-wrap: wrap; }
+.similar-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.similar-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; background: var(--surface-2); color: var(--text-2); text-transform: uppercase; }
+.similar-badge.best { background: rgba(0, 163, 196, 0.15); color: #00a3c4; }
+.similar-play-btn { background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; font-size: 11px; font-weight: 600; padding: 6px 12px; cursor: pointer; color: var(--text); min-height: 34px; }
+.similar-play-btn:hover { background: var(--line); }
+
+.session-evidence-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-top: 14px; }
+.evidence-head { margin-bottom: 8px; font-size: 13px; }
+.evidence-sub { display: block; font-size: 11px; color: var(--text-2); margin-top: 2px; }
+.evidence-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.btn-evidence { background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; font-size: 12px; font-weight: 600; padding: 8px 12px; cursor: pointer; color: var(--text); min-height: 40px; }
+.btn-evidence.on { border-color: #00a3c4; color: #00a3c4; }
+.evidence-status { font-size: 11px; color: var(--text-2); margin-top: 6px; min-height: 16px; }

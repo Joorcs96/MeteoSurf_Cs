@@ -164,6 +164,29 @@ function comprobar(nombre, ok, detalle) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------
+// Caso 5. Observacion real: Planetario, 10/10/2026 8-14h. Jordi: "Buenas olas, no las mejores,
+// pero un buen dia para ir" (Regular-Bueno / 2-3 estrellas, calidad media).
+// Open-Meteo pronostico 0.28m de oleaje (lo que daba Plato), pero la boya de Valencia 
+// midio 0.59m. Usando los datos de la boya y el viento real offshore, da Regular (4).
+// El techo de altura para h < 0.65m impide llegar a 5 (Regular-Bueno), pero 4 cuadra
+// con "calidad media en la escala 1-7".
+// ---------------------------------------------------------------------------------------------
+{
+  const s = spot('Planetario');
+  const { m, w } = arrays({
+    hora: '2026-10-10T08:00',
+    h: 0.59, t: 5.86, dir: 67,
+    swell: { h: 0.59, t: 5.86, dir: 67 },
+    secundario: { h: 0, t: 4, dir: 67 },
+    viento: { h: 0, t: 0, dir: 0 },
+    vientoVela: 1.1, vientoRacha: 6.1, vientoDir: 255
+  });
+  const f = horaForecast(s, m, w, 0);
+  console.log('--- Caso 5: observacion real, Planetario 10/10 ---');
+  console.log(`    rompiente ${f.surf.mid.toFixed(2)} m, viento ${f.wind.label}, nota ${f.rating} (${etiqueta(f.rating)})`);
+  comprobar('con datos de la boya da calidad media (>= 4)', f.rating >= 4, `${f.rating} = ${etiqueta(f.rating)}`);
+}
 // Comprobaciones de que no se ha roto nada alrededor.
 // ---------------------------------------------------------------------------------------------
 {

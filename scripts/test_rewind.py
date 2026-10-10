@@ -8,11 +8,13 @@ formato de nombres y URLs, la poda del índice y la rosa de los vientos.
 """
 
 import json
+import math
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -719,6 +721,173 @@ class TestConsolaConTildes(unittest.TestCase):
         fuente = (raiz / "scripts" / "rewind.py").read_text(encoding="utf-8")
         for prohibido in ("js/app.js", "css/app.css", "index.html", "js/spots.js"):
             self.assertNotIn(f'"{prohibido}"', fuente, msg=prohibido)
+
+
+class TestPlanetarioSurfers(unittest.TestCase):
+    def setUp(self):
+        self.webcams = rewind.leer_webcams()
+
+    def test_camaras_rewind_incluir_surfers(self):
+        cams = rewind.camaras_rewind(self.webcams, incluir_ipcamlive=True)
+        ids = [c["id"] for c in cams]
+        self.assertIn("surfers_castellon", ids)
+        surfers = next(c for c in cams if c["id"] == "surfers_castellon")
+        self.assertIn("Planetario", surfers["spotsCubiertos"])
+
+    def test_resolver_ipcamlive_html(self):
+        html_simulado = (
+            "<html><script>var address = 'http://s169.ipcamlive.com/';"
+            "var streamid = 'a9lxq1htsdj7j0vaz';</script></html>"
+        )
+        with unittest.mock.patch("urllib.request.urlopen") as mock_open:
+            mock_resp = unittest.mock.MagicMock()
+            mock_resp.read.return_value = html_simulado.encode("utf-8")
+            mock_open.return_value.__enter__.return_value = mock_resp
+            res = rewind.resolver_stream_ipcamlive("609a27d8a9c83")
+            self.assertIsNotNone(res)
+            self.assertEqual(res["streamid"], "a9lxq1htsdj7j0vaz")
+            self.assertIn("https://s169.ipcamlive.com/streams/a9lxq1htsdj7j0vaz/stream.m3u8", res["hls"])
+
+    def test_url_grabable_camara_surfers(self):
+        cam = {
+            "id": "surfers_castellon",
+            "embedUrl": "https://g0.ipcamlive.com/player/player.php?alias=609a27d8a9c83",
+        }
+        with unittest.mock.patch("scripts.rewind.resolver_stream_ipcamlive") as mock_res:
+            mock_res.return_value = {
+                "hls": "https://s169.ipcamlive.com/streams/a9lxq1htsdj7j0vaz/stream.m3u8"
+            }
+            url = rewind.url_grabable_camara(cam)
+            self.assertEqual(url, "https://s169.ipcamlive.com/streams/a9lxq1htsdj7j0vaz/stream.m3u8")
+
+
+class TestCondicionesMediterraneas(unittest.TestCase):
+    def test_planetario_ola_pequena_surfeable(self):
+        # 0.38 m con terral flojo
+        prev = {"altura": 0.38, "viento": 8.0, "vientoDireccionTxt": "O"}
+        res = rewind.evaluar_condiciones_spot("Planetario", prev)
+        self.assertTrue(res["surfeable"])
+        self.assertEqual(res["razon"], "condiciones_surfeables_pequenas")
+        self.assertTrue(res["es_pequena"])
+
+    def test_planetario_plano_insuficiente(self):
+        # 0.20 m: mar plato
+        prev = {"altura": 0.20, "viento": 5.0, "vientoDireccionTxt": "NO"}
+        res = rewind.evaluar_condiciones_spot("Planetario", prev)
+        self.assertFalse(res["surfeable"])
+        self.assertEqual(res["razon"], "mar_plano_o_viento_fuerte")
+
+    def test_datos_ausentes_o_nulos(self):
+        prev = {"altura": None, "viento": None}
+        res = rewind.evaluar_condiciones_spot("Planetario", prev)
+        self.assertFalse(res["surfeable"])
+        self.assertEqual(res["razon"], "sin_datos_altura")
+
+    def test_horas_de_noche_descartadas(self):
+        momento_noche = datetime(2026, 10, 11, 4, 30, tzinfo=timezone.utc)
+        self.assertFalse(rewind.ahora_madrid_horas_validas(momento_noche))
+        momento_dia = datetime(2026, 10, 11, 11, 0, tzinfo=timezone.utc)
+        self.assertTrue(rewind.ahora_madrid_horas_validas(momento_dia))
+
+
+class TestDetectorCinematico(unittest.TestCase):
+    def setUp(self):
+        self.det = rewind.DetectorSurfCinematico(fps=5.0, escala_px_m=20.0)
+
+    def test_filtro_negativo_boya(self):
+        # Boya oscilando +/- 6 px alrededor de (100, 100)
+        track = [
+            {"t": i * 0.2, "x": 100 + 5 * math.sin(i * 0.5), "y": 100 + 4 * math.cos(i * 0.5)}
+            for i in range(20)
+        ]
+        res = self.det.clasificar_trayectoria(track)
+        self.assertEqual(res["tipo"], "boya")
+        self.assertFalse(res["es_posible_ola"])
+
+    def test_filtro_negativo_banista(self):
+        # Bañista chapoteando a 2-3 km/h
+        track = [
+            {"t": i * 0.2, "x": 50 + (i % 3) * 2, "y": 200 + ((i + 1) % 4) * 2}
+            for i in range(20)
+        ]
+        res = self.det.clasificar_trayectoria(track)
+        self.assertIn(res["tipo"], ("boya", "banista"))
+        self.assertFalse(res["es_posible_ola"])
+
+    def test_filtro_negativo_nadador(self):
+        # Nadador despacio a ~2.5 km/h
+        track = [
+            {"t": i * 0.2, "x": 100 + i * 2.5, "y": 150 + (i % 2) * 2}
+            for i in range(20)
+        ]
+        res = self.det.clasificar_trayectoria(track)
+        self.assertIn(res["tipo"], ("nadador", "surfista_espera"))
+        self.assertFalse(res["es_posible_ola"])
+
+    def test_filtro_negativo_surfista_en_espera(self):
+        # Surfista sentado en el lineup con ligera deriva
+        track = [
+            {"t": i * 0.2, "x": 250 + i * 0.2, "y": 80 + i * 0.1}
+            for i in range(20)
+        ]
+        res = self.det.clasificar_trayectoria(track)
+        self.assertEqual(res["tipo"], "surfista_espera")
+        self.assertFalse(res["es_posible_ola"])
+
+    def test_filtro_negativo_espuma_efimera(self):
+        track = [
+            {"t": 0.0, "x": 150, "y": 120},
+            {"t": 0.2, "x": 155, "y": 122},
+        ]
+        res = self.det.clasificar_trayectoria(track)
+        self.assertFalse(res["es_posible_ola"])
+
+    def test_positivo_candidato_posible_ola(self):
+        # Surfista planeando en ola a 18 km/h durante 3 s
+        track = [
+            {"t": i * 0.2, "x": 100 + i * 20.0, "y": 150 + i * 3.0}
+            for i in range(16)
+        ]
+        res = self.det.clasificar_trayectoria(track)
+        self.assertEqual(res["tipo"], "posible_ola")
+        self.assertTrue(res["es_posible_ola"])
+        self.assertGreaterEqual(res["confianza"], 0.70)
+
+
+class TestEsquemaHistoricoYEvidencia(unittest.TestCase):
+    def test_esquema_completo_entrada(self):
+        spot = {"id": "Planetario", "name": "Planetario"}
+        cam = {"id": "surfers_castellon", "name": "Surfers Castellón", "credit": "Club Surfers"}
+        prev = {"altura": 0.45, "periodo": 5.0, "direccion": 100, "viento": 8.0, "vientoDireccionTxt": "O"}
+        info = {"duracion": 20.0, "bytes": 350000, "ancho": 854, "alto": 480}
+        momento = datetime(2026, 10, 11, 8, 30, tzinfo=timezone.utc)
+        entrada = rewind.entrada_indice(
+            spot, cam, prev, info, momento, "clip.mp4", "release-2026-10", "https://example.com/clip.mp4"
+        )
+        self.assertEqual(entrada["spot"], "Planetario")
+        self.assertIn("horaUtc", entrada)
+        self.assertIn("horaLocal", entrada)
+        self.assertEqual(entrada["horaUtc"], "2026-10-11T08:30:00Z")
+        self.assertIn("razonCaptura", entrada)
+        self.assertIn("calidadEvidencia", entrada)
+        self.assertIn("deteccion", entrada)
+        self.assertEqual(entrada["modeloHistorico"], "open-meteo")
+        self.assertEqual(entrada["procedencia"], "open-meteo-marine+forecast")
+
+    def test_registrar_evidencia_sesion(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ruta = Path(tmpdir) / "sesiones.json"
+            momento = datetime(2026, 10, 11, 9, 0, tzinfo=timezone.utc)
+            reg = rewind.registrar_evidencia_sesion(
+                "Planetario", momento, True, 4, "Buena sesión de olas pequeñas",
+                prevision={"altura": 0.42}, ruta=ruta
+            )
+            self.assertTrue(reg["surfeado"])
+            self.assertEqual(reg["ratingUsuario"], 4)
+            self.assertTrue(ruta.exists())
+            cargado = json.loads(ruta.read_text(encoding="utf-8"))
+            self.assertEqual(len(cargado), 1)
+            self.assertEqual(cargado[0]["spot"], "Planetario")
 
 
 if __name__ == "__main__":

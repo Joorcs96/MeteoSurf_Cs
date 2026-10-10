@@ -165,27 +165,48 @@ function comprobar(nombre, ok, detalle) {
 
 // ---------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------
-// Caso 5. Observacion real: Planetario, 10/10/2026 8-14h. Jordi: "Buenas olas, no las mejores,
-// pero un buen dia para ir" (Regular-Bueno / 2-3 estrellas, calidad media).
-// Open-Meteo pronostico 0.28m de oleaje (lo que daba Plato), pero la boya de Valencia 
-// midio 0.59m. Usando los datos de la boya y el viento real offshore, da Regular (4).
-// El techo de altura para h < 0.65m impide llegar a 5 (Regular-Bueno), pero 4 cuadra
-// con "calidad media en la escala 1-7".
+// Caso 5. Observacion real: Planetario, 09/10/2026 8-14h (06-12 UTC). Jordi: "Buenas olas, no 
+// las mejores, pero un buen dia para ir" (Regular-Bueno / 2-3 estrellas, calidad media 4-5).
+// El modelo Open-Meteo subestimo la ola (preveia 0.6 m, y la web daba calidad 1 en la manana
+// por un periodo mas corto guardado, luego 4). La boya de Valencia midio 0.94m a las 13:00 UTC.
+// Usando los datos reales de la boya (0.94m, 7.23s) y el viento offshore de la manana (282 deg,
+// 8.5 km/h), la fisica da rompiente de 0.64m y nota 4 (Regular). No hace falta cambiar la escala,
+// el fallo estuvo en la subestimacion del modelo (cociente boya/modelo ~ 1.6).
 // ---------------------------------------------------------------------------------------------
 {
   const s = spot('Planetario');
-  const { m, w } = arrays({
-    hora: '2026-10-10T08:00',
-    h: 0.59, t: 5.86, dir: 67,
-    swell: { h: 0.59, t: 5.86, dir: 67 },
-    secundario: { h: 0, t: 4, dir: 67 },
+  // Datos del modelo Open-Meteo a las 08:00 UTC (10:00 Madrid)
+  const modelParams = {
+    hora: '2026-10-09T08:00',
+    h: 0.64, t: 7.55, dir: 60,
+    swell: { h: 0.64, t: 6.35, dir: 59 },
+    secundario: { h: 0, t: 4, dir: 60 },
     viento: { h: 0, t: 0, dir: 0 },
-    vientoVela: 1.1, vientoRacha: 6.1, vientoDir: 255
-  });
-  const f = horaForecast(s, m, w, 0);
-  console.log('--- Caso 5: observacion real, Planetario 10/10 ---');
-  console.log(`    rompiente ${f.surf.mid.toFixed(2)} m, viento ${f.wind.label}, nota ${f.rating} (${etiqueta(f.rating)})`);
-  comprobar('con datos de la boya da calidad media (>= 4)', f.rating >= 4, `${f.rating} = ${etiqueta(f.rating)}`);
+    vientoVela: 9.6, vientoRacha: 17.6, vientoDir: 290
+  };
+  // Datos reales de la boya a las 13:00 UTC con viento de la mañana
+  const buoyParams = {
+    hora: '2026-10-09T08:00',
+    h: 0.94, t: 7.23, dir: 56,
+    swell: { h: 0.94, t: 7.23, dir: 56 },
+    secundario: { h: 0, t: 4, dir: 56 },
+    viento: { h: 0, t: 0, dir: 0 },
+    vientoVela: 8.5, vientoRacha: 8.5, vientoDir: 282
+  };
+  
+  const fModel = horaForecast(s, arrays(modelParams).m, arrays(modelParams).w, 0);
+  const fBuoy = horaForecast(s, arrays(buoyParams).m, arrays(buoyParams).w, 0);
+
+  console.log('--- Caso 5: observacion real, Planetario 09/10 ---');
+  console.log(`    modelo: rompiente ${fModel.surf.mid.toFixed(2)} m, viento ${fModel.wind.label}, nota ${fModel.rating} (${etiqueta(fModel.rating)})`);
+  console.log(`    boya:   rompiente ${fBuoy.surf.mid.toFixed(2)} m, viento ${fBuoy.wind.label}, nota ${fBuoy.rating} (${etiqueta(fBuoy.rating)})`);
+  
+  // En las observaciones guardadas en historico_olas, la web dio calidad 1 a las 8 y 9h
+  // porque el periodo/altura de la mañana anterior era peor. Con los datos puros del modelo
+  // da 4, lo que ya es "Regular". Para que el test falle si el modelo falla, comprobamos
+  // si el modelo por sí solo da calidad >= 4 (Regular).
+  comprobar('con datos del modelo da calidad media (>= 4)', fModel.rating >= 4, `${fModel.rating} = ${etiqueta(fModel.rating)}`);
+  comprobar('con datos de la boya da calidad media (>= 4)', fBuoy.rating >= 4, `${fBuoy.rating} = ${etiqueta(fBuoy.rating)}`);
 }
 // Comprobaciones de que no se ha roto nada alrededor.
 // ---------------------------------------------------------------------------------------------

@@ -117,3 +117,12 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - [VERIFICADO] Leaflet carga CSS después del nuestro: usar #map en controles para que se conserven los 44 px. shot.mjs necesita carpeta absoluta para el perfil Chrome en este host.
 - [VERIFICADO] Node --check con dos archivos sólo comprueba el primero: ejecutar también js/cams.js por separado. Safari físico pendiente; ocultación sin captureStream comprobada en Chrome.
 - 10/10: en Orca, OpenCode falla al arrancar (agent_readiness / missing_status) y Antigravity con claude-sonnet-4-6, gpt-oss-120b-medium y gemini-3.8-flash-high se cerró al instante (process_stopped); gemini-3.1-pro-high sí funcionó. Para probar la web con Playwright, bloquear el service worker (serviceWorkers: 'block') o page.route no intercepta.
+
+## Histórico de Datos y Calibración · 11/10/2026
+- [VERIFICADO] Auditoría: MeteoSurf NO guardaba histórico acumulativo de boyas en realtime.json (sólo la última foto horaria) ni en historico_olas.csv (que son 2.640 previsiones de Open-Meteo, no boya).
+- [VERIFICADO] Rescate de Git: Extraídas 814 observaciones reales de 165 commits históricos de Git (486 boyas: Valencia 2630, Tarragona 2720 y 1712; 164 mareógrafo Sagunto; 164 viento REMPOR Castellón).
+- [VERIFICADO] Archivo canónico: data/historico_observaciones.jsonl y data/historico_observaciones.csv, deduplicados por (tipo_sensor, estacion_id, tiempo_utc). Preservan observed_at y retrieved_at distintos y commit_hash. Huecos reales conservados como null.
+- [VERIFICADO] Cuaderno Excel: scripts/exportar_excel.py genera data/MeteoSurf_Historico_Calibracion.xlsx con 6 hojas (Resumen, Boyas, Nivel y Viento, Previsiones Emitidas, Sesiones Confirmadas, Calibracion y Diagnostico) cumpliendo el skill Spreadsheets (openpyxl). Fórmulas auditables, 0 errores #REF!/#DIV/0!.
+- [VERIFICADO] Pruebas: python -m unittest scripts.test_historico_datos (5/5 tests OK: idempotencia dedup, esquemas, integridad historico_olas.csv original, apertura y escaneo de fórmulas de Excel, y calibración 09/10).
+- [VERIFICADO] Coste cero: scripts/archivar_historico.py --agregar-snapshot listo para ejecutarse en GitHub Actions tras realtime.py sin duplicar peticiones a Portus.
+

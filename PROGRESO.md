@@ -5,6 +5,7 @@
 | DiagnÃ³stico sesiÃ³n de Jordi 09/10 8-14 h Planetario | Hecho: la fÃ­sica acierta; el modelo se quedÃ³ corto (0.31-0.58 m vs boya 0.94 m, x1.6). Web daba Muy malo a las 8-9 h | main | â |
 | CorrecciÃ³n con boya (js/nowcast.js) | Publicado: ratio boya/modelo limitado a 0.7-1.6, decae a 0 en 12 h, solo obs <= 3 h y spots <= 60 km. Caso 6: 1 -> 4 | main | Vigilar: el cron de realtime corre cada 4-5 h (retrasos de GitHub), asÃ­ que la boya a menudo llega vieja y no corrige |
 | Integrar webcam en directo de Surfers Castellón | Hecho: identificada fuente IPCamLive (alias 609a27d8a9c83), integrada como iframe en directo en Planetario, Pirámides y Gurugú sin requerir login ni exponer credenciales | main | Verificada en móvil |
+| Auditoría y archivo histórico de boyas + Excel | Hecho: recuperadas 814 observaciones reales de Git (486 boyas), histórico JSONL/CSV deduplicado, exportador Excel (6 hojas) y suite de pruebas | Joorcs96/historico-datos | Revisar por coordinador y activar workflow |
 
 ---
 

@@ -61,11 +61,12 @@ class TestUIResponsive(unittest.TestCase):
                 "--headless=new",
                 f"--user-data-dir={temp_profile}",
                 f"--window-size={width},{height}",
-                "--virtual-time-budget=3500",
+                "--virtual-time-budget=2500",
+                "--run-all-compositor-stages-before-draw",
                 "--dump-dom",
                 url
             ]
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=20, encoding="utf-8", errors="replace")
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=45, encoding="utf-8", errors="replace")
             self.assertEqual(res.returncode, 0, f"Edge falló con código {res.returncode}: {res.stderr}")
             return res.stdout
         finally:

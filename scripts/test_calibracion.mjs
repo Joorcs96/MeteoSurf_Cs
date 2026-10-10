@@ -7,6 +7,8 @@
 // Open-Meteo de esa misma hora en el punto de mar. Los casos 2 y 3 son controles para que la
 // calibracion no se quede corta por el otro lado: con mar de verdad y viento bueno la prevision
 // tiene que seguir saliendo buena.
+import { aplicarNowcast } from '../js/nowcast.js';
+import { processSpot } from '../js/forecast.js';
 import { SPOTS } from '../js/spots.js';
 import { RATINGS, horaForecast, windEfectivo, windState } from '../js/forecast.js';
 import { TIENE_FISICA } from '../js/physics.js';
@@ -229,6 +231,100 @@ function comprobar(nombre, ok, detalle) {
   // Las 8 tablas del estudio estan para 36 direcciones y 7 periodos.
   comprobar('los 8 spots con tabla (Pirámides usa la del Gurugú)', SPOTS.filter((x) => TIENE_FISICA(x.id)).length === 8,
     SPOTS.filter((x) => TIENE_FISICA(x.id)).map((x) => x.id).join(', '));
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// Caso 6. Corrección de la previsión con la boya (nowcast). 09/10/2026.
+// Modelo 0.31 m a las 8 h, boya 0.94 m a las 7 h (edad 1 h), terral 8.5 km/h.
+// ---------------------------------------------------------------------------------------------
+{
+  console.log('--- Caso 6: Corrección con boya (Nowcast) ---');
+  const s = spot('Planetario');
+  const sLejos = spot('Vinaros'); // a más de 60km de Valencia
+
+  // Simular fc.raw
+  const t0 = '2026-10-09T08:00';
+  const t1 = '2026-10-09T09:00';
+  const t12 = '2026-10-09T20:00';
+  const timeArr = [t0, t1, '2026-10-09T10:00', '2026-10-09T11:00', '2026-10-09T12:00', '2026-10-09T13:00', '2026-10-09T14:00', '2026-10-09T15:00', '2026-10-09T16:00', '2026-10-09T17:00', '2026-10-09T18:00', '2026-10-09T19:00', t12, '2026-10-09T21:00'];
+  const waveHeights = Array(14).fill(0.31);
+  const mPlanetario = {
+    time: timeArr,
+    wave_height: [...waveHeights], wave_period: Array(14).fill(6.2), wave_direction: Array(14).fill(60),
+    swell_wave_height: [...waveHeights], swell_wave_period: Array(14).fill(6.2), swell_wave_direction: Array(14).fill(60),
+    secondary_swell_wave_height: Array(14).fill(0), secondary_swell_wave_period: Array(14).fill(4), secondary_swell_wave_direction: Array(14).fill(60),
+    wind_wave_height: Array(14).fill(0), wind_wave_period: Array(14).fill(3), wind_wave_direction: Array(14).fill(60),
+    sea_level_height_msl: Array(14).fill(0.1), sea_surface_temperature: Array(14).fill(22)
+  };
+  const wPlanetario = {
+    time: timeArr,
+    wind_speed_10m: Array(14).fill(8.5), wind_direction_10m: Array(14).fill(282), wind_gusts_10m: Array(14).fill(8.5),
+    temperature_2m: Array(14).fill(22), weather_code: Array(14).fill(0), is_day: Array(14).fill(1)
+  };
+  
+  const mLejos = JSON.parse(JSON.stringify(mPlanetario));
+  const wLejos = JSON.parse(JSON.stringify(wPlanetario));
+  
+  const raw = { marine: [], weather: [] };
+  SPOTS.forEach((x) => {
+    raw.marine.push({ hourly: x.id === 'Vinaros' ? mLejos : mPlanetario });
+    raw.weather.push({ hourly: x.id === 'Vinaros' ? wLejos : wPlanetario });
+  });
+
+  const fc = { raw, spots: {} };
+  SPOTS.forEach((x, i) => {
+    fc.spots[x.id] = processSpot(x, raw.marine[i].hourly, raw.weather[i].hourly, {});
+  });
+
+  const fcPrevio = fc.spots['Planetario'].hours[0];
+  comprobar('sin corrección da <= 1', fcPrevio.rating <= 1, `${fcPrevio.rating}`);
+
+  // Observación de la boya de Valencia (39.52, -0.21, a 55km de Planetario)
+  // A las 7h (edad = 1h suponiendo que ahora son las 8h)
+  const ahora = new Date('2026-10-09T06:00:00Z'); // 8:00 Madrid
+  const obs = {
+    fecha: '2026-10-09T05:00:00Z', // 7:00 Madrid (edad 1h respecto a ahora) -> pero cuidado: el indice busca la hora de la observacion. Wait, 7h no está en timeArr!
+    // Para que case con el modelo a las 8:00, la observación debe ser a las 8:00 (o la hora que busque).
+    // El script busca el indice `key` de obs.fecha. Hagamos que obs.fecha sea las 08:00 Madrid -> 06:00 UTC.
+    lat: 39.52, lon: -0.21,
+    altura_m: 0.94
+  };
+  obs.fecha = '2026-10-09T06:00:00Z'; // 8:00 Madrid
+
+  aplicarNowcast(fc, { oleaje: { principal: obs } }, ahora);
+
+  const fcPost = fc.spots['Planetario'].hours[0];
+  comprobar('con corrección da >= 3', fcPost.rating >= 3, `${fcPost.rating}`);
+  comprobar('ratio en el objeto', fcPost.nowcastRatio > 1, `x${fcPost.nowcastRatio?.toFixed(2)}`);
+
+  // Spot lejano
+  comprobar('spot lejano sin corregir', fc.spots['Vinaros'].hours[0].nowcastRatio == null, 'Debe ser null');
+
+  // Decaimiento a 12h
+  const fc12h = fc.spots['Planetario'].hours[12];
+  comprobar('decaimiento a 12h', fc12h.nowcastRatio == null && Math.abs(fc12h.waveHeight - 0.31) < 0.01, `${fc12h.waveHeight}`);
+
+  // Ignorar obs > 3h
+  const obsVieja = { ...obs, fecha: '2026-10-09T02:00:00Z' }; // 4h de antigüedad
+  const fcViejo = { raw, spots: {} };
+  SPOTS.forEach((x, i) => fcViejo.spots[x.id] = processSpot(x, raw.marine[i].hourly, raw.weather[i].hourly, {}));
+  aplicarNowcast(fcViejo, { oleaje: { principal: obsVieja } }, ahora);
+  comprobar('observación > 3h ignorada', fcViejo.spots['Planetario'].hours[0].nowcastRatio == null);
+
+  // Ignorar nulos
+  const obsNula = { ...obs, altura_m: null };
+  const fcNulo = { raw, spots: {} };
+  SPOTS.forEach((x, i) => fcNulo.spots[x.id] = processSpot(x, raw.marine[i].hourly, raw.weather[i].hourly, {}));
+  aplicarNowcast(fcNulo, { oleaje: { principal: obsNula } }, ahora);
+  comprobar('observación nula ignorada', fcNulo.spots['Planetario'].hours[0].nowcastRatio == null);
+
+  // Ratio limitado [0.7, 1.6]
+  const obsAlta = { ...obs, altura_m: 3.0 }; // > 1.6 * 0.31
+  const fcAlto = { raw, spots: {} };
+  SPOTS.forEach((x, i) => fcAlto.spots[x.id] = processSpot(x, raw.marine[i].hourly, raw.weather[i].hourly, {}));
+  aplicarNowcast(fcAlto, { oleaje: { principal: obsAlta } }, ahora);
+  comprobar('ratio limitado', fcAlto.spots['Planetario'].hours[0].nowcastRatio === 1.6, `x${fcAlto.spots['Planetario'].hours[0].nowcastRatio}`);
 }
 
 console.log('-'.repeat(60));

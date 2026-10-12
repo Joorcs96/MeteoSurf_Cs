@@ -40,11 +40,17 @@ jobs:
           # el paso de guardar abajo no encuentra nada que commitear cuando no hay novedades.
           python scripts/realtime.py --comprobar
 
+      - name: Acumular observaciones y regenerar histórico descargable
+        run: |
+          python -m pip install --disable-pip-version-check openpyxl
+          python scripts/archivar_historico.py
+          python scripts/exportar_excel.py
+
       - name: Guardar cambios en los datos reales
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/realtime.json
+          git add data/realtime.json data/historico_observaciones.jsonl data/historico_observaciones.csv data/MeteoSurf_Historico_Calibracion.xlsx
           if ! git diff --staged --quiet; then
             git commit -m "Auto: observaciones reales de oleaje, nivel del mar y viento [skip ci]"
             # Otros cron pueden haber publicado mientras se consultaban las estaciones.

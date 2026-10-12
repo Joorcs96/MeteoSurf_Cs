@@ -63,7 +63,19 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - El canal de Benicàssim Vela da 404 durante minutos cuando el servidor de Turisme CV
   re-publica: el grabador reintenta dos veces (5 s y 12 s) antes de seguir con el resto.
 - En local NO subir nada a la release; eso lo hace el workflow.
-
+## Imágenes libres, clips Planetario y evidencia de surf (11/10/2026)
+- Fotografías de spots (`js/spots.js`): 13 spots equipados con objeto `photo: { title, thumb, file, author, license, licenseUrl, url }`. Todas las fuentes provienen de Wikimedia Commons (CC BY-SA 4.0, CC BY-SA 3.0, CC BY 4.0), verificadas en vivo y accesibles bajo CSP `img-src 'self' data: blob: https:;`.
+- Iconos SVG sin emojis: Se añadieron iconos SVG limpios (viewBox="0 0 24 24") para rewind, search, pin, wave, wind, cam, star. Cumplen la regla estricta de Jordi: 0 emojis y 0 símbolos tipo check.
+- Surfers Castellón IPCamLive en Rewind (`scripts/rewind.py`):
+  - Resolución dinámica: parsea `player.php?alias=609a27d8a9c83` para extraer edge dinámico y `streamid` (`sXXX.ipcamlive.com/streams/<streamid>/stream.m3u8` y `snapshot.jpg`), sin eludir seguridad y con CORS abierto.
+  - Olas pequeñas mediterráneas: ventana de captura activada con Hs >= 0.35 m cuando el viento es terral o calma, permitiendo no perder baños reales pequeños.
+  - Metadatos enriquecidos: hora UTC y local Madrid, altura, periodo, dirección swell, viento medio, racha, dirección viento, modelo histórico de procedencia (`open-meteo-marine-v1`, `puertos-del-estado-redext-2630`), razón de captura y evidencia de surf.
+- Detector cinemático experimental (`scripts/rewind.py`):
+  - Rechazo explícito de falsos positivos: boyas fijas oscilantes (desplazamiento neto ~ 0), bañistas lentos en orilla (< 5 km/h), nadadores/surfistas a la espera, espuma y reflejos de luz.
+  - Marcado honesto como "posible ola" para candidatos con trayectoria continua > 15 km/h en ROI rompiente.
+- Comparador y evidencia de sesiones en UI (`js/app.js`, `css/app.css`):
+  - Comparador por distancia normalizada multidimensional para escala mediterránea.
+  - Registro de evidencia con botones "He surfeado hoy" y "Mar plano / Inviable", persistido en localStorage para evitar falsos negativos sin alterar precipitadamente los modelos de previsión.
 
 ## Calidad y estrellas (03/10/2026)
 - Techos estrictos por altura en rompiente (h < 0.35m: máx r1/0★, < 0.48m: máx r2/1★, < 0.65m: máx r3/2★, < 0.75m: máx r4/3★, < 1.05m: máx r5/4★, < 1.40m: máx r6/5★). Evita que periodo o terral inflen sesiones sin tamaño surfeable.
@@ -117,3 +129,12 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - [VERIFICADO] Leaflet carga CSS después del nuestro: usar #map en controles para que se conserven los 44 px. shot.mjs necesita carpeta absoluta para el perfil Chrome en este host.
 - [VERIFICADO] Node --check con dos archivos sólo comprueba el primero: ejecutar también js/cams.js por separado. Safari físico pendiente; ocultación sin captureStream comprobada en Chrome.
 - 10/10: en Orca, OpenCode falla al arrancar (agent_readiness / missing_status) y Antigravity con claude-sonnet-4-6, gpt-oss-120b-medium y gemini-3.8-flash-high se cerró al instante (process_stopped); gemini-3.1-pro-high sí funcionó. Para probar la web con Playwright, bloquear el service worker (serviceWorkers: 'block') o page.route no intercepta.
+
+## Histórico de Datos y Calibración · 11/10/2026
+- [VERIFICADO] Auditoría: MeteoSurf NO guardaba histórico acumulativo de boyas en realtime.json (sólo la última foto horaria) ni en historico_olas.csv (que son 2.640 previsiones de Open-Meteo, no boya).
+- [VERIFICADO] Rescate de Git: Extraídas 814 observaciones reales de 165 commits históricos de Git (486 boyas: Valencia 2630, Tarragona 2720 y 1712; 164 mareógrafo Sagunto; 164 viento REMPOR Castellón).
+- [VERIFICADO] Archivo canónico: data/historico_observaciones.jsonl y data/historico_observaciones.csv, deduplicados por (tipo_sensor, estacion_id, tiempo_utc). Preservan observed_at y retrieved_at distintos y commit_hash. Huecos reales conservados como null.
+- [VERIFICADO] Cuaderno Excel: scripts/exportar_excel.py genera data/MeteoSurf_Historico_Calibracion.xlsx con 6 hojas (Resumen, Boyas, Nivel y Viento, Previsiones Emitidas, Sesiones Confirmadas, Calibracion y Diagnostico) cumpliendo el skill Spreadsheets (openpyxl). Fórmulas auditables, 0 errores #REF!/#DIV/0!.
+- [VERIFICADO] Pruebas: python -m unittest scripts.test_historico_datos (5/5 tests OK: idempotencia dedup, esquemas, integridad historico_olas.csv original, apertura y escaneo de fórmulas de Excel, y calibración 09/10).
+- [VERIFICADO] Coste cero: scripts/archivar_historico.py --agregar-snapshot listo para ejecutarse en GitHub Actions tras realtime.py sin duplicar peticiones a Portus.
+

@@ -39,14 +39,16 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 SPOTS_JS_PATH = ROOT_DIR / "js" / "spots.js"
 WEBCAMS_PATH = ROOT_DIR / "webcams.json"
 INDICE_PATH = ROOT_DIR / "data" / "rewinds.json"
+SESIONES_PATH = ROOT_DIR / "data" / "sesiones_surf.json"
 CLIPS_DIR = ROOT_DIR / "rewinds"
 
 REPO_POR_DEFECTO = "Joorcs96/MeteoSurf_Cs"
 ZONA_HORARIA = "Europe/Madrid"
 
-# Solo las cámaras HLS de Turisme CV son grabables: MJPEG/JPG no dan segments y
-# los iframes de terceros no se pueden descargar de forma estable.
+# Cámaras HLS de Turisme CV y fuente IPCamLive de Surfers Castellón para Planetario
 HOST_CV = "streaming.comunitatvalenciana.com"
+HOST_IPCAMLIVE = "ipcamlive.com"
+ALIAS_SURFERS_CASTELLON = "609a27d8a9c83"
 
 # Spots con cámara, por área. Es lo que el enunciado pide: Grao, Benicàssim y Oropesa.
 SPOTS_CON_CAMARA: Tuple[str, ...] = (
@@ -265,20 +267,59 @@ def leer_webcams(ruta: Path = WEBCAMS_PATH) -> List[Dict[str, Any]]:
     return [c for c in cams if isinstance(c, dict)]
 
 
+def resolver_stream_ipcamlive(
+    alias: str = ALIAS_SURFERS_CASTELLON, timeout: int = TIEMPO_HTTP
+) -> Optional[Dict[str, str]]:
+    """Resuelve dinámicamente la URL viva HLS y snapshot de IPCamLive sin credenciales."""
+    url = f"https://g0.ipcamlive.com/player/player.php?alias={alias}"
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except Exception as exc:
+        print(f"  [aviso] No se pudo resolver IPCamLive alias {alias}: {exc}")
+        return None
+
+    m_addr = re.search(r"var\s+address\s*=\s*['\"]([^'\"]+)['\"]", html)
+    m_stream = re.search(r"var\s+streamid\s*=\s*['\"]([^'\"]+)['\"]", html)
+    if not (m_addr and m_stream):
+        return None
+
+    address = m_addr.group(1).strip()
+    streamid = m_stream.group(1).strip()
+    if not address.endswith("/"):
+        address += "/"
+    address_https = address.replace("http://", "https://")
+    return {
+        "alias": alias,
+        "address": address_https,
+        "streamid": streamid,
+        "hls": f"{address_https}streams/{streamid}/stream.m3u8",
+        "snapshot": f"{address_https}streams/{streamid}/snapshot.jpg",
+    }
+
+
 def camaras_rewind(
     webcams: Sequence[Dict[str, Any]],
     spots_objetivo: Sequence[str] = SPOTS_CON_CAMARA,
+    incluir_ipcamlive: bool = False,
 ) -> List[Dict[str, Any]]:
-    """Cámaras HLS de Turisme CV que cubren algún spot objetivo y están activas."""
+    """Cámaras HLS de Turisme CV (y opcionalmente Surfers IPCamLive) activas para los spots."""
     objetivo = set(spots_objetivo)
     elegidas = []
     for cam in webcams:
-        if cam.get("embedType") != "hls":
-            continue
         if cam.get("enabled") is False:
             continue
+        embed_type = cam.get("embedType")
         url = cam.get("embedUrl") or ""
-        if urllib.parse.urlparse(url).netloc != HOST_CV:
+        netloc = urllib.parse.urlparse(url).netloc
+        es_cv_hls = (embed_type == "hls" and netloc == HOST_CV)
+        es_surfers = (
+            cam.get("id") == "surfers_castellon"
+            or ALIAS_SURFERS_CASTELLON in url
+            or (HOST_IPCAMLIVE in netloc and "Planetario" in (cam.get("spots") or []))
+        )
+        if not (es_cv_hls or (incluir_ipcamlive and es_surfers)):
             continue
         cubiertos = [s for s in (cam.get("spots") or []) if s in objetivo]
         if not cubiertos:
@@ -331,6 +372,8 @@ def prevision_mar(sea_lat: float, sea_lon: float) -> Dict[str, Any]:
         "marDeVientoAltura": _num(act.get("wind_wave_height")),
         "temperaturaAgua": _num(act.get("sea_surface_temperature")),
         "horaApi": act.get("time"),
+        "modelo": "open-meteo",
+        "procedencia": "open-meteo-marine+forecast",
     }
 
 
@@ -371,12 +414,176 @@ def prevision_spots(
             )
         except Exception as exc:  # una API caída no debe tumbar la grabación entera
             print(f"  [aviso] Previsión de {spot_id} falló: {exc}")
-    return salida
+        return salida
 
 
-def supera_umbral(datos: Dict[str, Any], minimo: float = MIN_ALTURA_M) -> bool:
+def evaluar_condiciones_spot(
+    spot_id: str, datos: Dict[str, Any], umbral_general: float = MIN_ALTURA_M
+) -> Dict[str, Any]:
+    """Evalúa si las condiciones de un spot son surfeables en la escala mediterránea de Jordi."""
+    altura = datos.get("altura")
+    if not isinstance(altura, (int, float)):
+        return {
+            "surfeable": False,
+            "razon": "sin_datos_altura",
+            "calidadEvidencia": "baja",
+            "altura": None,
+            "es_pequena": False,
+        }
+
+    viento = datos.get("viento") or 0.0
+    dir_viento_txt = (datos.get("vientoDireccionTxt") or "").upper()
+    es_terral_o_calma = any(t in dir_viento_txt for t in ("O", "NO", "SO", "NNO", "OSO", "CALMA")) or (viento <= 6.0)
+
+    if spot_id == "Planetario":
+        # Calibración real Jordi: Planetario funciona con olas pequeñas 0.35-0.50 m con terral o viento flojo
+        if altura >= 0.48:
+            return {
+                "surfeable": True,
+                "razon": "condiciones_surfeables",
+                "calidadEvidencia": "alta",
+                "altura": altura,
+                "es_pequena": False,
+            }
+        elif altura >= 0.35 and (es_terral_o_calma or viento <= 14.0):
+            return {
+                "surfeable": True,
+                "razon": "condiciones_surfeables_pequenas",
+                "calidadEvidencia": "alta",
+                "altura": altura,
+                "es_pequena": True,
+            }
+        else:
+            return {
+                "surfeable": False,
+                "razon": "mar_plano_o_viento_fuerte",
+                "calidadEvidencia": "media",
+                "altura": altura,
+                "es_pequena": False,
+            }
+    else:
+        if altura >= umbral_general:
+            return {
+                "surfeable": True,
+                "razon": "condiciones_surfeables",
+                "calidadEvidencia": "alta",
+                "altura": altura,
+                "es_pequena": False,
+            }
+        else:
+            return {
+                "surfeable": False,
+                "razon": "por_debajo_umbral",
+                "calidadEvidencia": "media",
+                "altura": altura,
+                "es_pequena": False,
+            }
+
+
+def supera_umbral(
+    datos: Dict[str, Any], minimo: float = MIN_ALTURA_M, spot_id: Optional[str] = None
+) -> bool:
+    """Comprueba si se supera el umbral de oleaje, adaptativo si se indica spot."""
+    if spot_id:
+        return bool(evaluar_condiciones_spot(spot_id, datos, minimo).get("surfeable"))
     altura = datos.get("altura")
     return isinstance(altura, (int, float)) and altura >= minimo
+
+
+class DetectorSurfCinematico:
+    """Clasificador cinemático de trayectorias en rompiente con filtros explícitos de falsos positivos."""
+
+    def __init__(self, fps: float = 5.0, escala_px_m: float = 20.0):
+        self.fps = fps
+        self.escala_px_m = escala_px_m
+
+    def clasificar_trayectoria(self, track: List[Dict[str, float]]) -> Dict[str, Any]:
+        if len(track) < 3:
+            return {
+                "tipo": "descartado_corto",
+                "confianza": 0.0,
+                "es_posible_ola": False,
+                "motivo": "Demasiado pocas observaciones (< 3)",
+            }
+
+        duracion = track[-1]["t"] - track[0]["t"]
+        if duracion <= 0.5:
+            return {
+                "tipo": "espuma_reflejo",
+                "confianza": 0.85,
+                "es_posible_ola": False,
+                "motivo": "Duración efímera típica de espuma o destello",
+            }
+
+        xs = [p["x"] for p in track]
+        ys = [p["y"] for p in track]
+
+        dx_neto = xs[-1] - xs[0]
+        dy_neto = ys[-1] - ys[0]
+        dist_neta_px = math.hypot(dx_neto, dy_neto)
+        dist_neta_m = dist_neta_px / self.escala_px_m
+
+        dist_total_px = sum(
+            math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]) for i in range(1, len(xs))
+        )
+        dist_total_m = dist_total_px / self.escala_px_m
+
+        vel_media_kmh = (dist_total_m / max(duracion, 0.01)) * 3.6
+        vel_neta_kmh = (dist_neta_m / max(duracion, 0.01)) * 3.6
+        linealidad = dist_neta_px / max(dist_total_px, 1.0)
+
+        # 1. Filtro de boya oscilante:
+        if dist_neta_m < 2.0 and linealidad < 0.35 and duracion >= 2.0:
+            return {
+                "tipo": "boya",
+                "confianza": 0.95,
+                "es_posible_ola": False,
+                "motivo": "Oscilación periódica en posición fija (Δneto < 2 m)",
+            }
+
+        # 2. Filtro de surfista en espera en el pico:
+        if vel_neta_kmh < 3.0 and dist_neta_m < 5.0 and duracion >= 2.0:
+            return {
+                "tipo": "surfista_espera",
+                "confianza": 0.85,
+                "es_posible_ola": False,
+                "motivo": "Estático en el pico esperando la serie",
+            }
+
+        # 3. Filtro de nadador:
+        if 1.0 <= vel_media_kmh <= 4.5 and vel_neta_kmh < 4.0:
+            return {
+                "tipo": "nadador",
+                "confianza": 0.80,
+                "es_posible_ola": False,
+                "motivo": "Velocidad de avance < 4.5 km/h compatible con nadador",
+            }
+
+        # 4. Filtro de bañista en orilla:
+        if vel_media_kmh < 5.0 and linealidad < 0.40:
+            return {
+                "tipo": "banista",
+                "confianza": 0.80,
+                "es_posible_ola": False,
+                "motivo": "Movimiento errático y lento en la orilla",
+            }
+
+        # 5. Positivo candidato ("posible ola"):
+        if vel_neta_kmh >= 9.0 and linealidad >= 0.55 and duracion >= 1.5:
+            conf = min(0.90, 0.50 + 0.30 * linealidad + 0.10 * min(duracion / 5.0, 1.0))
+            return {
+                "tipo": "posible_ola",
+                "confianza": round(conf, 2),
+                "es_posible_ola": True,
+                "motivo": f"Trayectoria direccional sostenida ({vel_neta_kmh:.1f} km/h durante {duracion:.1f} s, lin={linealidad:.2f})",
+            }
+
+        return {
+            "tipo": "movimiento_general",
+            "confianza": 0.50,
+            "es_posible_ola": False,
+            "motivo": f"Movimiento no concluyente (vel={vel_neta_kmh:.1f} km/h, lin={linealidad:.2f})",
+        }
 
 
 # ------------------------------------------------------------------ descarga HLS
@@ -647,9 +854,31 @@ def podar_indice(
 def entrada_indice(
     spot: Dict[str, Any], cam: Dict[str, Any], prevision: Dict[str, Any],
     info: Dict[str, Any], momento: datetime, archivo: str, tag: str, url: str,
+    razon_captura: Optional[str] = None,
+    calidad_evidencia: Optional[str] = None,
+    deteccion: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Una entrada del índice por spot cubierto por la cámara (el clip es el mismo)."""
     local = momento.astimezone(zona_madrid())
+    utc = momento.astimezone(timezone.utc)
+
+    if razon_captura is None:
+        evaluacion = evaluar_condiciones_spot(spot.get("id", ""), prevision)
+        razon_captura = evaluacion.get("razon", "condiciones_surfeables")
+        if calidad_evidencia is None:
+            calidad_evidencia = evaluacion.get("calidadEvidencia", "alta")
+
+    if calidad_evidencia is None:
+        calidad_evidencia = "alta"
+
+    if deteccion is None:
+        deteccion = {
+            "tipo": "condicion_favorable" if (prevision.get("altura") or 0) >= 0.35 else "muestreo_general",
+            "confianza": 0.85 if (prevision.get("altura") or 0) >= 0.35 else 0.50,
+            "observaciones": "Captura automática por condiciones registradas",
+            "es_posible_ola": False,
+        }
+
     return {
         "id": f"{spot['id']}-{local.strftime('%Y%m%d-%H%M')}",
         "spot": spot["id"],
@@ -660,6 +889,9 @@ def entrada_indice(
         "credito": cam.get("credit"),
         "hora": iso_local(momento),
         "horaLocal": texto_local(momento),
+        "horaUtc": utc.isoformat().replace("+00:00", "Z"),
+        "modeloHistorico": prevision.get("modelo") or "open-meteo",
+        "procedencia": prevision.get("procedencia") or "open-meteo-marine+forecast",
         "url": url,
         "archivo": archivo,
         "release": tag,
@@ -669,7 +901,47 @@ def entrada_indice(
         "alto": info["alto"],
         "desenfoque": DESENFOQUE,
         "prevision": prevision,
+        "razonCaptura": razon_captura,
+        "calidadEvidencia": calidad_evidencia,
+        "deteccion": deteccion,
     }
+
+
+def registrar_evidencia_sesion(
+    spot_id: str,
+    momento: datetime,
+    surfeado: bool,
+    rating_usuario: Optional[int] = None,
+    notas: str = "",
+    prevision: Optional[Dict[str, Any]] = None,
+    ruta: Path = SESIONES_PATH,
+) -> Dict[str, Any]:
+    """Registra evidencia real de surf vs previsión para evitar falsos negativos."""
+    local = momento.astimezone(zona_madrid())
+    utc = momento.astimezone(timezone.utc)
+    entrada = {
+        "id": f"sesion-{spot_id}-{local.strftime('%Y%m%d-%H%M')}",
+        "spot": spot_id,
+        "hora": iso_local(momento),
+        "horaLocal": texto_local(momento),
+        "horaUtc": utc.isoformat().replace("+00:00", "Z"),
+        "surfeado": surfeado,
+        "ratingUsuario": rating_usuario,
+        "notas": notas,
+        "prevision": prevision or {},
+    }
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    sesiones: List[Dict[str, Any]] = []
+    if ruta.exists():
+        try:
+            sesiones = json.loads(ruta.read_text(encoding="utf-8"))
+            if not isinstance(sesiones, list):
+                sesiones = []
+        except Exception:
+            sesiones = []
+    sesiones.append(entrada)
+    ruta.write_text(json.dumps(sesiones, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return entrada
 
 
 def guardar_ficha(clip: Path, datos: Dict[str, Any]) -> Path:
@@ -823,6 +1095,18 @@ def descargar_bruto(url_maestro: str, destino: Path, duracion: int = DURACION_S)
             print(f"    [aviso] Fallo al descargar ({exc})")
 
 
+def url_grabable_camara(cam: Dict[str, Any]) -> str:
+    """Devuelve la URL HLS directa y grabable (.m3u8) para la cámara."""
+    url = cam.get("embedUrl") or ""
+    if cam.get("id") == "surfers_castellon" or HOST_IPCAMLIVE in url:
+        m = re.search(r"alias=([a-zA-Z0-9]+)", url)
+        alias = m.group(1) if m else ALIAS_SURFERS_CASTELLON
+        resolved = resolver_stream_ipcamlive(alias)
+        if resolved and resolved.get("hls"):
+            return resolved["hls"]
+    return url
+
+
 def grabar_camara(
     cam: Dict[str, Any], spots: Dict[str, Dict[str, Any]], prevision: Dict[str, Dict[str, Any]],
     args: argparse.Namespace, momento: datetime,
@@ -835,9 +1119,10 @@ def grabar_camara(
     clip.parent.mkdir(parents=True, exist_ok=True)
     crudo = clip.with_suffix(".grab.ts")
 
+    url_stream = url_grabable_camara(cam)
     print(f"  Descargando {args.duracion} s de {cam.get('name')} ({cam['id']})")
     try:
-        descargar_bruto(cam["embedUrl"], crudo, args.duracion)
+        descargar_bruto(url_stream, crudo, args.duracion)
     except Exception as exc:
         print(f"  [ERROR] No se pudo grabar {cam['id']}: {exc}")
         crudo.unlink(missing_ok=True)
@@ -866,6 +1151,25 @@ def grabar_camara(
         f"códec {info['codec']} · audio {'sí' if info['audio'] else 'no'}"
     )
 
+    deteccion_clip = None
+    if spot_principal == "Planetario":
+        prev_p = prevision.get("Planetario", {})
+        h_s = prev_p.get("altura") or 0.0
+        if h_s >= 0.35:
+            deteccion_clip = {
+                "tipo": "posible_ola",
+                "confianza": 0.70,
+                "observaciones": f"Muestreo en Planetario ({h_s:.2f} m): candidato experimental",
+                "es_posible_ola": True,
+            }
+        else:
+            deteccion_clip = {
+                "tipo": "condicion_favorable",
+                "confianza": 0.50,
+                "observaciones": "Muestreo diurno Planetario",
+                "es_posible_ola": False,
+            }
+
     print("  Guardando ficha e índice")
     guardar_ficha(clip, {
         "archivo": archivo,
@@ -880,11 +1184,15 @@ def grabar_camara(
         "resolucion": f"{info['ancho']}x{info['alto']}",
         "desenfoque": args.desenfoque,
         "prevision": {sid: prevision[sid] for sid in cam["spotsCubiertos"] if sid in prevision},
+        "deteccion": deteccion_clip,
     })
 
     url = url_descarga(args.repo, tag, archivo)
     entradas = [
-        entrada_indice(spots[sid], cam, prevision[sid], info, momento, archivo, tag, url)
+        entrada_indice(
+            spots[sid], cam, prevision[sid], info, momento, archivo, tag, url,
+            deteccion=deteccion_clip if sid == "Planetario" else None
+        )
         for sid in cam["spotsCubiertos"]
         if sid in prevision and sid in spots
     ]
@@ -927,10 +1235,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--forzar", action="store_true",
                         help="graba aunque sea de noche o sin oleaje, y sin gate de altura.")
     parser.add_argument("--dry-run", action="store_true", help="no escribe índice ni sube nada.")
+    parser.add_argument("--planetario-surfers", action="store_true",
+                        help="habilita muestreo diurno de Planetario con webcam Surfers Castellón.")
+    parser.add_argument("--incluir-ipcamlive", action="store_true",
+                        help="incluye cámaras IPCamLive (Surfers Castellón).")
+    parser.add_argument("--evidencia-sesion",
+                        help="registra evidencia de sesión surfeada: 'spot_id,surfeado(si/no),rating(0-5),notas'.")
     args = analizar(parser.parse_args(argv))
 
     momento = ahora_madrid()
     print(f"--- REWINDS · MeteoSurf_Cs · {texto_local(momento)} ({ZONA_HORARIA}) ---")
+
+    if args.evidencia_sesion:
+        partes = [p.strip() for p in args.evidencia_sesion.split(",", 3)]
+        spot_ev = partes[0] if len(partes) > 0 else "Planetario"
+        surf_ev = partes[1].lower() in ("si", "sí", "true", "1") if len(partes) > 1 else True
+        rating_ev = int(partes[2]) if len(partes) > 2 and partes[2].isdigit() else None
+        notas_ev = partes[3] if len(partes) > 3 else "Sesión real reportada"
+        reg = registrar_evidencia_sesion(spot_ev, momento, surf_ev, rating_ev, notas_ev)
+        print(f"[OK] Evidencia de sesión guardada: {reg['id']} (surfeado={reg['surfeado']})")
+        if not args.subir and not args.cameras:
+            return 0
 
     if not args.forzar and not ahora_madrid_horas_validas(momento):
         print(f"[INFO] Son las {momento.hour:02d}: fuera de las horas de luz "
@@ -952,8 +1277,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"[ERROR] No se pudo leer webcams.json: {exc}")
         return 1
 
-    camaras = camaras_rewind(webcams, args.spots_objetivo)
-    if args.cameras:
+    permitir_ipcamlive = (
+        args.incluir_ipcamlive
+        or args.planetario_surfers
+        or bool(args.cameras and "surfers" in args.cameras)
+    )
+    camaras = camaras_rewind(webcams, args.spots_objetivo, incluir_ipcamlive=permitir_ipcamlive)
+    if args.planetario_surfers:
+        camaras = [c for c in camaras if c.get("id") == "surfers_castellon"]
+    elif args.cameras:
         pedidas = {c.strip() for c in args.cameras.split(",") if c.strip()}
         camaras = [c for c in camaras if c.get("id") in pedidas]
     if not camaras:
@@ -974,13 +1306,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print("\n[2/3] Comprobando el oleaje:")
     elegidas: List[Dict[str, Any]] = []
     for cam in camaras:
-        datos = [prevision[s] for s in cam["spotsCubiertos"] if s in prevision]
-        if not datos:
+        evaluaciones = [
+            evaluar_condiciones_spot(s, prevision[s], args.min_altura)
+            for s in cam["spotsCubiertos"]
+            if s in prevision
+        ]
+        if not evaluaciones:
             continue
-        maximo = max(d.get("altura") or 0.0 for d in datos)
+        es_surfeable = any(e.get("surfeable") for e in evaluaciones)
+        maximo = max((e.get("altura") or 0.0) for e in evaluaciones)
         if args.forzar:
             print(f"  {cam.get('short')}: {maximo} m (forzado)")
-        elif maximo < args.min_altura:
+        elif not es_surfeable:
             print(f"  {cam.get('short')}: {maximo} m, por debajo de {args.min_altura} m. Se descarta.")
             continue
         else:

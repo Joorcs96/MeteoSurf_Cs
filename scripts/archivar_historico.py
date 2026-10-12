@@ -432,14 +432,19 @@ def verificar_estadisticas(jsonl_path: Path = SALIDA_JSONL) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Gestor del histórico de observaciones reales de MeteoSurf_Cs.")
     parser.add_argument("--bootstrap", action="store_true", help="Reconstruir histórico completo desde commits de Git.")
-    parser.add_argument("--agregar-snapshot", action="store_true", help="Agregar observaciones del snapshot realtime.json actual.")
+    parser.add_argument(
+        "--agregar-snapshot",
+        dest="agregar_snapshot",
+        action="store_true",
+        help="Agregar observaciones del snapshot realtime.json actual.",
+    )
     parser.add_argument("--verificar", action="store_true", help="Mostrar estadísticas y verificación del histórico.")
     args = parser.parse_args()
 
     if args.bootstrap:
         bootstrap_completo()
         verificar_estadisticas()
-    elif args.agregar-snapshot:
+    elif args.agregar_snapshot:
         anadidos, total = archivar_snapshot_actual()
         print(f"[INFO] Snapshot procesado: {anadidos} nuevos registros añadidos. Total acumulado: {total}.")
     elif args.verificar:

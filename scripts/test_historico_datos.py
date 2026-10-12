@@ -67,6 +67,18 @@ class TestHistoricoDatos(unittest.TestCase):
         self.assertEqual(total_1, total_2, "El total no debe variar en ejecuciones repetidas")
         self.assertEqual(total_2, conteo_inicial, "El total debe coincidir con el conjunto inicial deduplicado")
 
+    def test_02b_cli_agregar_snapshot(self):
+        """Asegura que la opción usada por GitHub Actions arranca correctamente."""
+        resultado = subprocess.run(
+            ["python", str(RAIZ / "scripts" / "archivar_historico.py"), "--agregar-snapshot"],
+            cwd=RAIZ,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(resultado.returncode, 0, resultado.stderr or resultado.stdout)
+        self.assertIn("Snapshot procesado", resultado.stdout)
+
     def test_03_formatos_unidades_y_fechas_utc(self):
         """Valida esquemas, zonas horarias UTC, rangos físicos y separación de marcas de tiempo."""
         from scripts.archivar_historico import cargar_historico_existente

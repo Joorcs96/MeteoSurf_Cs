@@ -138,3 +138,10 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - [VERIFICADO] Pruebas: python -m unittest scripts.test_historico_datos (5/5 tests OK: idempotencia dedup, esquemas, integridad historico_olas.csv original, apertura y escaneo de fórmulas de Excel, y calibración 09/10).
 - [VERIFICADO] Coste cero: scripts/archivar_historico.py --agregar-snapshot listo para ejecutarse en GitHub Actions tras realtime.py sin duplicar peticiones a Portus.
 
+## Rediseño Visual Profesional y Herramientas de Diseño · 16/10/2026
+- [VERIFICADO] Paleta costera Mediterránea: `--bg: #f7f8f9`, `--surface: #ffffff`, `--text: #0d1b2a`, `--text-2: #415a77`, `--line: #d5dce2`, `--accent: #1d7090`, `--radius: 6px`. Modo oscuro: `--bg: #0a1118`, `--surface: #0f1922`, `--text: #e6edf3`, `--line: #243647`, `--accent: #38a3c8`.
+- [VERIFICADO] Escritorio (>= 800px): `.tabbar` y `.quick-spots` ocultados (`display: none !important`), eliminando redundancia con `.topnav` y recuperando 120px de viewport vertical.
+- [VERIFICADO] Componentes: `.spot-card` elevada con sutil borde marino y sombra suave, métricas numéricas en `tabular-nums`, banner de mejor ventana sobrio con acento lateral náutico.
+- [VERIFICADO] Herramientas: documentadas en `docs/diseno-web.md` (Taste Skill V:5/M:3/D:7, Web Design Guidelines, Awesome Design, Image-to-Code con fotos reales Wikimedia Commons y capturas Edge Playwright, Playwright CLI).
+- [VERIFICADO] Validación: 32/32 comprobaciones superadas en `qa/run-smoke.cjs` (390×844 móvil y 1440×1000 escritorio en claro y oscuro; 0 errores propios, 0 overflow horizontal). `python -m unittest backend.test_motor_fisica scripts.test_ui_responsive` y suites unitarias JS en verde. Caché SW: `meteosurf-cs-v16-diseno-profesional`.
+

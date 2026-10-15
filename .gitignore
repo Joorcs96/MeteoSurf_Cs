@@ -36,3 +36,6 @@ video/
 
 # Copias de seguridad locales
 *.bak*
+
+# Playwright CLI local session state
+.playwright-cli/

@@ -332,12 +332,12 @@
         "Piramides",
         "Gurugu"
       ],
-      "priority": 1,
+      "priority": 2,
       "embedType": "iframe",
       "embedUrl": "https://g0.ipcamlive.com/player/player.php?alias=609a27d8a9c83&autoplay=1",
       "pageUrl": "https://surferscastellon.com/live-webcam/",
       "credit": "Club Surfers Castellón / IPCamLive",
-      "notesShort": "Cámara del Club Surfers Castellón en Playa del Pinar.",
+      "notesShort": "Reproductor del club, por si no se puede resolver la emisión.",
       "distanceKm": 0.1,
       "tokenRefresh": null,
       "enabled": true,
@@ -345,6 +345,31 @@
       "lastChecked": "2026-10-12T01:53:31.875197+00:00",
       "failCount": 0,
       "notes": "Cámara directa en la arena de Playa del Pinar, enfocando el pico y rompiente del Grao. Embed oficial de IPCamLive (alias 609a27d8a9c83), sin X-Frame-Options ni bloqueo de dominio."
+    },
+    {
+      "id": "surfers_castellon_hls",
+      "name": "Surfers Castellón (directo, grabable)",
+      "short": "Surfers Castellón (directo)",
+      "spots": [
+        "Planetario",
+        "Piramides",
+        "Gurugu"
+      ],
+      "priority": 0,
+      "embedType": "hls",
+      "resolver": "ipcamlive",
+      "alias": "609a27d8a9c83",
+      "embedUrl": "",
+      "pageUrl": "https://surferscastellon.com/live-webcam/",
+      "credit": "Club Surfers Castellón / IPCamLive",
+      "notesShort": "Misma cámara del club, en directo y con captura: el reproductor del club es un iframe que no se puede grabar.",
+      "distanceKm": 0.1,
+      "tokenRefresh": null,
+      "enabled": true,
+      "verified": true,
+      "lastChecked": "2026-10-12T01:53:31.875197+00:00",
+      "failCount": 0,
+      "notes": "Misma cámara IPCamLive del club (alias 609a27d8a9c83) pero por la emisión HLS directa, que es la única forma de grabar en el navegador y la que usa scripts/rewind.py. embedUrl está vacío a propósito: la URL real la resuelve backend/actualizar_webcams.py --streams en data/streams.json, porque player.php no manda CORS y el navegador no puede sacar el streamid por su cuenta."
     }
   ]
 }

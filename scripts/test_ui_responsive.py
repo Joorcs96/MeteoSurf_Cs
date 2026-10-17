@@ -93,6 +93,17 @@ class TestUIResponsive(unittest.TestCase):
         self.assertIn("btn-surfeado-hoy", html, "Debe incluir el botón 'He surfeado hoy'")
         self.assertIn("btn-mar-plano", html, "Debe incluir el botón 'Mar plano / Inviable'")
 
+        # 4. Comprobar la vigía de ola y el enlace para guardar el clip grabado
+        self.assertIn("vigia-ola", html, "Debe existir el botón de vigía de ola")
+        self.assertIn("save-ola", html, "Debe existir el enlace para guardar el clip de la ola")
+        self.assertIn("vigia-note", html, "Debe existir la nota que explica la vigía")
+        # La cámara del club es la primera de Planetario y, si su emisión está
+        # resuelta, es la que se puede grabar. Si no lo está, la nota lo dice.
+        self.assertTrue(
+            "surfers_castellon_hls" in html or "Surfers Castellón" in html or "emisión" in html,
+            "Debe nombrar la cámara del club o explicar por qué no se puede reproducir",
+        )
+
     def test_desktop_1366_planetario_render(self):
         url = f"http://127.0.0.1:{self.port}/index.html#/spot/Planetario"
         html = self._render_page_dom(url, 1366, 768)
@@ -103,6 +114,7 @@ class TestUIResponsive(unittest.TestCase):
         self.assertIn("similar-conditions-card", html)
         self.assertIn("session-evidence-card", html)
         self.assertIn("spot-layout", html)
+        self.assertIn("vigia-ola", html)
 
     def test_mobile_390_vinaros_render(self):
         url = f"http://127.0.0.1:{self.port}/index.html#/spot/Vinaros"
@@ -122,6 +134,11 @@ class TestUIResponsive(unittest.TestCase):
         self.assertIn(".spot-photo-container { position: relative; width: 100%; aspect-ratio: 16 / 9;", css)
         self.assertIn(".spot-photo-img { width: 100%; height: 100%; object-fit: cover;", css)
         self.assertIn("flex-wrap: wrap", css)
+        # La vigía de ola y el distintivo de evidencia de surf necesitan estilos
+        # propios; sin ellos el texto se sale en móvil.
+        self.assertIn(".vigia-note", css)
+        self.assertIn(".badge-ola", css)
+        self.assertIn('#vigia-ola[aria-pressed="true"]', css)
         # Comprobar que no hay anchos fijos en px superiores a 360px en las nuevas clases
         for match in re.finditer(r"\.(?:spot-photo|similar|evidence)[^{]*\{([^}]+)\}", css):
             block = match.group(1)

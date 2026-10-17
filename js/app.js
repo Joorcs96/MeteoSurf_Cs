@@ -2,7 +2,7 @@
 import { SPOTS, ZONES } from './spots.js';
 import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360, windState } from './forecast.js';
 import { compassSVG, dirArrow } from './compass.js';
-import { loadCams, camsForSpot, playCam, stopCam, playClip, recordClip } from './cams.js';
+import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordClip, estadoStream, iniciarVigiaOla } from './cams.js';
 import { aplicarNowcast } from './nowcast.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -355,6 +355,10 @@ function bindFavs() {
   }));
 }
 
+// Vigía de ola activa, si la hay. Vive fuera de renderSpot porque el botón se
+// vuelve a pintar entero al cambiar de día o de sección.
+let vigiaActual = null;
+
 function clipsForSpot(spot) {
   const ids = new Set(camsForSpot(spot).map((c) => c.id));
   const seen = new Set();
@@ -375,7 +379,9 @@ function renderRewinds(spot) {
     if (!groups.has(day)) groups.set(day, []);
     groups.get(day).push({ c, i });
   });
-  return `<div id="rewind-strip" class="rewind-strip" hidden>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot.</p>'}</div>`;
+  // Sin clips la tira nace desplegada: si no, el motivo se queda escondido detrás
+  // de un botón que no parece hacer nada.
+  return `<div id="rewind-strip" class="rewind-strip" ${clips.length ? 'hidden' : ''}>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot. El grabador solo deja clips los días con oleaje suficiente, así que esta lista se llena poco a poco.</p>'}</div>`;
 }
 function bindClips(spot, camEl, showCam) {
   const clips = clipsForSpot(spot);
@@ -398,7 +404,11 @@ function bindClips(spot, camEl, showCam) {
   view.querySelectorAll('[data-similar-id]').forEach((b) => b.addEventListener('click', () => {
     const clipId = b.dataset.similarId;
     const clip = (state.rewinds?.rewinds || []).find((c) => c.id === clipId);
-    if (!clip) return;
+    if (!clip) {
+      // Antes pulsaba y no pasaba nada: se salía en silencio.
+      status.textContent = `El clip ${clipId} ya no está en el archivo. Vuelve a cargar la página o prueba con otro día.`;
+      return;
+    }
     status.textContent = '';
     playClip(camEl, clip);
     view.querySelectorAll('[data-clip]').forEach((x) => x.classList.remove('on'));
@@ -523,14 +533,39 @@ function findSimilarConditions(spot, h) {
   return results.slice(0, 3);
 }
 
+// La evidencia de surf de un clip se lee de `deteccion`, que es la clave que
+// escribe scripts/rewind.py. Antes se leía `evidencia?.posibleOla`, una clave que
+// ningún índice ha tenido nunca, así que el distintivo "Posible ola" no se veía nunca.
+// Ahora se aceptan las dos y, sobre todo, solo se pinta cuando hay evidencia de
+// imagen de verdad: el muestreo por oleaje dice que la imagen no se ha analizado.
+function badgeEvidencia(clip) {
+  const d = (clip && (clip.deteccion || clip.evidencia)) || null;
+  if (!d) return '';
+  if (d.imagenAnalizada === false) return '';
+  if (d.es_posible_ola || d.esOla || d.posibleOla) {
+    return `<span class="similar-badge badge-ola">Ola en el clip · ${Math.round((d.confianza || 0) * 100)} %</span>`;
+  }
+  if (d.observaciones) return `<span class="similar-badge" title="${esc(d.observaciones)}">${esc(String(d.tipo || 'sin evidence de surf').replace(/_/g, ' '))}</span>`;
+  return '';
+}
+
 function renderSimilarConditions(spot, h) {
   if (!h) return '';
+  if (!state.rewinds) {
+    return `
+      <div class="similar-conditions-card">
+        <div class="similar-head">${ICON.search} Días históricos similares</div>
+        <p style="margin:0;font-size:12px;color:var(--text-2)">No se ha podido cargar el archivo de clips (data/rewinds.json). Puede ser la red; el histórico vuelve en un rato.</p>
+      </div>`;
+  }
   const matches = findSimilarConditions(spot, h);
   if (!matches || !matches.length) {
+    const cameras = clipsForSpot(spot);
+    const cuando = cameras.length ? ` con las cámaras de este spot hay ${cameras.length} clip(s) entre ${new Date(cameras[cameras.length - 1].hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short' })} y ${new Date(cameras[0].hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short' })}` : ' todavía no hay clips guardados de las cámaras de este spot';
     return `
       <div class="similar-conditions-card">
         <div class="similar-head">${ICON.search} Comparador de condiciones históricas</div>
-        <p style="margin:0;font-size:12px;color:var(--text-2)">Aún no hay grabaciones archivadas con condiciones similares a las de este momento (${m(h.surf?.mid ?? h.surfMin)} m · ${kmh(h.windSpeed)} de viento).</p>
+        <p style="margin:0;font-size:12px;color:var(--text-2)">No hay ningún clip grabado${cuando} con condiciones como las de ahora (${m(h.surf?.mid ?? h.surfMin)} m · ${kmh(h.windSpeed)} de viento). El archivo se va rellenando los días de baño.</p>
       </div>`;
   }
   const items = matches.slice(0, 2).map((item, idx) => {
@@ -544,7 +579,7 @@ function renderSimilarConditions(spot, h) {
           <span class="similar-badge ${idx === 0 ? 'best' : ''}">${idx === 0 ? 'Mayor similitud' : 'Parecido'}</span>
           <b>${esc(dStr)} ${esc(hStr)}</b>
           <span>${m(p.altura)} m · ${rnd(p.periodo)} s · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')}</span>
-          ${c.evidencia?.posibleOla ? '<span class="similar-badge" style="background:#e0f2fe;color:#0369a1">Posible ola</span>' : ''}
+          ${badgeEvidencia(c)}
         </div>
         <button class="similar-play-btn" data-similar-id="${esc(c.id)}">${ICON.rewind} Ver cómo rompía</button>
       </div>`;
@@ -610,8 +645,9 @@ function renderSpot(id) {
         <div class="cam" id="cam"></div>
         ${cams.length > 1 ? `<div class="cam-switch">${cams.map((c, i) => `<button data-cam="${i}" class="${i === state.camIdx ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
         <div class="cam-source" id="cam-source"></div>
-        <div class="cam-actions"><button id="rewind-toggle" aria-expanded="false" aria-controls="rewind-strip">Rewind</button><button id="record-clip" hidden>Grabar clip</button><button id="live-cam" hidden>Volver al directo</button></div>
+        <div class="cam-actions"><button id="rewind-toggle" aria-expanded="false" aria-controls="rewind-strip">Rewind</button><button id="record-clip" hidden>Grabar clip</button><button id="vigia-ola" hidden aria-pressed="false">Vigilar la ola</button><button id="live-cam" hidden>Volver al directo</button></div>
         ${renderRewinds(spot)}<div id="clip-info" class="clip-info" hidden></div><p id="record-status" class="record-status" role="status"></p><a id="save-clip" class="save-clip" hidden>Guardar clip</a>
+        <p id="vigia-note" class="vigia-note" hidden></p><a id="save-ola" class="save-clip" hidden>Guardar clip de la ola</a>
       </div>
       <div class="a-now" id="s-ahora">
         ${renderSpotPhoto(spot)}
@@ -688,8 +724,20 @@ function renderSpot(id) {
     $('#record-status').textContent = '';
     $('#live-cam').hidden = true;
     view.querySelectorAll('[data-clip]').forEach((b) => b.classList.remove('on'));
-    $('#record-clip').hidden = cams[state.camIdx]?.embedType !== 'hls' || !HTMLVideoElement.prototype.captureStream || !window.MediaRecorder;
+    pararVigia();
     const cam = cams[state.camIdx];
+    // Una cámara grabable es la que se puede reproducir como HLS y además pasar
+    // por `captureStream`. La del club entra por `data/streams.json`: su player.php
+    // es un iframe, así que sin la emisión resuelta no hay ni vídeo ni grabación.
+    const grabable = () => cam?.embedType === 'hls' && estadoStream(cam).ok
+      && HTMLVideoElement.prototype.captureStream && window.MediaRecorder;
+    $('#record-clip').hidden = !grabable();
+    $('#vigia-ola').hidden = !grabable();
+    const nota = $('#vigia-note');
+    if (cam?.resolver === 'ipcamlive' && !estadoStream(cam).ok) {
+      nota.hidden = false;
+      nota.textContent = `${esc(estadoStream(cam).motivo)} El reproductor del club sigue disponible.`;
+    } else nota.hidden = true;
     playCam(camEl, cam);
     $('#cam-source').innerHTML = cam
       ? `${esc(cam.name)}${cam.credit ? ` · Imagen: <a href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">${esc(cam.credit)}</a>` : ''}${cam.distanceKm ? ` · a ${cam.distanceKm} km del pico` : ''}`
@@ -697,6 +745,61 @@ function renderSpot(id) {
   };
   showCam();
   bindClips(spot, camEl, showCam);
+  bindVigia(spot, camEl);
+
+  // La vigía se para sola al cambiar de cámara o de spot, para no dejar grabbing
+  // en segundo plano ni dejar el vídeo bloqueado por el `captureStream`.
+  function pararVigia() {
+    vigiaActual?.parar();
+    vigiaActual = null;
+    const b = document.getElementById('vigia-ola');
+    if (b) { b.setAttribute('aria-pressed', 'false'); b.textContent = 'Vigilar la ola'; }
+    const g = document.getElementById('save-ola');
+    if (g) g.hidden = true;
+  }
+
+  function bindVigia(spotActual, contEl) {
+    const btn = $('#vigia-ola');
+    if (!btn) return;
+    const status = $('#record-status');
+    const nota = $('#vigia-note');
+    const guardar = $('#save-ola');
+    btn.addEventListener('click', () => {
+      if (vigiaActual) { pararVigia(); status.textContent = 'Vigía parada.'; return; }
+      const cam = camsForSpot(spotActual)[state.camIdx];
+      if (!estadoStream(cam).ok) {
+        status.textContent = estadoStream(cam).motivo;
+        return;
+      }
+      vigiaActual = iniciarVigiaOla(contEl, cam, {
+        onOla: (clip) => {
+          status.textContent = `Ola detectada: ${clip.deteccion.motivos[0]}`;
+          if (guardar.dataset.url) URL.revokeObjectURL(guardar.dataset.url);
+          const url = URL.createObjectURL(clip.blob);
+          guardar.dataset.url = url;
+          guardar.href = url;
+          guardar.download = `MeteoSurf_${spotActual.id}_ola_${clip.deteccion.tMs}.${clip.extension}`;
+          guardar.hidden = false;
+          if (nota) { nota.hidden = false; nota.textContent = `Clip de ${clip.segundos} s, con ${clip.prebufferS} s grabados antes de la detección.`; }
+        },
+      });
+      if (vigiaActual.error) {
+        status.textContent = vigiaActual.error;
+        vigiaActual = null;
+        return;
+      }
+      btn.setAttribute('aria-pressed', 'true');
+      btn.textContent = 'Parar la vigía';
+      nota.hidden = false;
+      nota.textContent = 'Mirando la rompiente. Los clips solo se guardan en este dispositivo, en cuanto el detector ve a alguien cogiendo una ola.';
+      const tick = setInterval(() => {
+        if (!vigiaActual) { clearInterval(tick); return; }
+        const e = vigiaActual.estado();
+        status.textContent = `Vigía activa · ${Math.round(e.segundos)} s de búfer · ${e.eventos} clip(s)`;
+      }, 1000);
+    });
+  }
+
   view.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => {
     state.camIdx = +b.dataset.cam;
     view.querySelectorAll('[data-cam]').forEach((x) => x.classList.toggle('on', x === b));
@@ -1103,7 +1206,9 @@ async function init() {
     document.documentElement.dataset.theme = next; store.set('theme', next);
   });
   route(); // pinta esqueleto
-  await Promise.all([loadCams(), loadRewinds()]);
+  // Las emisiones resueltas en el servidor (data/streams.json) se cargan con el
+  // resto: sin ellas, la cámara del club no se puede ni ver ni grabar.
+  await Promise.all([loadCams(), loadStreams(), loadRewinds()]);
   route();
   await refresh();
   // Refresco automático cada 30 min si la pestaña está visible

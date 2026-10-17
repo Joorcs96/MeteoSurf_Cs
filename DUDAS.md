@@ -23,6 +23,45 @@ Dudas que no se pueden resolver sin decisión de Jordi. Se aplicó la opción co
 
 # DUDAS
 
+## 4. 17/10/2026 · Grabación de la vigía de ola sin comprobar en un navegador real
+
+- **[NO VERIFICADO] El clip que entrega la vigía no se ha podido grabar en este host.**
+  Con Edge sin ventana, `video.captureStream()` da una pista `live` y el vídeo se reproduce a 720p
+  (`readyState 4`), pero `MediaRecorder` devuelve 0 bytes. Se probó también grabando un lienzo
+  repintado 74 veces: 0 bytes. Es el grabador sin ventana, no el código. Lo que sí está comprobado es
+  el ensamblado (`ensamblarClip`) y el búfer, con pruebas sobre `Blob` reales.
+- Para cerrarlo hace falta abrir `tools/probar_surfers.html` con el repo servido por HTTP en un navegador
+  **con ventana** y mirar `bytesClip` y `duracionClip`. `python scripts/probar_surfers.py` salta ese
+  punto con el motivo en vez de darlo por bueno.
+- Riesgo conocido y no resuelto: concatenar varios WebM independientes produce un archivo que Chrome y
+  ffmpeg reproducen, pero al que algunos reproductores fittings les cuesta el primer segmento. Si en la
+  prueba con ventana se ve que el clip no arranca, el arreglo es grabar con un único `MediaRecorder` continuo
+  y perder el búfer previo (o gastar un `timeshift` del servidor), que es justo lo que se quería evitar.
+
+## 5. 17/10/2026 · Umbrales del detector sin calibrar con surfista real
+
+- **[NO VERIFICADO] La calidad del detector no está medida contra un surfista de verdad.** No hay ningún
+  clip del club con un surfista confirmado y etiquetado, así que lo único verificado son positivos y
+  negativos sintéticos (`tools/test_deteccion_ola.js`, 52 pruebas). Con la cámara de Playa del Pinar, que
+  abarca toda la playa, el surfista sale muy pequeño en la rejilla de análisis; por eso el recorte a la
+  banda de agua (`bandaImagen`) es lo que decide si esto sirve o no.
+- Decisión de Jordi: si en la práctica sale demasiado mudo, ¿se prefiere subir `velNetaMinPxS` y
+  `olaNetoMinPx` (más mudo pero limpio) o bajar `contrasteOscuro` y `altoMinPersonaFrac` (más sensible con
+  más falsos positivos)? La opción conservadora por defecto es lo primero.
+- `pxPorMetro` está en `null` a propósito. Si alguien mide la escala real de la cámara (cuántos metros de
+  rompiente ocupa el ancho del encuadre), se puede poner y los mensajes pasan a dar metros de verdad.
+
+## 6. 17/10/2026 · Permisos de la webcam del club
+
+- **[VERIFICADO] La emisión es pública y sin credenciales** (el alias va en la URL, `domainlockenabled = 0`
+  y el HLS responde con CORS abierto), pero **la cámara es del Club Surfers Castellón** y en `NOTAS-IA.md`
+  sigue pendiente "pedir al club enlace público o permiso".
+- Lo que hace este cambio: la web **no** republica ni sube imagen del club. El backend sigue siendo el que
+  decide si publica clips en la release mensual, y los clips de la vigía se quedan en el dispositivo del
+  usuario. Si el club pide que no se grabe en absoluto, el sitio a tocar es
+  `.github/workflows/rewinds.yml` (quitar `--incluir-ipcamlive`) y quitar `surfers_castellon_hls` del
+  catálogo; la webcam se vería igualmente con el iframe del club.
+
 ## 1. El backend y la web calculan con dos motores distintos
 
 **Estado:** abierto, pendiente de decision de Jordi. No lo he tocado: cambiarlo

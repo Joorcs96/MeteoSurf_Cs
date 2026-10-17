@@ -39,7 +39,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 SPOTS_JS_PATH = ROOT_DIR / "js" / "spots.js"
 WEBCAMS_PATH = ROOT_DIR / "webcams.json"
 INDICE_PATH = ROOT_DIR / "data" / "rewinds.json"
-SESIONES_PATH = ROOT_DIR / "data" / "sesiones_surf.json"
+SESIONES_PATH = ROOT_DIR / "data" / "sesiones_confirmadas.json"
 CLIPS_DIR = ROOT_DIR / "rewinds"
 
 REPO_POR_DEFECTO = "Joorcs96/MeteoSurf_Cs"
@@ -52,10 +52,14 @@ ALIAS_SURFERS_CASTELLON = "609a27d8a9c83"
 
 # Spots con cámara, por área. Es lo que el enunciado pide: Grao, Benicàssim y Oropesa.
 SPOTS_CON_CAMARA: Tuple[str, ...] = (
-    "Planetario", "Piramides", "Voramar", "Heliopolis", "MorroGos", "Renega",
+    "Planetario", "Piramides", "Gurugu", "Voramar", "Heliopolis", "MorroGos", "Renega",
 )
 # Orden para nombrar el clip cuando una cámara cubre más de un spot.
 PREFERENCIA_SPOT: Tuple[str, ...] = SPOTS_CON_CAMARA
+# Orden de grabación dentro de un mismo grupo de spots. La webcam del club de
+# Surfers Castellón va primero en el Grao: es la que mira de verdad la rompiente
+# de Playa del Pinar, que es donde entra Jordi.
+PREFERENCIA_CAMARA: Tuple[str, ...] = ("surfers_castellon",)
 
 DURACION_S = 20             # segundos de clip
 ALTO_MAXIMO = 480           # alto del clip; el requisito es 720p o menos
@@ -329,8 +333,18 @@ def camaras_rewind(
         cam = dict(cam)
         cam["spotsCubiertos"] = cubiertos
         elegidas.append(cam)
-    elegidas.sort(key=lambda c: (c["spotsCubiertos"][0], c.get("id", "")))
+    elegidas.sort(key=_orden_grabacion)
     return elegidas
+
+
+def _orden_grabacion(cam: Dict[str, Any]) -> Tuple[str, int, str]:
+    """Clave de orden estable: grupo de spots, luego prioridad de cámara y luego id."""
+    grupo = cam["spotsCubiertos"][0]
+    return (
+        grupo,
+        PREFERENCIA_CAMARA.index(cam["id"]) if cam.get("id") in PREFERENCIA_CAMARA else 99,
+        cam.get("id", ""),
+    )
 
 
 def ahora_madrid_horas_validas(momento: Optional[datetime] = None) -> bool:
@@ -414,7 +428,7 @@ def prevision_spots(
             )
         except Exception as exc:  # una API caída no debe tumbar la grabación entera
             print(f"  [aviso] Previsión de {spot_id} falló: {exc}")
-        return salida
+    return salida
 
 
 def evaluar_condiciones_spot(
@@ -851,6 +865,34 @@ def podar_indice(
     return dentro, fuera
 
 
+def deteccion_por_oleaje(spot_id: str, prevision: Dict[str, Any]) -> Dict[str, Any]:
+    """Lo único que se puede afirmar sin mirar un píxel del vídeo: por qué se grabó.
+
+    Decir "posible ola" a partir de la altura del oleaje sería mentir, porque no
+    dice nada de que haya una persona sobre una tabla. Este campo queda por eso
+    marcado con `imagenAnalizada: false` y `es_posible_ola: false`: la evidencia
+    de surfista la aporta el detector de imagen (js/deteccion.js en el navegador,
+    o un análisis de vídeo posterior) y nunca este muestreo por oleaje.
+    """
+    altura = prevision.get("altura")
+    donde = spot_id or "este spot"
+    if isinstance(altura, (int, float)):
+        observaciones = (
+            f"Captura programada con oleaje de {altura:.2f} m en {donde}; "
+            "no se ha analizado la imagen del clip"
+        )
+    else:
+        observaciones = f"Captura programada sin dato de oleaje en {donde}; no se ha analizado la imagen"
+    return {
+        "tipo": "muestreo_por_oleaje",
+        "confianza": 0.50,
+        "observaciones": observaciones,
+        "es_posible_ola": False,
+        "origen": "altura_oleaje",
+        "imagenAnalizada": False,
+    }
+
+
 def entrada_indice(
     spot: Dict[str, Any], cam: Dict[str, Any], prevision: Dict[str, Any],
     info: Dict[str, Any], momento: datetime, archivo: str, tag: str, url: str,
@@ -872,12 +914,7 @@ def entrada_indice(
         calidad_evidencia = "alta"
 
     if deteccion is None:
-        deteccion = {
-            "tipo": "condicion_favorable" if (prevision.get("altura") or 0) >= 0.35 else "muestreo_general",
-            "confianza": 0.85 if (prevision.get("altura") or 0) >= 0.35 else 0.50,
-            "observaciones": "Captura automática por condiciones registradas",
-            "es_posible_ola": False,
-        }
+        deteccion = deteccion_por_oleaje(spot.get("id", ""), prevision)
 
     return {
         "id": f"{spot['id']}-{local.strftime('%Y%m%d-%H%M')}",
@@ -1095,16 +1132,27 @@ def descargar_bruto(url_maestro: str, destino: Path, duracion: int = DURACION_S)
             print(f"    [aviso] Fallo al descargar ({exc})")
 
 
-def url_grabable_camara(cam: Dict[str, Any]) -> str:
-    """Devuelve la URL HLS directa y grabable (.m3u8) para la cámara."""
+def url_grabable_camara(cam: Dict[str, Any]) -> Optional[str]:
+    """Devuelve la URL HLS directa y grabable (.m3u8) para la cámara.
+
+    Las cámaras IPCamLive no dan un .m3u8 en su embedUrl (es el HTML del player
+    con el `streamid` dentro), así que hay que resolverlo. Si no se resuelve se
+    devuelve None para que la cámara se salte con un aviso claro, en vez de
+    intentar descargar una página HTML y fallar después sin decir por qué.
+    """
     url = cam.get("embedUrl") or ""
-    if cam.get("id") == "surfers_castellon" or HOST_IPCAMLIVE in url:
+    if cam.get("resolver") == "ipcamlive" or HOST_IPCAMLIVE in url:
         m = re.search(r"alias=([a-zA-Z0-9]+)", url)
         alias = m.group(1) if m else ALIAS_SURFERS_CASTELLON
         resolved = resolver_stream_ipcamlive(alias)
         if resolved and resolved.get("hls"):
             return resolved["hls"]
-    return url
+        print(
+            f"  [aviso] {cam.get('name')}: no se pudo resolver la emisión HLS de "
+            "IPCamLive ahora mismo; la cámara se salta y se sigue con el resto."
+        )
+        return None
+    return url or None
 
 
 def grabar_camara(
@@ -1120,6 +1168,8 @@ def grabar_camara(
     crudo = clip.with_suffix(".grab.ts")
 
     url_stream = url_grabable_camara(cam)
+    if not url_stream:
+        return None, []
     print(f"  Descargando {args.duracion} s de {cam.get('name')} ({cam['id']})")
     try:
         descargar_bruto(url_stream, crudo, args.duracion)
@@ -1151,24 +1201,7 @@ def grabar_camara(
         f"códec {info['codec']} · audio {'sí' if info['audio'] else 'no'}"
     )
 
-    deteccion_clip = None
-    if spot_principal == "Planetario":
-        prev_p = prevision.get("Planetario", {})
-        h_s = prev_p.get("altura") or 0.0
-        if h_s >= 0.35:
-            deteccion_clip = {
-                "tipo": "posible_ola",
-                "confianza": 0.70,
-                "observaciones": f"Muestreo en Planetario ({h_s:.2f} m): candidato experimental",
-                "es_posible_ola": True,
-            }
-        else:
-            deteccion_clip = {
-                "tipo": "condicion_favorable",
-                "confianza": 0.50,
-                "observaciones": "Muestreo diurno Planetario",
-                "es_posible_ola": False,
-            }
+    deteccion_clip = deteccion_por_oleaje(spot_principal, prevision)
 
     print("  Guardando ficha e índice")
     guardar_ficha(clip, {

@@ -1,3 +1,21 @@
+# Vigía de ola y reparación de "Ver cómo rompía" · 17/10/2026
+
+| Tarea | Estado | Rama | Siguiente paso |
+| --- | --- | --- | --- |
+| Causa de por qué se rompía "Ver cómo rompía" | Hecho y reproducida: `prevision_spots()` tenía el `return` dentro del bucle (regresión de `0afa82a`), así que solo se pedía previsión de MorroGos y solo `cv-oropesa-hls` podía grabarse. Planetario, Pirámides, Gurugú, Voramar, Heliopolis y la webcam del club quedaban con 0 clips | Joorcs96/reparar-surfers | Regresión cubierta por prueba |
+| Cobertura de Gurugú | Hecho: `SPOTS_CON_CAMARA` ya incluye `Gurugu`, que antes quedaba fuera aunque su cámara lo cubre | Joorcs96/reparar-surfers | — |
+| Evidencia de surf honesta | Hecho: el muestreo por oleaje ya no se vende como "posible ola"; escribe `imagenAnalizada: false` y la web solo pinta el distintivo con evidencia de imagen de verdad | Joorcs96/reparar-surfers | — |
+| Webcam del club grabable | Hecho: nueva entrada `surfers_castellon_hls` (prioridad 0) cuya emisión HLS resuelve el backend en `data/streams.json`; el iframe del club queda de reserva | Joorcs96/reparar-surfers | Revisar el TTL de 45 min |
+| Detector de surfista cogiendo ola | Hecho: `js/deteccion.js` sin dependencias, con evidencia de persona + tabla, movimiento sostenido y recorrido; rechaza boya, espuma, bañista, surfista quieto y quien solo rema | Joorcs96/reparar-surfers | Calibrar con clips reales |
+| Prebuffer y clip al coger ola | Hecho: búfer circular de 12 s antes del disparo + 8 s después; el clip incluye el inicio de la ola. Solo en el dispositivo del usuario | Joorcs96/reparar-surfers | Comprobar la grabación en navegador con ventana |
+| Errores claros | Hecho: sin índice, sin coincidencias, clip que ya no está y emisión sin resolver explican el motivo en pantalla | Joorcs96/reparar-surfers | — |
+| Pruebas | 52 detector + 81 flujo/Ver + 73 `test_rewind` + 131 suite completa + 4 UI en Edge + 2 JS heredadas | Joorcs96/reparar-surfers | Probador antes de integrar |
+
+Limitación real declarada: **la grabación con `MediaRecorder` no se ha podido comprobar en navegador sin ventana**
+en este host (devuelve 0 bytes aunque el vídeo se reproduzca). Ver `DUDAS.md` 4.
+
+---
+
 # Imágenes libres, clips Planetario y evidencia de surf · 11/10/2026
 
 | Tarea | Estado | Rama | Siguiente paso |

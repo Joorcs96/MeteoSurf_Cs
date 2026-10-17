@@ -6,13 +6,14 @@
 // inicio de la ola) más unos segundos después. Sin ese búfer, grabar al pulsar el
 // botón siempre se loses el principio.
 import { AJUSTES_DETECCION, aGrisesReducidos, crearDetector } from './deteccion.js';
+import { crearDetectorIA } from './detector-ia.js';
 
 let catalog = null;
 let hlsLib = null;
 let hlsLoading = null;
 const active = new Map(); // contenedor → limpieza
 const recordings = new Map();
-const vigias = new Map(); // contenedor → vigía de ola
+export const vigias = new Map(); // contenedor → vigía de ola
 const sessions = new WeakMap();
 
 // Emisiones resueltas en el servidor (data/streams.json). Las cámaras de
@@ -151,7 +152,11 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     }
     const fuente = urlStream(cam);
     const v = document.createElement('video');
-    Object.assign(v, { muted: true, autoplay, playsInline: true, controls: true });
+    // Sin `crossOrigin` el vídeo marca el lienzo como "tainted" en cuanto se
+    // mezcla con otra cosa, y `getImageData` lanza SecurityError: eso es lo que
+    // rompe la vigía de ola en algunos navegadores. Todas las fuentes HLS usadas
+    // aquí contestan con Access-Control-Allow-Origin, así que no se pierde nada.
+    Object.assign(v, { muted: true, autoplay, playsInline: true, controls: true, crossOrigin: 'anonymous' });
     v.setAttribute('playsinline', '');
     el.appendChild(v);
     let hls = null;
@@ -193,14 +198,49 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
 }
 
 // Reutiliza el reproductor y libera la emisión anterior antes de cargar el archivo.
+// GitHub sirve los adjuntos de las releases como descarga (`Content-Disposition:
+// attachment`) y con tipo `application/octet-stream`. En escritorio eso abre el
+// reproductor, pero en iOS y Android el navegador no lo trata como vídeo y no
+// arranca. La salida es traer el archivo con `fetch` y darle un Blob, que es
+// siempre un medio real. Si el fetch falla (sin red, CORS, archivo caído) se avisa
+// con claridad y se deja el enlace de descarga, que sí funciona siempre.
+export function reproducirClip(el, clip, { onError } = {}) {
+  const video = document.createElement('video');
+  Object.assign(video, { controls: true, playsInline: true, autoplay: true });
+  video.setAttribute('playsinline', '');
+  el.appendChild(video);
+  let url = '';
+  fetch(clip.url, { mode: 'cors' })
+    .then((r) => {
+      if (!r.ok) throw new Error(`El archivo respondió ${r.status}`);
+      return r.blob();
+    })
+    .then((b) => {
+      if (!b.size) throw new Error('El archivo vino vacío');
+      url = URL.createObjectURL(b);
+      video.src = url;
+    })
+    .catch((e) => {
+      // Segundo intento: la URL directa, por si el navegador sí sabe con ella.
+      video.src = clip.url;
+      onError?.(`No se ha podido traer el clip (${e.message}). Se intenta con la descarga directa.`);
+    });
+  active.set(el, () => {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    if (url) URL.revokeObjectURL(url);
+  });
+  return video;
+}
+
 export function playClip(el, clip) {
   stopCam(el);
   const session = sessions.get(el);
   el.dataset.cameraType = 'clip';
-  const video = document.createElement('video');
-  Object.assign(video, { controls: true, playsInline: true, autoplay: true, src: clip.url });
-  video.setAttribute('playsinline', '');
-  el.appendChild(video);
+  const video = reproducirClip(el, clip, {
+    onError: (m) => { if (sessions.get(el) === session) msg(el, 'Clip con problemas', esc(m)); },
+  });
   const label = document.createElement('div');
   label.className = 'cam-overlay';
   const badge = document.createElement('span');
@@ -208,9 +248,8 @@ export function playClip(el, clip) {
   badge.textContent = 'Rewind · ' + new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   label.appendChild(badge); el.appendChild(label);
   video.addEventListener('error', () => { if (sessions.get(el) === session) msg(el, 'Clip no disponible', 'Puedes intentar descargarlo o volver al directo.'); }, { once: true });
-  video.play().catch(() => {});
-  active.set(el, () => { video.pause(); video.removeAttribute('src'); video.load(); });
-  return video;
+video.play().catch(() => {});
+return video;
 }
 
 // No cambia ni detiene el directo; sólo finaliza las pistas capturadas.
@@ -252,111 +291,478 @@ export function recordClip(el, segundos = 20, onTick = () => {}) {
 }
 
 // --------------------------------------------------------------------- vigía de ola
+//
+// Vigila el directo y graba SOLO cuando el detector ve a alguien cogiendo una
+// ola. Lo importante aquí es cómo se arma el clip, porque concatenar
+// grabaciones independientes con `new Blob([a, b])` produce un archivo roto: dos
+// contenedores WebM (o dos fragmentos MP4) pegados no forman un clip válido, se
+// pierde el principio y la duración sale mal. Ese era el defecto que había.
+//
+// Aquí hay dos grabadores y se elige el mejor disponible:
+//
+//   1. CODIFICADO (preferido). WebCodecs (`VideoEncoder`) más el muxador de WebM
+//      de la CDN. Los fotogramas se codifican en trozos con una marca de "empieza
+//      aquí" cada `gopS`, y se guardan en un búfer circular. Al disparar se toma
+//      la marca más reciente que quepa dentro de `prebufferS` y se escriben SOLO
+//      esos trozos, desde esa marca hasta el final, en un muxador NUEVO. Sale un
+//      WebM con una sola cabecera: arranca, la duración es la correcta y contiene
+//      los segundos previos a la detección, que es lo que incluye el principio de
+//      la ola. No usa `captureStream`, así que también funciona en Safari de iOS
+//      (16.4 o superior), donde no existe.
+//
+//   2. CONTINUO (respaldo). Un único `MediaRecorder` que no se para mientras se
+//      vigila. Al disparar se entrega la grabación entera en curso, que empezó
+//      como mucho `prebufferS` antes: es un archivo único y válido, sin
+//      concatenación, y contiene el principio de la ola. Necesita
+//      `video.captureStream()`, que Safari de iOS no tiene; si no está, se dice con
+//      claridad en vez de fingir.
+//
+// Si no hay ninguno de los dos, `iniciarVigiaOla` devuelve `disponible: false` con
+// el motivo y la interfaz lo enseña. Los clips se quedan en el dispositivo del
+// usuario: no se sube nada a ningún sitio.
 
-// Ajustes de la vigía, todos conservative y documentados. `prebufferS` es lo que
-// hace que el clip incluya el inicio de la ola: el búfer ya está grabado cuando
-// el detector dice que hay una. `segmentoS` es la granularidad del búfer: el
-// detector no puede entregar un trozo más antiguo que el segmento en curso.
-export const AJUSTES_VIGIA = {
-  prebufferS: 12, // segundos de histórico que se quedan grabados
-  postS: 8, // segundos que se siguen grabando después del disparo
-  segmentoS: 2, // duración de cada trozo de búfer
-  minIntervaloS: 20, // no disparar dos olas seguidas más cerca que esto
-  cooldownS: 45, // margen tras disparar, para no encadenar clips
-  // Banda vertical de la imagen donde se busca surfista, en fracción del alto del
-  // vídeo. Al recortar aquí, el surfista ocupa más píxeles de la rejilla de
-  // análisis, que es lo que hace falta a esta distancia. El resto (el cielo y la
-  // arena de detrás) no se analiza.
-  bandaImagen: [0.34, 0.94],
-  detectar: true, // analizar la imagen mientras se ve el directo
+
+const MUXADOR_CDN = 'https://cdn.jsdelivr.net/npm/webm-muxer@5.0.3/build/webm-muxer.mjs';
+
+// Codec de WebCodecs → identificador de WebM que espera el muxador.
+const VIDEOCODEC_A_WEBM = {
+  vp8: 'V_VP8',
+  'vp09.00.10.08': 'V_VP9',
 };
 
-const mimeGrabacion = () => ['video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
-  .find((t) => window.MediaRecorder?.isTypeSupported(t)) || null;
+export const AJUSTES_VIGIA = {
+  prebufferS: 12, // segundos de histórico que se conservan grabados
+  postS: 8, // segundos que se siguen grabando tras el disparo
+  gopS: 2, // cada cuánto se fuerza una trampa (punto de inicio recuperable)
+  ventanaMaxS: 45, // tope del grabador continuo antes de reiniciar
+  cooldownS: 20, // margen para no disparar dos olas seguidas
+  // Tamaño del clip codificado. 640x360 de sobra para ver una ola y no carga el
+  // móvil; con el doble se ve mejor el detalle de la tabla.
+  ancho: 640,
+  fps: 12, // fotogramas por segundo que se codifican y se analizan
+  bitrate: 1_400_000, // bits por segundo del clip codificado
+  // Banda vertical de la imagen donde se busca surfista, en fracción del alto del
+  // vídeo. Al recortar aquí el surfista ocupa más píxeles de la rejilla de análisis,
+  // que es lo que hace falta a esta distancia. El resto (cielo y arena) no se mira.
+  bandaImagen: [0.34, 0.94],
+  detectar: true, // analizar la imagen mientras se ve el directo
 
-// Une el búfer previo y la cola posterior en un único clip. Está suelto a
-// propósito para poder comprobar sin navegador que el clip final lleva el
-// principio de la ola: si el búfer no se sumara, el clip empezaría justo cuando
-// el detector gritó "ola" y se perdería lo interesante.
-export function ensamblarClip(pre, post, mimeType) {
-  const partes = [...(pre || []), ...(post || [])].map((p) => p?.blob ?? p).filter(Boolean);
-  if (!partes.length) return null;
+  // Modelo de persona y tabla. El detector de píxeles decide si alguien COGE una
+  // ola (persona + tabla + movimiento + recorrido, con sus rechazos probados);
+  // coco-ssd solo responde a si hay persona y hay tabla, y sirve de contrapeso:
+  // una silueta con forma de surfista no se da por buena sin que el modelo la
+  // reconozca, ni al revés. Si el modelo no está o falla, NO se dispara: un fallo
+  // de carga no puede contar como que no hay surfista.
+  usarIA: true,
+  iaFrecuenciaHz: 1, // la inferencia real tarda ~1,3 s: más rápido sería «omitido»
+  // Qué tan cerca en el tiempo tiene que estar la evidencia del modelo para
+  // contar. Si el modelo vio a alguien hace más de esto, ya no sirve para este
+  // disparo: habría que estar combining una foto vieja con un rastro nuevo.
+  iaValidezMs: 4000,
+  // Confianza mínima del modelo para dar su visto bueno.
+  iaConfianzaMin: 0.35,
+};
+
+// Qué grabador puede usar este navegador. Se exporta para poder probarlo sin
+// navegador: se le pasan las capacidades y devuelve el motivo si no hay ninguna.
+export function elegirGrabador(caps = {}) {
+  const webcodecs = Boolean(caps.VideoEncoder && caps.VideoFrame);
+  const capture = Boolean(caps.captureStreamVideo);
+  const recorder = Boolean(caps.MediaRecorder);
+  if (webcodecs) {
+    return { modo: 'codificado', codec: '', webm: '', motivo: '', aviso: '' };
+  }
+  if (capture && recorder) {
+    return {
+      modo: 'continuo', codec: '', webm: '', motivo: '',
+      aviso: 'Este navegador no tiene WebCodecs, así que el clip será la grabación en curso completa.',
+    };
+  }
+  if (!webcodecs && capture && !recorder) {
+    return { modo: 'ninguno', motivo: 'Este navegador no puede grabar el directo: no tiene WebCodecs ni MediaRecorder.' };
+  }
   return {
-    blob: new Blob(partes, { type: mimeType }),
-    bytes: partes.reduce((s, p) => s + (p.size || 0), 0),
-    trozos: partes.length,
+    modo: 'ninguno',
+    motivo: 'Este navegador no puede grabar el directo: ni tiene WebCodecs ni puede capturar el vídeo del elemento. En Safari de iOS hace falta iOS 16.4 o superior.',
   };
 }
 
-// Vigila el directo y graba solo lo que de verdad sirve: cuando el detector ve a
-// alguien cogiendo una ola. Devuelve un objeto con `parar()` y `estado()`.
-//
-// Lo grabado se queda en el dispositivo del usuario: no se sube a ningún sitio.
+// ---------------------------------------------------------------- clip codificado
+
+// Escribe en un muxador NUEVO solo los trozos indicados. Lo que hay que
+// comprobar es que se escribe UNA cabecera y nada más: ningún trozo anterior a la
+// trampa se cuela, y no se pega ninguna grabación entera dentro de otra.
+// Se exporta con el muxador inyectado para poder probarlo con uno falso.
+export function armarClipWebm(trozos, opciones) {
+  const { Muxer, ArrayBufferTarget, codec, ancho, alto, fps } = opciones;
+  // Se descartan los trozos sueltos que hubiera antes de la primera trampa: sin
+  // punto de inicio no se pueden decodificar.
+  const primero = trozos.findIndex((t) => t.key);
+  if (primero < 0) return null;
+  const utiles = trozos.slice(primero).sort((a, b) => a.timestamp - b.timestamp);
+
+  const target = new ArrayBufferTarget();
+  const muxer = new Muxer({
+    target,
+    video: { codec, width: ancho, height: alto, frameRate: fps },
+    firstTimestampBehavior: 'offset',
+  });
+  for (const t of utiles) {
+    muxer.addVideoChunk(
+      new EncodedVideoChunk({ type: t.key ? 'key' : 'delta', timestamp: t.timestamp, data: t.data }),
+      { timestamp: t.timestamp, duration: t.duracion },
+    );
+  }
+  muxer.finalize();
+  const bytes = new Uint8Array(target.buffer);
+  const ultimo = utiles[utiles.length - 1];
+  return {
+    blob: new Blob([bytes], { type: 'video/webm' }),
+    bytes: bytes.byteLength,
+    trozos: utiles.length,
+    duracionMs: ultimo.timestamp - utiles[0].timestamp + (ultimo.duracion || 0),
+    desdeTrampa: utiles[0].key === true,
+  };
+}
+
+// ------------------------------------------------------------------ grabadores
+
+function crearGrabadorCodificado(video, cfg) {
+  const W = cfg.ancho;
+  const H = Math.max(2, Math.round(((W * video.videoHeight) / Math.max(1, video.videoWidth)) / 2) * 2);
+  const GOP = Math.max(1, Math.round(cfg.fps * cfg.gopS));
+  const bucle = [];
+  let Muxer = null;
+  let ArrayBufferTarget = null;
+  let encoder = null;
+  let reloj = null;
+  let capturando = false;
+  let indice = 0;
+  let error = null;
+  let codigo = '';
+  let codigoWebm = '';
+
+  async function preparar() {
+    if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') {
+      throw new Error('Este navegador no tiene WebCodecs.');
+    }
+    const mod = await import(MUXADOR_CDN);
+    Muxer = mod.Muxer;
+    ArrayBufferTarget = mod.ArrayBufferTarget;
+    let soporte = null;
+    for (const c of ['vp8', 'vp09.00.10.08']) {
+      try {
+        const s = await VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: cfg.bitrate, framerate: cfg.fps });
+        if (s.supported) { soporte = c; break; }
+      } catch { /* se prueba el siguiente */ }
+    }
+    if (!soporte) throw new Error('Este navegador no tiene ningún códec de WebM disponible.');
+    codigo = soporte;
+    codigoWebm = VIDEOCODEC_A_WEBM[soporte];
+    encoder = new VideoEncoder({
+      output: (chunk) => {
+        const data = new Uint8Array(chunk.byteLength);
+        chunk.copyTo(data);
+        bucle.push({
+          key: chunk.type === 'key',
+          data,
+          timestamp: chunk.timestamp,
+          duracion: Math.round(1e6 / cfg.fps),
+        });
+      },
+      error: (e) => { error = e.message || 'fallo del codificador'; },
+    });
+    encoder.configure({ codec: codigo, width: W, height: H, bitrate: cfg.bitrate, framerate: cfg.fps, latencyMode: 'realtime' });
+  }
+
+  function paso() {
+    if (!capturando || !encoder || encoder.state !== 'configured') return;
+    if (video.readyState < 2 || !video.videoWidth) return;
+    let frame;
+    try {
+      frame = new VideoFrame(video, { timestamp: Math.round(performance.now() * 1000) });
+    } catch { return; }
+    try {
+      encoder.encode(frame, { keyFrame: indice % GOP === 0 });
+    } catch (e) {
+      error = e.message || 'no se pudo codificar el fotograma';
+    }
+    frame.close();
+    indice++;
+  }
+
+  function podar() {
+    // Se conserva una puerta de seguridad por si el búfer se llenara de más.
+    const tope = (cfg.prebufferS / cfg.gopS + 2) * GOP * 2;
+    if (bucle.length > tope) bucle.splice(0, bucle.length - Math.floor(tope / 2));
+  }
+
+  async function disparar() {
+    // OJO con las unidades: WebCodecs da los trozos en MICROsegundos y
+    // performance.now() va en milisegundos. Compararlos tal cual salía un búfer
+    // previo negativo de miles de horas.
+    const ahoraUs = performance.now() * 1000;
+    const limite = ahoraUs - cfg.prebufferS * 1e6;
+    // Trampa = la marca de inicio MÁS ANTIGUA que todavía cabe dentro de
+    // `prebufferS`, que es la que más histórico mete en el clip. Si no hay
+    // ninguna así (grabación recién empezada), se usa la más antigua que exista.
+    const enVentana = bucle.filter((t) => t.key && t.timestamp >= limite).sort((a, b) => a.timestamp - b.timestamp);
+    const todas = bucle.filter((t) => t.key).sort((a, b) => a.timestamp - b.timestamp);
+    const trampa = enVentana[0] || todas[0] || null;
+    if (!trampa) return { error: 'Todavía no hay ningún fotograma grabado que pueda servir de inicio.' };
+    const segundosPrevio = Math.max(0, Math.round((ahoraUs - trampa.timestamp) / 1e6));
+
+    const espera = performance.now() + cfg.postS * 1000;
+    const ventana = [];
+    await new Promise((resolver) => {
+      const latido = setInterval(() => {
+        for (const t of bucle) {
+          if (t.timestamp >= trampa.timestamp && !ventana.includes(t)) ventana.push(t);
+        }
+        if (performance.now() >= espera) {
+          clearInterval(latido);
+          resolver();
+        }
+      }, 120);
+    });
+    for (const t of bucle) {
+      if (t.timestamp >= trampa.timestamp && !ventana.includes(t)) ventana.push(t);
+    }
+    podar();
+    const clip = armarClipWebm(ventana, { Muxer, ArrayBufferTarget, codec: codigoWebm, ancho: W, alto: H, fps: cfg.fps });
+    if (!clip) return { error: 'Los trozos grabados no tenían ningún punto de inicio utilizable.' };
+    return {
+      ...clip,
+      segundos: Math.round(clip.duracionMs / 1000),
+      segundosPrevio,
+      codec: codigo,
+      contenedorUnico: true,
+      ancho: W,
+      alto: H,
+      extension: 'webm',
+    };
+  }
+
+  return {
+    modo: 'codificado',
+    async iniciar() {
+      await preparar();
+      capturando = true;
+      if (video.requestVideoFrameCallback) {
+        const ciclo = () => {
+          paso();
+          podar();
+          if (capturando) video.requestVideoFrameCallback(ciclo);
+        };
+        video.requestVideoFrameCallback(ciclo);
+      } else {
+        reloj = setInterval(() => { paso(); podar(); }, 1000 / cfg.fps);
+      }
+    },
+    disparar,
+    parar() {
+      capturando = false;
+      if (reloj) clearInterval(reloj);
+      try { encoder?.close(); } catch { /* nada */ }
+    },
+    estado: () => ({
+      modo: 'codificado',
+      codec: codigo,
+      ancho: W,
+      alto: H,
+      bucle: bucle.length,
+      // Cuánto histórico hay guardado ahora mismo, que es lo que le importa a quien
+      // vigila: la diferencia entre el trozo más viejo y el más nuevo.
+      segundos: bucle.length > 1 ? Math.max(0, Math.round((bucle[bucle.length - 1].timestamp - bucle[0].timestamp) / 1e6)) : 0,
+      error,
+    }),
+  };
+}
+
+function crearGrabadorContinuo(video, cfg) {
+  const mime = ['video/webm;codecs=vp8', 'video/webm;codecs=vp9', 'video/webm', 'video/mp4']
+    .find((t) => window.MediaRecorder?.isTypeSupported(t));
+  if (!mime) return null;
+  let stream = null;
+  let rec = null;
+  let trozos = [];
+  let t0 = 0;
+  let reloj = null;
+  let error = null;
+
+  function arrancar() {
+    rec = new MediaRecorder(stream, { mimeType: mime });
+    trozos = [];
+    t0 = Date.now();
+    rec.ondataavailable = (e) => { if (e.data.size) trozos.push(e.data); };
+    rec.start(500);
+  }
+
+  return {
+    modo: 'continuo',
+    async iniciar() {
+      stream = video.captureStream();
+      if (!stream.getVideoTracks().length) throw new Error('La cámara todavía no ofrece vídeo.');
+      arrancar();
+      // Un único grabador mientras quepa en la ventana; al llegar al tope se
+      // reinicia para que el siguiente clip empiece en una cabecera nueva.
+      reloj = setInterval(() => {
+        if (error) return;
+        if (Date.now() - t0 > cfg.ventanaMaxS * 1000) {
+          try { rec.stop(); } catch { /* nada */ }
+          setTimeout(() => { if (stream) arrancar(); }, 300);
+        }
+      }, 1000);
+    },
+    async disparar() {
+      if (!rec || rec.state !== 'recording') return { error: 'No había grabación en curso.' };
+      const segundos = Math.round((Date.now() - t0) / 1000);
+      // Un MediaRecorder en curso no se puede copiar: se entrega lo grabado y se
+      // espera a que termine, para no recortar nada.
+      const cierre = new Promise((r) => {
+        const previo = rec.onstop;
+        rec.onstop = () => { previo?.(); r(); };
+      });
+      try { rec.stop(); } catch { /* nada */ }
+      await cierre;
+      const blob = new Blob(trozos, { type: mime });
+      if (stream) arrancar();
+      if (!blob.size) return { error: 'La grabación en curso salió vacía.' };
+      return {
+        blob,
+        bytes: blob.size,
+        extension: mime.startsWith('video/mp4') ? 'mp4' : 'webm',
+        segundos,
+        segundosPrevio: Math.min(cfg.prebufferS, segundos),
+        contenedorUnico: true,
+      };
+    },
+    parar() {
+      clearInterval(reloj);
+      if (rec && rec.state !== 'inactive') { try { rec.stop(); } catch { /* nada */ } }
+      stream?.getTracks().forEach((t) => t.stop());
+    },
+    estado: () => ({
+      modo: 'continuo',
+      mime,
+      bucle: trozos.length,
+      segundos: t0 ? Math.round((Date.now() - t0) / 1000) : 0,
+      error,
+    }),
+  };
+}
+
+// ---------------------------------------------------------------------- vigía
+
+// Vigila el directo. Devuelve un objeto con `preparar()`, `estado()` y `parar()`.
+// Si este navegador no puede grabar, `preparar()` deja `disponible` en false y
+// `motivo` explica por qué, para que la interfaz lo diga en vez de fallar en
+// silencio.
 export function iniciarVigiaOla(el, cam, opciones = {}) {
   const cfg = { ...AJUSTES_VIGIA, ...opciones };
   const detector = crearDetector({ ...AJUSTES_DETECCION, ...(opciones.ajustes || {}), roiAgua: [0, 1] });
   const video = el.querySelector('video');
-  const mic = mimeGrabacion();
   const vigia = {
-    cfg, detector, armed: false, parada: false,
-    ultimoDisparo: 0,
-    bucle: [], // trozos de búfer {blob, t0, t1}
-    ultimo: null, eventos: [], error: null,
+    cfg, detector, disponible: false, motivo: '', aviso: '', parado: false,
+    modo: 'ninguno', ultimo: null, eventos: [], grabador: null,
+    _ultimoDisparo: 0, _iaUltima: null, _iaReloj: null, ia: null, _iaLlamadas: 0, _iaSinVideo: 0,
   };
 
   if (!video || el.dataset.cameraType !== 'hls') {
-    vigia.error = 'La vigía necesita una cámara en directo que se pueda grabar.';
-    return vigia;
-  }
-  if (!video.captureStream || !window.MediaRecorder || !mic) {
-    vigia.error = 'Este navegador no permite grabar el directo, así que no se puede vigilar la ola.';
+    vigia.motivo = 'La vigía necesita una cámara en directo grabable.';
     return vigia;
   }
 
-  let stream = null;
-  try { stream = video.captureStream(); } catch (e) { vigia.error = 'La cámara no ofrece vídeo para analizar.'; return vigia; }
-  if (!stream.getVideoTracks().length) { vigia.error = 'La cámara todavía no ofrece vídeo.'; return vigia; }
+  const eleccion = elegirGrabador({
+    VideoEncoder: typeof VideoEncoder === 'undefined' ? null : VideoEncoder,
+    VideoFrame: typeof VideoFrame === 'undefined' ? null : VideoFrame,
+    MediaRecorder: typeof window.MediaRecorder === 'undefined' ? null : window.MediaRecorder,
+    captureStreamVideo: typeof video.captureStream === 'function',
+  });
+  vigia.modo = eleccion.modo;
+  vigia.motivo = eleccion.motivo;
+  vigia.aviso = eleccion.aviso || '';
+  if (eleccion.modo === 'ninguno') return vigia;
 
-  // Lienzo de análisis: el búfer de píxeles se dibuja y se lee una vez por cuadro.
   const lienzo = document.createElement('canvas');
   lienzo.width = detector.ajustes.anchoAnalisis;
   lienzo.height = detector.ajustes.altoAnalisis;
   const ctx = lienzo.getContext('2d', { willReadFrequently: true });
+  let relojAnalisis = null;
+  let _iaReloj = null;
 
-  let grabador = null;
-  let trozos = [];
-  let temporizadorTrozo = null;
-  let temporizadorPost = null;
-  let temporizadorAnalisis = null;
-  let grabandoPost = false;
-
-  function grabarTrozo() {
-    // Mientras se está grabando la cola posterior de una ola no se rellena el
-    // búfer: quien decide cuándo acaba ese clip es su propio temporizador, que
-    // vuelve a arrancar la cadena al terminar (ver `fin()`).
-    if (vigia.parada || !vigia.armed || grabandoPost) return;
-    const rec = new MediaRecorder(stream, { mimeType: mic });
-    const t0 = Date.now();
-    const recogidos = [];
-    grabador = rec;
-    rec.ondataavailable = (e) => { if (e.data.size) recogidos.push(e.data); };
-    rec.onstop = () => {
-      grabador = null;
-      if (recogidos.length) {
-        vigia.bucle.push({ blob: new Blob(recogidos, { type: mic }), t0, t1: Date.now() });
-        // Poda del búfer: nunca más de `prebufferS` de histórico.
-        const limite = Date.now() - cfg.prebufferS * 1000;
-        while (vigia.bucle.length && vigia.bucle[0].t1 < limite) vigia.bucle.shift();
+  async function preparar() {
+    try {
+      vigia.grabador = eleccion.modo === 'codificado'
+        ? crearGrabadorCodificado(video, cfg)
+        : crearGrabadorContinuo(video, cfg);
+      if (!vigia.grabador) {
+        vigia.motivo = 'No hay un formato de grabación compatible en este navegador.';
+        return false;
       }
-      clearTimeout(temporizadorTrozo);
-      if (!vigia.parada && vigia.armed && !grabandoPost) grabarTrozo();
-    };
-    rec.start();
-    temporizadorTrozo = setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, cfg.segmentoS * 1000);
+      await vigia.grabador.iniciar();
+      if (cfg.usarIA) {
+        // El modelo se pide solo al armar la vigía, nunca al abrir la página: son
+        // unos 18 MB y no tiene sentido bajarlos si nadie está mirando.
+        vigia.ia = crearDetectorIA();
+        const carga = await vigia.ia.cargar();
+        if (!carga.ok) {
+          vigia.motivo = `No se ha podido cargar el detector de persona y tabla (${carga.error?.codigo || 'sin codigo'}): ${carga.error?.mensaje || 'motivo desconocido'}. Sin ese modelo no se puede decidir que sea un surfista, así que la vigía se queda apagada.`;
+          vigia.grabador.parar();
+          vigia.grabador = null;
+          return false;
+        }
+        _iaReloj = setInterval(analizarIA, Math.max(250, Math.round(1000 / cfg.iaFrecuenciaHz)));
+      }
+      vigia.disponible = true;
+      if (cfg.detectar) {
+        relojAnalisis = setInterval(analizar, Math.max(60, Math.round(1000 / cfg.fps)));
+      }
+      return true;
+    } catch (e) {
+      vigia.motivo = e.message || 'No se pudo preparar la grabación.';
+      return false;
+    }
+  }
+
+  // El modelo va a su ritmo (~1 Hz) porque una inferencia real tarda más de un
+  // segundo. Mientras está en vuelo devuelve «omitido» y eso es normal, no un fallo.
+  async function analizarIA() {
+    vigia._iaLlamadas++;
+    if (vigia.parado || !vigia.ia) return;
+    if (video.readyState < 2 || !video.videoWidth) { vigia._iaSinVideo = (vigia._iaSinVideo || 0) + 1; return; }
+    let r;
+    try {
+      r = await vigia.ia.detectar({ video, banda: cfg.bandaImagen, tMs: Date.now() });
+    } catch { return; }
+    if (!r || r.estado === 'omitido' || r.estado === 'obsoleto') return;
+    // Si al terminar ya se pidió otro fotograma, el resultado es viejo: no se usa.
+    if (vigia.ia.esFresco && !vigia.ia.esFresco(r)) return;
+    if (r.estado === 'error') {
+      vigia._iaUltima = null;
+      vigia.motivoIA = `El detector de persona y tabla falló (${r.error?.codigo || 'sin codigo'}).`;
+      return;
+    }
+    vigia.motivoIA = '';
+    // Solo cuenta si el modelo vio persona Y tabla, con confianza suficiente.
+    const persona = (r.detecciones || []).find((d) => d.clase === 'person' && d.confianza >= cfg.iaConfianzaMin);
+    const tabla = (r.detecciones || []).find((d) => d.clase === 'surfboard' && d.confianza >= cfg.iaConfianzaMin);
+    vigia._iaUltima = persona && tabla
+      ? { tMs: r.tMs, persona, tabla, pares: r.pares || [], ms: r.ms, modelo: r.modelo }
+      : null;
+  }
+
+  // ¿Hay evidencia del modelo utilizable AHORA MISMO? Fresca, con persona y tabla.
+  function evidenciaIA() {
+    const e = vigia._iaUltima;
+    if (!e) return null;
+    if (Date.now() - e.tMs > cfg.iaValidezMs) return null;
+    return e;
   }
 
   function analizar() {
-    if (vigia.parada || video.readyState < 2 || video.videoWidth === 0) return;
+    if (vigia.parado || !vigia.disponible) return;
+    if (video.readyState < 2 || !video.videoWidth) return;
     const vh = video.videoHeight, vw = video.videoWidth;
     const sy = Math.floor(cfg.bandaImagen[0] * vh);
     const sh = Math.max(8, Math.floor((cfg.bandaImagen[1] - cfg.bandaImagen[0]) * vh));
@@ -365,86 +771,71 @@ export function iniciarVigiaOla(el, cam, opciones = {}) {
     const grises = aGrisesReducidos(datos, lienzo.width, lienzo.height, detector.ajustes.anchoAnalisis, detector.ajustes.altoAnalisis);
     const salida = detector.push(grises, Date.now());
     if (!salida?.deteccion) return;
-    const ahora = Date.now();
-    if (ahora - vigia.ultimoDisparo < cfg.cooldownS * 1000) return;
-    vigia.ultimoDisparo = ahora;
-    disparo(salida.deteccion);
+    if (Date.now() - vigia._ultimoDisparo < cfg.cooldownS * 1000) return;
+    // El píxel dice que alguien coge una ola; el modelo tiene que estar de acuerdo
+    // con persona y tabla, y ser reciente. Con el modelo caído no se dispara.
+    const ia = cfg.usarIA ? evidenciaIA() : { sinModelo: true };
+    if (cfg.usarIA && !ia) return;
+    vigia._ultimoDisparo = Date.now();
+    lanzar({
+      ...salida.deteccion,
+      evidenciaIA: ia && !ia.sinModelo ? {
+        tMs: ia.tMs,
+        persona: { confianza: ia.persona.confianza, centro: ia.persona.centro },
+        tabla: { confianza: ia.tabla.confianza, centro: ia.tabla.centro },
+        ms: ia.ms,
+        modelo: ia.modelo?.id || 'coco-ssd',
+      } : null,
+      motivo: salida.deteccion.motivos.join(' ') + (ia && !ia.sinModelo
+        ? ` El modelo reconoce persona (${Math.round(ia.persona.confianza * 100)} %) y tabla (${Math.round(ia.tabla.confianza * 100)} %).`
+        : ''),
+    });
   }
 
-  function disparo(deteccion) {
-    vigia.ultimaDeteccion = deteccion;
-    // El búfer ya contiene los segundos anteriores: por eso el clip empieza antes
-    // de la detección y sí incluye el inicio de la ola.
-    const pre = vigia.bucle.slice();
-    const seguidos = [];
-    grabandoPost = true;
-    const fin = () => {
-      grabandoPost = false;
-      clearTimeout(temporizadorPost);
-      const clip = ensamblarClip(pre, seguidos, mic);
-      const inicio = pre[0]?.t0 ?? Date.now();
-      const final = seguidos[seguidos.length - 1]?.t1 ?? Date.now();
-      if (!clip) { if (!vigia.parada && vigia.armed) grabarTrozo(); return; }
-      vigia.ultimo = {
-        blob: clip.blob,
-        bytes: clip.bytes,
-        extension: mic.startsWith('video/mp4') ? 'mp4' : 'webm',
-        mimeType: mic,
-        deteccion,
-        segundos: Math.max(1, Math.round((final - inicio) / 1000)),
-        prebufferS: Math.round((deteccion.tMs - inicio) / 1000),
-      };
-      vigia.eventos.push(vigia.ultimo);
-      opciones.onOla?.(vigia.ultimo);
-      // El búfer vuelve a llenarse para el siguiente intento.
-      if (!vigia.parada && vigia.armed) grabarTrozo();
-    };
-    const restantes = cfg.postS;
-    const seguir = () => {
-      if (restantes <= 0 || vigia.parada) { fin(); return; }
-      const pedazo = Math.min(cfg.segmentoS, restantes);
-      const rec = new MediaRecorder(stream, { mimeType: mic });
-      const t0 = Date.now();
-      const recogidos = [];
-      rec.ondataavailable = (e) => { if (e.data.size) recogidos.push(e.data); };
-      rec.onstop = () => {
-        if (recogidos.length) seguidos.push({ blob: new Blob(recogidos, { type: mic }), t0, t1: Date.now() });
-        seguir();
-      };
-      rec.start();
-      temporizadorPost = setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, pedazo * 1000);
-    };
-    seguir();
+  async function lanzar(deteccion) {
+    let clip = null;
+    try {
+      clip = await vigia.grabador.disparar();
+    } catch (e) {
+      opciones.onError?.(e.message || 'No se pudo grabar el clip.');
+      return;
+    }
+    if (!clip || clip.error) {
+      opciones.onError?.(clip?.error || 'No se pudo grabar el clip.');
+      return;
+    }
+    const entrega = { ...clip, deteccion, tMs: deteccion.tMs };
+    vigia.ultimo = entrega;
+    vigia.eventos.push(entrega);
+    opciones.onOla?.(entrega);
   }
 
-  vigias.set(el, vigia);
-  vigia.armed = true;
-  grabarTrozo();
-  if (cfg.detectar) {
-    temporizadorAnalisis = setInterval(analizar, 1000 / detector.ajustes.cuadrosPorSegundo);
-  }
-
+  vigia.preparar = preparar;
+  vigia.analizar = analizar;
   vigia.parar = () => {
-    if (vigia.parada) return;
-    vigia.parada = true;
-    vigia.armed = false;
-    clearInterval(temporizadorAnalisis);
-    clearTimeout(temporizadorTrozo);
-    clearTimeout(temporizadorPost);
-    if (grabador && grabador.state !== 'inactive') grabador.stop();
-    stream.getTracks().forEach((t) => t.stop());
+    if (vigia.parado) return;
+    vigia.parado = true;
+    clearInterval(relojAnalisis);
+    clearInterval(_iaReloj);
+    // El modelo son unos 18 MB de pesos y memoria de GPU: se sueltan al parar.
+    try { vigia.ia?.liberar(); } catch { /* nada */ }
+    vigia._iaUltima = null;
+    vigia.grabador?.parar();
   };
   vigia.estado = () => ({
-    armed: vigia.armed,
-    bucle: vigia.bucle.length,
-    segundos: vigia.bucle.reduce((s, p) => s + (p.t1 - p.t0) / 1000, 0),
+    ...(vigia.grabador?.estado?.() || { modo: vigia.modo }),
+    disponible: vigia.disponible,
+    motivo: vigia.motivo,
+    motivoIA: vigia.motivoIA || '',
     eventos: vigia.eventos.length,
-    error: vigia.error,
     detector: detector.estado(),
+    ia: vigia.ia?.estado?.() || null,
+    iaLlamadas: vigia._iaLlamadas,
+    iaSinVideo: vigia._iaSinVideo,
+    evidenciaIA: evidenciaIA() ? { tMs: evidenciaIA().tMs, persona: Math.round(evidenciaIA().persona.confianza * 100), tabla: Math.round(evidenciaIA().tabla.confianza * 100) } : null,
   });
   return vigia;
 }
-
 // Miniatura estática para tarjetas (solo tipos que tienen imagen)
 export function camThumb(cam) {
   if (!cam) return null;

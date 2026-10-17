@@ -23,28 +23,61 @@ Dudas que no se pueden resolver sin decisión de Jordi. Se aplicó la opción co
 
 # DUDAS
 
-## 4. 17/10/2026 · Grabación de la vigía de ola sin comprobar en un navegador real
+## 7. 17/10/2026 · El modelo de persona y tabla entra, pero no decide
 
-- **[NO VERIFICADO] El clip que entrega la vigía no se ha podido grabar en este host.**
-  Con Edge sin ventana, `video.captureStream()` da una pista `live` y el vídeo se reproduce a 720p
-  (`readyState 4`), pero `MediaRecorder` devuelve 0 bytes. Se probó también grabando un lienzo
-  repintado 74 veces: 0 bytes. Es el grabador sin ventana, no el código. Lo que sí está comprobado es
-  el ensamblado (`ensamblarClip`) y el búfer, con pruebas sobre `Blob` reales.
-- Para cerrarlo hace falta abrir `tools/probar_surfers.html` con el repo servido por HTTP en un navegador
-  **con ventana** y mirar `bytesClip` y `duracionClip`. `python scripts/probar_surfers.py` salta ese
-  punto con el motivo en vez de darlo por bueno.
-- Riesgo conocido y no resuelto: concatenar varios WebM independientes produce un archivo que Chrome y
-  ffmpeg reproducen, pero al que algunos reproductores fittings les cuesta el primer segmento. Si en la
-  prueba con ventana se ve que el clip no arranca, el arreglo es grabar con un único `MediaRecorder` continuo
-  y perder el búfer previo (o gastar un `timeshift` del servidor), que es justo lo que se quería evitar.
+- **[VERIFICADO] El módulo carga e infiere**: webgl, tfjs 4.22.0, coco-ssd 2.2.3, 262 tensores, y una
+  llamada directa sobre el vídeo devuelve `marcoId` 56 y 94 ms. En la escena de rectángulos de la E2E
+  devuelve `sin_deteccion` con 0 persona y 0 tabla, y entonces **no se graba ningún clip**: eso es
+  justamente la propiedad que se pedía, que un fallo del modelo no se tome por un surfista.
+- **[NO VERIFICADO] Que el modelo reconozca a un surfista de verdad.** Con la cámara real no se ha medido
+  ninguna vez que detecte persona y tabla, porque no se ha grabado ningún clip con surfistas. El único
+  caso con el modelo viene de una escena sintética de rectángulos, donde acertar es decir «no».
+- **[NO VERIFICADO] Que los dos detectores discordan bien en la práctica.** Con que el pixel diga «coge
+  ola» y el modelo diga «no veo a nadie», no se graba: el píxel gana en disparadores y el modelo puede
+  silenciar la vigía por completo si está mal calibrado a esa distancia. Con la cámara del club, que
+  abarca toda la playa, es un riesgo real. Si en la práctica no sale nada, lo primero que hay que tocar es
+  `iaConfianzaMin` (0,35) o `iaValidezMs` (4 000 ms), no los umbrales del detector de píxeles.
+- **[VERIFICADO, MENOR]** `estado().inferencias` del módulo devuelve 0 pese a inferir. Se reporta; no se
+  afirma nada sobre ese contador.
+
+## 4. 17/10/2026 · Lo que sigue SIN comprobar, dicho sin adornos
+
+- **[VERIFICADO] El clip ya es real y completo.** Con navegador con ventana: búfer previo de 7-8 s,
+  clip de 11,5 s que **se reproduce entero**, un solo contenedor. Y sobre la cámara real del club:
+  clip de 9,44 s, 3,7 MB, también reproducible. Evidencia en `docs/E2E_VIGIA.md`. Lo que había antes
+  (concatenar grabaciones) daba 3,0 s de 5 s: estaba roto y ahora no.
+- **[NO VERIFICADO] iPhone de verdad.** El grabador `codificado` no usa `captureStream`, que es lo que
+  faltaba en Safari de iOS, así que en principio debería funcionar desde iOS 16.4. Pero **no se ha
+  probado en un móvil real** y no hay iPhone conectado a este host. Lo que sí está comprobado es que,
+  si el navegador no soporta ninguno de los dos grabadores, la web lo dice con el motivo en vez de
+  enseñar un botón inútil. Falta: abrir la app en el iPhone de Jordi y comprobar que el botón de vigía
+  aparece, graba y descarga.
+- **[NO VERIFICADO] Que el detector acierte con un surfista real.** `js/deteccion.js` es una
+  **heurística sobre píxeles**, no un modelo entrenado: no hay pesos, ni red, ni COCO. Lo demostrado
+  es que dispara con surfistas sintéticos y que separa boya, espuma, bañista, surfista quieto y quien
+  solo rema en pruebas unitarias y en una escena E2E. Lo que no se puede afirmar es su precisión con
+  la cámara del club, que abarca toda Playa del Pinar y donde el surfista sale muy pequeño.
+- **[NO VERIFICADO] Duración exacta de la reproducción en iOS.** El WebM de 640x360 es H.264-free
+  (VP8); Safari de iOS reproduce WebM/VP8 desde iOS 17.4 de forma general. En iOS 16.4 puede tocar
+  decodificar sí pero no mostrarlo. Si fallara, la alternativa es grabar en H.264 (`avc1`), que el
+  `VideoEncoder` de Safari sí admite; está comprobado que el códec está soportado, no que el
+  navegador lo use por defecto.
+
+## 4b. 17/10/2026 · Por qué `MediaRecorder` no sirve en pruebas sin ventana
+
+- **[VERIFICADO] En navegador SIN ventana, `MediaRecorder` devuelve 0 bytes** aunque el vídeo se esté
+  reproduciendo (`readyState 4`, pista `live`, sin mute) y aunque se repinte un lienzo 74 veces. Con
+  ventana funciona: 859 kB de búfer previo y 1,4 MB de clip. El grabador no es el problema; la falta de
+  compositor lo es. Por eso las pruebas de grabación van con ventana y no en CI.
 
 ## 5. 17/10/2026 · Umbrales del detector sin calibrar con surfista real
 
 - **[NO VERIFICADO] La calidad del detector no está medida contra un surfista de verdad.** No hay ningún
   clip del club con un surfista confirmado y etiquetado, así que lo único verificado son positivos y
-  negativos sintéticos (`tools/test_deteccion_ola.js`, 52 pruebas). Con la cámara de Playa del Pinar, que
-  abarca toda la playa, el surfista sale muy pequeño en la rejilla de análisis; por eso el recorte a la
-  banda de agua (`bandaImagen`) es lo que decide si esto sirve o no.
+  negativos sintéticos (`tools/test_deteccion_ola.js`, 52 pruebas) y una escena E2E que dispara de verdad
+  con píxeles generados en el momento. Con la cámara de Playa del Pinar, que abarca toda la playa, el
+  surfista sale muy pequeño en la rejilla de análisis; por eso el recorte a la banda de agua
+  (`bandaImagen`) es lo que decide si esto sirve o no.
 - Decisión de Jordi: si en la práctica sale demasiado mudo, ¿se prefiere subir `velNetaMinPxS` y
   `olaNetoMinPx` (más mudo pero limpio) o bajar `contrasteOscuro` y `altoMinPersonaFrac` (más sensible con
   más falsos positivos)? La opción conservadora por defecto es lo primero.

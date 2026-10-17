@@ -219,21 +219,112 @@ seccion('La webcam del club: prioridad, emisión resuelta y grababilidad');
   comprobar('la del club va antes que la de la Generalitat', club.findIndex((c) => c.id === 'cv_grao_castellon') > 0, club.map((c) => c.id).join(','));
 }
 
-seccion('Grabación completa: el clip incluye el búfer previo');
+seccion('Elegir grabador: cuál se puede usar y por qué se dice que no');
 {
-  // `ensamblarClip` se extrae del js/cams.js real, no se reescribe.
-  const fuente = extraer(leer('js/cams.js'), 'ensamblarClip').replace('export ', '');
-  const ensamblarClip = new Function(`${fuente}; return ensamblarClip;`)();
-  const trozo = (n) => new Blob([new Uint8Array(n).fill(7)], { type: 'video/webm' });
-  const pre = [{ blob: trozo(1000), t0: 0, t1: 2000 }, { blob: trozo(1000), t0: 2000, t1: 4000 }];
-  const post = [{ blob: trozo(1500), t0: 4000, t1: 5500 }];
-  const clip = ensamblarClip(pre, post, 'video/webm');
-  comprobar('el clip une pre y post', clip.trozos === 3, `${clip.trozos}`);
-  comprobar('el clip pesa la suma exacta de los trozos', clip.bytes === 1000 + 1000 + 1500, `${clip.bytes}`);
-  comprobar('el clip es un Blob con el tipo de la grabación', clip.blob instanceof Blob && clip.blob.type === 'video/webm');
-  comprobar('sin búfer previo también arma clip', ensamblarClip([], post, 'video/webm').trozos === 1);
-  comprobar('sin nada grabado no inventa un clip', ensamblarClip([], [], 'video/webm') === null);
-  comprobar('admite trozos sueltos sin envolver', ensamblarClip([trozo(10)], [trozo(20)], 'video/webm').bytes === 30);
+  // `elegirGrabador` recibe las capacidades del navegador, así que se puede probar
+  // el caso de Safari de iOS sin tener un iPhone delante.
+  const elegir = new Function(`${extraer(leer('js/cams.js'), 'elegirGrabador').replace('export ', '')}; return elegirGrabador;`)();
+  const webcodecs = { VideoEncoder: function () {}, VideoFrame: function () {}, MediaRecorder: function () {}, captureStreamVideo: true };
+  const sinWebcodecs = { VideoEncoder: null, VideoFrame: null, MediaRecorder: function () {}, captureStreamVideo: true };
+  const soloSafariIOS = { VideoEncoder: null, VideoFrame: null, MediaRecorder: null, captureStreamVideo: false };
+
+  const conWc = elegir(webcodecs);
+  comprobar('con WebCodecs se usa el grabador codificado', conWc.modo === 'codificado', conWc.modo);
+  comprobar('el codificado no necesita captureStream', elegir({ ...webcodecs, captureStreamVideo: false }).modo === 'codificado');
+  comprobar('sin WebCodecs pero con captura, se usa el continuo', elegir(sinWebcodecs).modo === 'continuo');
+  comprobar('el continuo avisa de que el clip será la grabación completa', /grabación en curso/.test(elegir(sinWebcodecs).aviso || ''), elegir(sinWebcodecs).aviso);
+  const ios = elegir(soloSafariIOS);
+  comprobar('en Safari de iOS sin WebCodecs no se promete grabar', ios.modo === 'ninguno', ios.modo);
+  comprobar('el motivo de iOS es explícito y menciona la versión', /iOS 16\.4/.test(ios.motivo), ios.motivo);
+  comprobar('ningún modo sin soporte devuelve un motivo vacío', elegir({}).modo === 'ninguno' && elegir({}).motivo.length > 5);
+}
+
+seccion('Clip con un solo contenedor: no se pegan grabaciones enteras');
+{
+  // `armarClipWebm` recibe el muxador inyectado, así que se prueba con uno falso que
+  // anota lo que se le hace. Lo que importa: un solo `new Muxer` (una cabecera),
+  // los trozos desde la primera trampa y nada anterior.
+  const fuente = extraer(leer('js/cams.js'), 'armarClipWebm').replace('export ', '');
+  let muxers = 0;
+  const añadidos = [];
+  let finalizados = 0;
+  class MuxerFalso {
+    constructor(opts) { muxers++; this.opts = opts; this.target = opts.target; }
+    addVideoChunk(c, meta) { añadidos.push(meta.timestamp); }
+    finalize() { finalizados++; this.target.buffer = new ArrayBuffer(3); }
+  }
+  class ArrayBufferTargetFalso { constructor() { this.buffer = null; } }
+  const armar = new Function(
+    'EncodedVideoChunk',
+    `${fuente}; return armarClipWebm;`
+  )(class { constructor(i) { Object.assign(this, i); } });
+
+  const trozo = (timestamp, key) => ({ key, data: new Uint8Array(8), timestamp, duracion: 83333 });
+  const ventana = [trozo(250000, true), trozo(333333, false), trozo(416666, false)];
+  const clip = armar(ventana, { Muxer: MuxerFalso, ArrayBufferTarget: ArrayBufferTargetFalso, codec: 'V_VP8', ancho: 640, alto: 360, fps: 12 });
+
+  comprobar('se escribe una sola cabecera de contenedor', muxers === 1, `${muxers}`);
+  comprobar('se finaliza una sola vez', finalizados === 1, `${finalizados}`);
+  comprobar('el clip empieza en una trampa, no en un delta suelto', clip.desdeTrampa === true);
+  comprobar('entran todos los trozos de la ventana', clip.trozos === 3, `${clip.trozos}`);
+  comprobar('los trozos van en orden de tiempo', añadidos.join(',') === [250000, 333333, 416666].join(','), añadidos.join(','));
+  comprobar('la duración sale de los trozos escritos', clip.duracionMs === 416666 - 250000 + 83333, `${clip.duracionMs}`);
+
+  // Si la ventana llega con deltas huérfanos de antes de la última trampa (por
+  // ejemplo porque se pasó un poco el reloj), esos deltas no pueden ir delante:
+  // sin punto de inicio no se decodifican, y un contenedor WebM con trozos sueltos
+  // al principio es justo lo que rompe la reproducción.
+  añadidos.length = 0;
+  const conCola = armar([trozo(166666, false), ...ventana], { Muxer: MuxerFalso, ArrayBufferTarget: ArrayBufferTargetFalso, codec: 'V_VP8', ancho: 640, alto: 360, fps: 12 });
+  comprobar('los deltas anteriores a la trampa se descartan', conCola.trozos === 3 && añadidos.join(',') === [250000, 333333, 416666].join(','), añadidos.join(','));
+
+  comprobar('sin ninguna trampa no se inventa un clip', armar([trozo(0, false)], { Muxer: MuxerFalso, ArrayBufferTarget: ArrayBufferTargetFalso, codec: 'V_VP8', ancho: 640, alto: 360, fps: 12 }) === null);
+}
+
+seccion('La grabación de verdad, no la de nameof');
+{
+  const fuente = leer('js/cams.js');
+  const app = leer('js/app.js');
+  // El defecto crítico era pegar grabaciones independientes: dos contenedores
+  // WebM o dos fragmentos MP4 pegados no forman un clip válido.
+  comprobar('no se concatenan blobs de grabaciones en cams.js', !/new Blob\(\s*\[\s*\.\.\./.test(fuente), 'se sigue concatenando');
+  comprobar('no hay ninguna función ensamblarClip', !fuente.includes('ensamblarClip'), '');
+  comprobar('el grabador codificado no usa captureStream', !/crearGrabadorCodificado[\s\S]{0,4000}captureStream/.test(fuente), '');
+  comprobar('el grabador codificado usa WebCodecs', fuente.includes('VideoEncoder') && fuente.includes('new VideoFrame(video'));
+  comprobar('el grabador codificado fuerza trampas para poder volver atrás', /keyFrame: indice % GOP === 0/.test(fuente), '');
+  comprobar('el codificado vuelve a escribir en un muxador nuevo', fuente.includes('firstTimestampBehavior'), '');
+  comprobar('el respaldo continuo nunca concatena, entrega una grabación entera', /contenedorUnico: true/.test(fuente), '');
+  // El botón de grabar el directo (que sí necesita captureStream) y el de vigía
+  // (que no) se ocultan por separado, para que en iOS siga habiendo uno.
+  comprobar('el botón de vigía no depende de captureStream', app.includes("$('#vigia-ola').hidden = !enDirecto()"), '');
+  comprobar('el botón de grabar el directo sí depende de captureStream', /record-clip'\)\.hidden = !enDirecto\(\)[\s\S]{0,120}captureStream/.test(app), '');
+  comprobar('si la vigía no puede grabar, el motivo se enseña', app.includes('No se pudo grabar:'), '');
+  comprobar('el vídeo HLS lleva crossOrigin para no ensuciar el lienzo', /crossOrigin: 'anonymous'/.test(fuente), '');
+}
+
+seccion('Los clips del archivo se traen como blob, no como descarga');
+{
+  const fuente = leer('js/cams.js');
+  const app = leer('js/app.js');
+  // GitHub manda los adjuntos de las releases como descarga y con
+  // application/octet-stream: en iOS y Android eso no arranca un <video>.
+  comprobar('los clips del histórico se traen con fetch', fuente.includes('reproducirClip') && /fetch\(clip\.url/.test(fuente), '');
+  comprobar('se usa un Blob para que el móvil lo reconozca como vídeo', fuente.includes('URL.createObjectURL(b)'), '');
+  comprobar('si el fetch falla, se avisa con el motivo', /Clip con problemas/.test(fuente), '');
+  comprobar('si el fetch falla, queda el enlace de descarga en la ficha', app.includes('Descargar'), '');
+}
+
+seccion('Un spot sin cámara no ve clips de otros');
+{
+  // La fuga: si un spot no tenía clips, la búsqueda caía a los 100 primeros del
+  // índice global y Vinaròs acababa enseñando clips de Orihuela.
+  const h = { surf: { min: 0.4, mid: 0.46, max: 0.5 }, swells: [{ h: 0.9, t: 5, dir: 90 }], windSpeed: 8 };
+  const sinCamara = { id: 'Vinaros', name: 'Vinaros' };
+  const matches = app.findSimilarConditions(sinCamara, h);
+  comprobar('un spot sin clips no recibe ninguno', matches.length === 0, `${matches.length}`);
+  comprobar('ninguno es de otro spot', matches.every((m) => m.clip.spot === 'Vinaros'), '');
+  const fuente = leer('js/app.js');
+  comprobar('ya no hay caída al índice global', !/slice\(0, 100\)/.test(fuente), '');
 }
 
 seccion('Los ajustes son conservadores y están documentados');
@@ -253,10 +344,10 @@ seccion('Los ajustes son conservadores y están documentados');
   const valores = Object.fromEntries([...obj.matchAll(/(\w+):\s*([\d.]+)/g)].map((m) => [m[1], Number(m[2])]));
   comprobar('el búfer previo dura lo bastante para ver el inicio de la ola', valores.prebufferS >= 8, `${valores.prebufferS} s`);
   comprobar('sigue grabando después del disparo', valores.postS >= 4, `${valores.postS} s`);
-  comprobar('el búfer se recorta solo', valores.prebufferS > 0 && valores.segmentoS > 0);
+  comprobar('la trampa se renueva más a menudo que el búfer', valores.gopS > 0 && valores.gopS <= valores.prebufferS / 2, `${valores.gopS} s`);
   comprobar('no dispara olas encadenadas', valores.cooldownS >= valores.prebufferS, `${valores.cooldownS} s`);
-  comprobar('los trozos del búfer duran menos que el búfer entero', valores.segmentoS <= valores.prebufferS, `${valores.segmentoS} s`);
-  for (const clave of ['prebufferS', 'postS', 'segmentoS', 'cooldownS', 'bandaImagen', 'detectar']) {
+  comprobar('la grabación continua tiene tope de ventana', valores.ventanaMaxS >= valores.prebufferS + valores.postS, `${valores.ventanaMaxS} s`);
+  for (const clave of ['prebufferS', 'postS', 'gopS', 'ventanaMaxS', 'cooldownS', 'ancho', 'fps', 'bitrate', 'bandaImagen', 'detectar']) {
     comprobar(`el ajuste ${clave} de la vigía está documentado`, documentado(obj, clave), '');
   }
 
@@ -270,7 +361,34 @@ seccion('Los ajustes son conservadores y están documentados');
   comprobar('la espuma necesita más contraste que el surfista', A.contrasteClaro > A.contrasteOscuro, `${A.contrasteClaro} > ${A.contrasteOscuro}`);
   comprobar('los umbrales están en píxeles, no en metros inventados', A.pxPorMetro === undefined || String(A.pxPorMetro) === 'null', String(A.pxPorMetro));
   comprobar('el detector no exige perpendicularidad (dependería del ángulo de la cámara)', !det.includes('perpendicular <'), '');
+  comprobar('el detector de píxeles NO se presenta como un modelo entrenado', !/COCO|coco-ssd|tensorflow|tflite|onnx|mediapipe/i.test(det), '');
+  comprobar('el detector de píxeles se describe como heurística', /sin usar ninguna librería/.test(det) || /solo píxeles en escala de grises/.test(det), '');
 }
 
+seccion('El modelo de persona y tabla decide junto al movimiento, no solo');
+{
+  // `js/deteccion.js` es heurística de píxeles y lo sigue siendo; el modelo de
+  // persona y tabla entra como contrapeso. Lo que hay que comprobar es que los dos
+  // hacen falta y que un fallo del modelo no se toma por un "no hay surfista".
+  const fuente = leer('js/cams.js');
+  const ia = leer('js/detector-ia.js');
+  comprobar('la vigía importa el detector de persona y tabla', /import \{ crearDetectorIA \} from '\.\/detector-ia\.js'/.test(fuente), '');
+  comprobar('el modelo se pide al armar la vigía, no al abrir la página', /await vigia\.ia\.cargar\(\)/.test(fuente), '');
+  comprobar('el modelo no se pide al importar el módulo (solo dentro de preparar)', !/await vigia\.ia\.cargar\(\)/.test(fuente.slice(0, fuente.indexOf('async function preparar'))), '');
+  comprobar('si el modelo no carga, la vigía no se arma', /vigia\.ia\.cargar\(\)[\s\S]{0,400}?vigia\.motivo = `No se ha podido cargar/.test(fuente), '');
+  comprobar('el motivo del fallo de carga es explícito', /Sin ese modelo no se puede decidir que sea un surfista/.test(fuente), '');
+  comprobar('un fallo del modelo limpia la evidencia y no dispara', /r\.estado === 'error'\)[\s\S]{0,200}?vigia\._iaUltima = null/.test(fuente), '');
+  comprobar('sin evidencia del modelo no hay disparo', /if \(cfg\.usarIA && !ia\) return;/.test(fuente), '');
+  comprobar('la evidencia del modelo tiene que ser reciente', /Date\.now\(\) - e\.tMs > cfg\.iaValidezMs/.test(fuente), '');
+  comprobar('los resultados obsoletos se descartan con esFresco', /esFresco\(r\)/.test(fuente), '');
+  comprobar('las omisiones por inferencia en curso no son fallos', /r\.estado === 'omitido'[\s\S]{0,80}?return;/.test(fuente), '');
+  comprobar('el modelo va a su propio ritmo, más despacio que los píxeles', /iaFrecuenciaHz: 1/.test(fuente) && /setInterval\(analizarIA/.test(fuente), '');
+  comprobar('exige persona Y tabla con confianza suficiente', /d\.clase === 'person' && d\.confianza >= cfg\.iaConfianzaMin/.test(fuente) && /d\.clase === 'surfboard' && d\.confianza >= cfg\.iaConfianzaMin/.test(fuente), '');
+  comprobar('el clip dice si el modelo confirmó persona y tabla', /El modelo reconoce persona/.test(fuente), '');
+  comprobar('sin modelo el clip lo dice en vez de ocultarlo', /Sin confirmación del modelo/.test(leer('js/app.js')), '');
+  comprobar('al parar se sueltan los pesos del modelo', /vigia\.ia\?\.liberar\(\)/.test(fuente), '');
+  comprobar('el módulo del modelo declara que NO decide si coge una ola', /NO decide si alguien coge una ola/.test(ia) || /no decide si alguien coge una ola/i.test(ia), '');
+  comprobar('el módulo del modelo no afirma precisión medida con surfistas', !/precisi[oó]n medida/i.test(ia.replace(/NO hay ninguna medida de PRECISION con surfistas reales del club[^.]*\./i, '')), '');
+}
 console.log(`\n${fallos ? 'FALLOS' : 'TODO EN VERDE'}: ${total - fallos}/${total} pruebas`);
 process.exit(fallos ? 1 : 0);

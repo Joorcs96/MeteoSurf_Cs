@@ -2,7 +2,7 @@
 import { SPOTS, ZONES } from './spots.js';
 import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360, windState } from './forecast.js';
 import { compassSVG, dirArrow } from './compass.js';
-import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordClip, estadoStream, iniciarVigiaOla } from './cams.js';
+import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordClip, estadoStream, iniciarVigiaOla, vigias } from './cams.js';
 import { aplicarNowcast } from './nowcast.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -358,6 +358,7 @@ function bindFavs() {
 // Vigía de ola activa, si la hay. Vive fuera de renderSpot porque el botón se
 // vuelve a pintar entero al cambiar de día o de sección.
 let vigiaActual = null;
+let relojVigia = null;
 
 function clipsForSpot(spot) {
   const ids = new Set(camsForSpot(spot).map((c) => c.id));
@@ -506,8 +507,11 @@ function findSimilarConditions(spot, h) {
     return d > 180 ? 360 - d : d;
   };
 
-  const pool = clipsForSpot(spot);
-  const candidates = pool.length ? pool : (state.rewinds?.rewinds || []).slice(0, 100);
+  // Solo clips de las cámaras de ESTE spot. Antes, si no había ninguno, se
+  // caía a los 100 primeros del índice global y un spot sin cámara (Vinaròs,
+  // Burriana) acababa mostrando clips de Orihuela o de Oropesa: la fuga más
+  // grave de esta pantalla, porque el usuario los creería de su playa.
+  const candidates = clipsForSpot(spot);
   
   const results = [];
   for (const clip of candidates) {
@@ -726,13 +730,13 @@ function renderSpot(id) {
     view.querySelectorAll('[data-clip]').forEach((b) => b.classList.remove('on'));
     pararVigia();
     const cam = cams[state.camIdx];
-    // Una cámara grabable es la que se puede reproducir como HLS y además pasar
-    // por `captureStream`. La del club entra por `data/streams.json`: su player.php
-    // es un iframe, así que sin la emisión resuelta no hay ni vídeo ni grabación.
-    const grabable = () => cam?.embedType === 'hls' && estadoStream(cam).ok
-      && HTMLVideoElement.prototype.captureStream && window.MediaRecorder;
-    $('#record-clip').hidden = !grabable();
-    $('#vigia-ola').hidden = !grabable();
+    const enDirecto = () => cam?.embedType === 'hls' && estadoStream(cam).ok;
+    // Grabar el directo clásico necesita `captureStream`, que Safari de iOS no
+    // tiene; la vigía no, porque codifica con WebCodecs. Por eso se(hidden)por
+    // separado: en un iPhone sin `captureStream` sigue habiendo botón de vigía.
+    $('#record-clip').hidden = !enDirecto()
+      || !HTMLVideoElement.prototype.captureStream || !window.MediaRecorder;
+    $('#vigia-ola').hidden = !enDirecto();
     const nota = $('#vigia-note');
     if (cam?.resolver === 'ipcamlive' && !estadoStream(cam).ok) {
       nota.hidden = false;
@@ -750,6 +754,7 @@ function renderSpot(id) {
   // La vigía se para sola al cambiar de cámara o de spot, para no dejar grabbing
   // en segundo plano ni dejar el vídeo bloqueado por el `captureStream`.
   function pararVigia() {
+    if (relojVigia) { clearInterval(relojVigia); relojVigia = null; }
     vigiaActual?.parar();
     vigiaActual = null;
     const b = document.getElementById('vigia-ola');
@@ -764,38 +769,54 @@ function renderSpot(id) {
     const status = $('#record-status');
     const nota = $('#vigia-note');
     const guardar = $('#save-ola');
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (vigiaActual) { pararVigia(); status.textContent = 'Vigía parada.'; return; }
       const cam = camsForSpot(spotActual)[state.camIdx];
       if (!estadoStream(cam).ok) {
         status.textContent = estadoStream(cam).motivo;
         return;
       }
-      vigiaActual = iniciarVigiaOla(contEl, cam, {
+      status.textContent = 'Preparando la grabación…';
+      const vigia = iniciarVigiaOla(contEl, cam, {
         onOla: (clip) => {
-          status.textContent = `Ola detectada: ${clip.deteccion.motivos[0]}`;
+          status.textContent = `Ola guardada: ${clip.deteccion.motivos}`;
           if (guardar.dataset.url) URL.revokeObjectURL(guardar.dataset.url);
           const url = URL.createObjectURL(clip.blob);
           guardar.dataset.url = url;
           guardar.href = url;
-          guardar.download = `MeteoSurf_${spotActual.id}_ola_${clip.deteccion.tMs}.${clip.extension}`;
+          guardar.download = `MeteoSurf_${spotActual.id}_ola_${clip.tMs}.${clip.extension}`;
           guardar.hidden = false;
-          if (nota) { nota.hidden = false; nota.textContent = `Clip de ${clip.segundos} s, con ${clip.prebufferS} s grabados antes de la detección.`; }
+          if (nota) {
+            nota.hidden = false;
+            const ia = clip.deteccion.evidenciaIA;
+            nota.textContent = `Clip de ${clip.segundos} s, con ${clip.segundosPrevio ?? 0} s grabados antes de la detección ` +
+              `(${clip.contenedorUnico ? 'un solo archivo' : 'fragmentos'}, ${Math.round((clip.bytes || 0) / 1024)} kB). ` +
+              (ia ? `El modelo reconoce persona (${ia.persona} %) y tabla (${ia.tabla} %).` : 'Sin confirmación del modelo.');
+          }
         },
+        onError: (motivo) => { status.textContent = `No se pudo grabar: ${motivo}`; },
       });
-      if (vigiaActual.error) {
-        status.textContent = vigiaActual.error;
-        vigiaActual = null;
+      if (vigia.motivo) {
+        status.textContent = vigia.motivo;
         return;
       }
+      const listo = await vigia.preparar();
+      if (!listo) {
+        status.textContent = vigia.motivo || 'No se pudo preparar la grabación.';
+        return;
+      }
+      vigiaActual = vigia;
+      vigias.set(contEl, vigia);
       btn.setAttribute('aria-pressed', 'true');
       btn.textContent = 'Parar la vigía';
       nota.hidden = false;
-      nota.textContent = 'Mirando la rompiente. Los clips solo se guardan en este dispositivo, en cuanto el detector ve a alguien cogiendo una ola.';
-      const tick = setInterval(() => {
-        if (!vigiaActual) { clearInterval(tick); return; }
+      nota.textContent = (vigia.aviso ? `${vigia.aviso} ` : '')
+        + 'Mirando la rompiente. Los clips solo se guardan en este dispositivo, en cuanto el detector ve a alguien cogiendo una ola.';
+      relojVigia = setInterval(() => {
+        if (!vigiaActual) { clearInterval(relojVigia); relojVigia = null; return; }
         const e = vigiaActual.estado();
-        status.textContent = `Vigía activa · ${Math.round(e.segundos)} s de búfer · ${e.eventos} clip(s)`;
+        const ia = e.evidenciaIA ? ` · modelo ve persona ${e.evidenciaIA.persona} % y tabla ${e.evidenciaIA.tabla} %` : '';
+        status.textContent = `Vigía activa (${e.modo}) · ${Math.round(e.segundos || 0)} s de búfer · ${e.eventos} clip(s)${ia}`;
       }, 1000);
     });
   }

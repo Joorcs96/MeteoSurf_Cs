@@ -1,3 +1,23 @@
+# Vigía de ola con clip real · 17/10/2026 (segunda vuelta, cierra el defecto crítico)
+
+| Tarea | Estado | Rama | Siguiente paso |
+| --- | --- | --- | --- |
+| Contenedor único (crítico del auditor) | Hecho y medido: se eliminó la concatenación de grabaciones. Los trozos se vuelven a escribir en un muxador nuevo desde una marca de inicio, así que el clip tiene una sola cabecera. Antes: 1,4 MB que solo duraban 3,0 s de 5 | Joorcs96/reparar-surfers | — |
+| Clip reproducible con búfer previo real | Hecho: grabador con WebCodecs + muxador. Medido 11,5 s de clip con 7-8 s previos (escena con detector) y 9,44 s (cámara real del club) | Joorcs96/reparar-surfers | — |
+| E2E detector → clip | Hecho: escena sintética, 6 disparos `coge_ola`, clip reproducido y medido (`python scripts/probar_vigia_e2e.py`) | Joorcs96/reparar-surfers | — |
+| E2E cámara real del club | Hecho: emisión resuelta, vídeo 1280x720, búfer de 6 s, clip de 9,44 s reproducible. **Disparo manual**: no hay surfista etiquetado | Joorcs96/reparar-surfers | Calibrar con imágenes reales |
+| Móvil / Safari de iOS | Hecho el camino: el grabador no usa `captureStream`, así que no depende de lo que faltaba en iOS. Si no hay soporte, el motivo se enseña. **Sin probar en un iPhone real** | Joorcs96/reparar-surfers | Probar en el móvil de Jordi |
+| Fuga de clips a otros spots | Hecho: la búsqueda ya solo mira las cámaras del propio spot (Vinaròs enseñaba clips de Orihuela) | Joorcs96/reparar-surfers | — |
+| Clips del histórico en móvil | Hecho: se traen con fetch y Blob, porque GitHub los manda como descarga y en iOS/Android no arrancaban | Joorcs96/reparar-surfers | — |
+| `crossOrigin` en el vídeo HLS | Hecho: sin eso el lienzo queda tainted y la vigía no puede leer píxeles | Joorcs96/reparar-surfers | — |
+| Caducidad del streamid | Hecho: `data/streams.json` se refresca aunque la URL no cambie, si no la webava a apagar una emisión sana | Joorcs96/reparar-surfers | Vigilar el TTL |
+| Pruebas | 52 detector + 114 flujo + 73 rewind + 131 suite + 4 UI + 2 suites JS + 2 E2E con ventana | Joorcs96/reparar-surfers | Probador antes de integrar |
+
+Evidencia medida en `docs/E2E_VIGIA.md`. Lo que **no** está demostrado y está dicho sin adornos en
+`DUDAS.md` 4: que el detector acierte con un surfista real, y que funcione en el iPhone de Jordi.
+
+---
+
 # Vigía de ola y reparación de "Ver cómo rompía" · 17/10/2026
 
 | Tarea | Estado | Rama | Siguiente paso |

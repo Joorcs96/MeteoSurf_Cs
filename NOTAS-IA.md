@@ -63,6 +63,70 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - El canal de Benicàssim Vela da 404 durante minutos cuando el servidor de Turisme CV
   re-publica: el grabador reintenta dos veces (5 s y 12 s) antes de seguir con el resto.
 - En local NO subir nada a la release; eso lo hace el workflow.
+## Modelo de persona y tabla en la vigía (17/10/2026)
+
+- `js/detector-ia.js` (otro worker, commit `5c3482e`) carga `coco-ssd` bajo demanda. La vigía lo usa
+  como **contrapeso**, no como sustituto: el detector de píxeles sigue diciendo quién coge una ola y el
+  modelo tiene que **ver persona y tabla a la vez**, con confianza ≥ `iaConfianzaMin` y evidencia **fresca**
+  (`iaValidezMs`). Si no hay evidencia del modelo, **no se dispara**.
+- [VERIFICADO] **Un fallo del modelo no cuenta como "no hay surfista".** Si `cargar()` falla, la vigía no
+  se arma y enseña el motivo; si una inferencia da error, se limpia la evidencia y deja de disparar.
+- [VERIFICADO] El modelo se pide **al armar la vigía**, nunca al abrir la página: son ~18 MB.
+- [VERIFICADO] La inferencia va a **~1 Hz** (`iaFrecuenciaHz`), no a 10 fps: una inferencia real tarda
+  ~100 ms a 940 ms según el ancho de la fuente, y llamar más rápido devuelve `omitido`, que no es un fallo.
+  Se cuentan las omisiones sin darlas por error.
+- [VERIFICADO] Los resultados obsoletos se descartan con `ia.esFresco(r)`: si al terminar ya se pidió otro
+  fotograma, ese resultado no se pinta.
+- Al parar la vigía se llama `ia.liberar()`: son 18 MB de pesos y memoria de GPU.
+- **Trampa**: WebCodecs y WebGL solo existen en **contexto seguro**. En `about:blank` no hay WebCodecs; en
+  `http://127.0.0.1` sí. Cualquier prueba de esto necesita servirse por localhost, no por `file://`.
+- [VERIFICADO, MENOR] `estado().inferencias` del módulo devuelve **0** aunque el modelo infiere de verdad
+  (la llamada directa trae `ms` y `marcoId` correctos). Se reporta sin afirmar nada sobre ese contador; lo
+  que se comprueba es lo documentado en el contrato (`estado`, `error`, `marcoId`, `roi`, `ms`).
+
+## Vigía de ola,(clip real y contenedor único · 17/10/2026, segunda vuelta)
+
+- [VERIFICADO] **El defecto crítico era concatenar grabaciones.** `new Blob([grabacion1, grabacion2])`
+  con dos `MediaRecorder` independientes produce un archivo roto: medido en navegador con ventana,
+  1 402 305 B que **solo duraban 3,0 s** de los ~5 s grabados. Dos contenedores WebM (o dos fragmentos
+  MP4) pegados no forman un clip válido. Ya no se concatena nada.
+- [VERIFICADO] **Grabador `codificado` (el bueno).** WebCodecs `VideoEncoder` + `webm-muxer` de jsdelivr.
+  Se codifica siempre a `keyFrame` cada `gopS`; el búfer guarda los trozos; al disparar se elige la
+  marca de inicio **más antigua que cabe en `prebufferS`** (no la más reciente: esa daba el búfer más
+  corto) y se escriben **solo esos trozos** en un `Muxer` **nuevo**. Una cabecera sola → archivo que
+  arranca y con la duración correcta. Medido: búfer previo de 7-8 s y **clip de 11,5 s reales** en
+  escena sintética, y **9,44 s** sobre la cámara real del club.
+- [VERIFICADO] **Sin `captureStream`.** El grabador codificado no lo usa, así que en principio funciona
+  en Safari de iOS 16.4+. No probado en un iPhone real: lo pendiente.
+- [VERIFICADO] **WebCodecs exige contexto seguro.** En `about:blank` no existe; en `http://127.0.0.1` sí.
+  Comprobado con `tools/pw-capacidades.cjs`: vp8, vp09.00.10.08, avc1 y av01 dan soporte.
+- **Trampa de unidades**: WebCodecs devuelve los trozos en MICROsegundos y `performance.now()` va en
+  milisegundos. Compararlos tal cual dio un búfer previo de **-28 139 s**. Siempre `* 1000` y `/ 1e6`.
+- `elegirGrabador(caps)` recibe las capacidades del navegador, así que el caso de iOS se prueba sin
+  tener un iPhone: sin WebCodecs ni `captureStream` devuelve `modo: 'ninguno'` con motivo explícito
+  (menciona iOS 16.4) y la interfaz lo enseña. El respaldo `continuo` usa un único `MediaRecorder` que
+  no se para, así que también entrega un contenedor único, y avisa de que el clip será la grabación
+  entera.
+- [VERIFICADO] **Los clips del histórico no se reproducían en móvil.** GitHub manda los adjuntos de las
+  releases como descarga y con `application/octet-stream`; en iOS y Android eso no arranca un `<video>`.
+  Ahora `reproducirClip()` los trae con `fetch` y usa un `Blob`; si el fetch falla avisa y deja el
+  enlace de descarga.
+- [VERIFICADO] **`crossOrigin: 'anonymous'`** en el `<video>` HLS: sin eso el lienzo queda tainted y
+  `getImageData` lanza `SecurityError`.
+- [VERIFICADO] **Fuga de clips a otros spots** (`js/app.js`, `findSimilarConditions`): si el spot no
+  tenía clips, la búsqueda caía a los 100 primeros del índice global, así que Vinaròs enseñaba
+  clips de Orihuela. Eliminado: la búsqueda solo mira las cámaras de ese spot.
+- [VERIFICADO] **Caducidad del `streamid` sin refresco.** `resolver_streams()` solo reescribía
+  `data/streams.json` si cambiaba la URL; con un `streamid` estable la fecha se quedaba vieja y la
+  webava a dejar de mostrar una emisión que funcionaba. Ahora reescribe también cuando lo anterior ya
+  ha pasado de la mitad de su `ttlMin`.
+- Pruebas E2E con navegador **con ventana**: `python scripts/probar_vigia_e2e.py` (detector→clip y
+  cámara real). No correr en CI: sin ventana `MediaRecorder` no codifica y la prueba no sería real.
+  Playwright ya está en el perfil de usuario (`%APPDATA%\npm\node_modules\playwright`); `NODE_PATH`
+  debe apuntar al `node_modules` **padre**, no al paquete.
+- Se retira `scripts/probar_surfers.py`: solo comprobaba la emisión y se saltaba la grabación con un
+  aviso, y ahora hay una prueba que sí la comprueba. La limitación headless queda en `DUDAS.md` 4.
+
 ## Vigía de ola y reparación del histórico (17/10/2026, rama Joorcs96/reparar-surfers)
 - [VERIFICADO] La causa de que "Ver cómo rompía" saliera vacío era `prevision_spots()` en `scripts/rewind.py`
   con el `return salida` dentro del bucle: lo coló el merge `0afa82a`. Solo se pedía previsión del primer spot

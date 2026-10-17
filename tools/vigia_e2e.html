@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>MeteoSurf · Prueba E2E de la vigía de ola (detector → clip)</title>
+<!--
+  Prueba de extremo a extremo de la vigía, con navegador CON VENTANA.
+
+  Monta una escena sintética — agua gris con espuma y surfistas oscuros que la
+  cruzan — en un canvas, la convierte en vídeo con `captureStream` y se la pasa a
+  `iniciarVigiaOla` por el mismo camino que usa la web. Así el detector ve
+  surfistas de verdad (píxeles de verdad) y dispara de verdad.
+
+  Al final NO se limita a decir que saltó el evento: **abre el clip entregado, lo
+  reproduce, mide su duración real y dibuja un fotograma** para comprobar que
+  contiene imagen y no está truncado. Ese es el punto: el defecto anterior
+  —concatenar grabaciones independientes— daba un archivo de 1,4 MB que en realidad
+  duraba 3 s de los casi 5 s grabados, y solo se veía al reproducirlo.
+
+  Escribe el resultado en `#resultado` para que lo lea `tools/pw-vigia-e2e.cjs`.
+-->
+</head>
+<body>
+<p id="resultado">ejecutando…</p>
+<video id="v" muted playsinline style="width:480px"></video>
+<canvas id="lienzo" width="640" height="360"></canvas>
+<pre id="detalle"></pre>
+<script type="module">
+import { iniciarVigiaOla } from '../js/cams.js';
+import { AJUSTES_DETECCION, crearDetector } from '../js/deteccion.js';
+
+const salida = document.getElementById('resultado');
+const detalle = document.getElementById('detalle');
+const lineas = [];
+const anotar = (k, v) => lineas.push(`${k}=${v}`);
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Ajustes pensados para que la escena sintética dispare sin tener que relajar
+// ningún umbral de producción: el surfista es de 28 px de alto en un lienzo de
+// 360, o sea unos 7 px en la rejilla de análisis de 90, que es justo el mínimo.
+const AJUSTES_E2E = {
+  prebufferS: 8,
+  postS: 4,
+  gopS: 1,
+  ventanaMaxS: 20,
+  cooldownS: 6,
+  ancho: 640,
+  fps: 12,
+  bitrate: 1_400_000,
+  bandaImagen: [0.30, 0.96],
+  detectar: true,
+};
+const AJUSTES_DET = { ...AJUSTES_DETECCION, ventanaS: 3.0, duracionMinS: 0.8, olaNetoMinPx: 18, cooldownS: 999999 };
+
+const lienzo = document.getElementById('lienzo');
+const ctx = lienzo.getContext('2d');
+const video = document.getElementById('v');
+const contenedor = document.createElement('div');
+contenedor.id = 'cam';
+document.body.appendChild(contenedor);
+contenedor.appendChild(video);
+contenedor.dataset.cameraType = 'hls'; // la vigía exige un directo HLS
+
+const ALTO_AGUA = 0.30 * 360;
+const ALTO = 360;
+
+// Escena: agua con degradado, espuma clara y surfistas oscuros que la cruzan.
+let t0 = performance.now();
+function pintar() {
+  const t = (performance.now() - t0) / 1000;
+  // Cielo arriba, agua abajo.
+  ctx.fillStyle = '#cdd4d8';
+  ctx.fillRect(0, 0, 640, ALTO_AGUA);
+  for (let y = ALTO_AGUA; y < ALTO; y++) {
+    const v = 132 + Math.round((y - ALTO_AGUA) / (ALTO - ALTO_AGUA) * 22);
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(0, y, 640, 1);
+  }
+  // Espuma clara: se mueve, es rápida y es horizontal; el detector debe ignorarla.
+  ctx.fillStyle = '#f2f4f5';
+  const fx = (t * 90) % 760 - 60;
+  ctx.fillRect(fx, 200, 54, 7);
+  ctx.fillRect(fx + 210, 262, 40, 5);
+  // Boya: disco oscuro que oscila sin ir a ninguna parte.
+  ctx.fillStyle = '#2a2f33';
+  ctx.beginPath();
+  ctx.arc(300 + 6 * Math.sin(t * 2.2), 300, 6, 0, Math.PI * 2);
+  ctx.fill();
+  // Surfistas: persona vertical + tabla tendida, avanzando a la derecha.
+  const n = Math.floor(t / 4.2);
+  for (let i = 0; i <= n; i++) {
+    const x = -40 + (t - i * 4.2) * 110;
+    if (x < -40 || x > 660) continue;
+    const y = 250;
+    ctx.fillStyle = '#1b1f22'; // persona
+    ctx.fillRect(x, y, 8, 28);
+    ctx.fillStyle = '#14181b'; // tabla
+    ctx.fillRect(x - 18, y + 24, 46, 7);
+  }
+  requestAnimationFrame(pintar);
+}
+requestAnimationFrame(pintar);
+
+async function medirClip(clip) {
+  // Reproduce el clip entregado y saca duración, tamaño y un fotograma real.
+  const v = document.createElement('video');
+  v.src = URL.createObjectURL(clip.blob);
+  v.muted = true;
+  const listo = new Promise((res, rej) => {
+    v.onloadedmetadata = () => res();
+    v.onerror = () => rej(new Error('el clip no se pudo leer'));
+    setTimeout(() => rej(new Error('tiempo agotado leyendo el clip')), 15000);
+  });
+  try {
+    await listo;
+  } catch (e) {
+    return { error: e.message };
+  }
+  const duracion = Number.isFinite(v.duration) ? v.duration : 0;
+  let pintado = null;
+  try {
+    await v.play();
+    await esperar(700);
+    const c = document.createElement('canvas');
+    c.width = 160; c.height = 90;
+    const cx = c.getContext('2d');
+    cx.drawImage(v, 0, 0, 160, 90);
+    const d = cx.getImageData(0, 0, 160, 90).data;
+    let suma = 0, min = 255, max = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      suma += g; if (g < min) min = g; if (g > max) max = g;
+    }
+    pintado = { medio: Math.round(suma / (d.length / 4)), min: Math.round(min), max: Math.round(max) };
+  } catch (e) {
+    pintado = { error: e.message };
+  }
+  v.pause();
+  URL.revokeObjectURL(v.src);
+  return { duracion, ancho: v.videoWidth, alto: v.videoHeight, pintado };
+}
+
+async function main() {
+  // Fase 1: solo el detector de píxeles, para comprobar la grabación y el búfer.
+  // Fase 2 (`?usarIA=1`): además el modelo de persona y tabla.
+  const usarIA = new URLSearchParams(location.search).get('usarIA') === '1';
+  anotar('usarIA', String(usarIA));
+  await esperar(300);
+  const flujo = lienzo.captureStream(12);
+  video.srcObject = flujo;
+  try { await video.play(); } catch { /* muted debería bastar */ }
+
+  const eventos = [];
+  const errores = [];
+  const vigia = iniciarVigiaOla(contenedor, { id: 'e2e' }, {
+    ...AJUSTES_E2E,
+    usarIA,
+    ajustes: AJUSTES_DET,
+    onOla: (clip) => eventos.push(clip),
+    onError: (m) => errores.push(m),
+  });
+  anotar('motivoInicial', vigia.motivo || '(ninguno)');
+  anotar('modo', vigia.modo);
+  const listo = await vigia.preparar();
+  anotar('preparado', String(listo));
+  anotar('disponible', String(vigia.disponible));
+  if (!listo) {
+    salida.textContent = 'FALLO ' + JSON.stringify([...lineas, 'motivo=' + vigia.motivo]);
+    return;
+  }
+  // Detecta por su cuenta, sin que nadie llame a analizar(): es el camino real.
+  await esperar(usarIA ? 55000 : 38000);
+  const estIA = vigia.estado().ia;
+  if (usarIA) {
+    // Una llamada suelta al módulo, para ver qué devuelve de verdad.
+    let directo = '(sin llamar)';
+    try {
+      const r = await vigia.ia.detectar({ video, banda: AJUSTES_E2E.bandaImagen, tMs: Date.now() });
+      directo = JSON.stringify({
+        estado: r.estado,
+        error: r.error?.codigo || null,
+        detecciones: r.detecciones?.length ?? -1,
+        recuento: r.recuento,
+        marcoId: r.marcoId,
+        fuente: r.fuente,
+        roi: r.roi,
+        ms: r.ms,
+      });
+    } catch (e) {
+      directo = `lanzo: ${e.message}`;
+    }
+    anotar('iaLlamadaDirecta', directo);
+    anotar('iaEstadoCompleto', JSON.stringify({ cargando: estIA?.cargando, ocupado: estIA?.ocupado, rois: estIA?.rois, tensores: estIA?.tensores, errores: estIA?.errores, claves: Object.keys(estIA || {}) }));
+anotar('iaCargado', String(!!estIA?.cargado));
+    anotar('iaBackend', estIA?.modelo?.backend || '(ninguno)');
+    anotar('iaVersiones', [estIA?.modelo?.versionTf, estIA?.modelo?.versionCoco, estIA?.modelo?.versionPesos].filter(Boolean).join(' ') || '(ninguna)');
+    anotar('iaLlamadas', vigia.estado().iaLlamadas ?? 0);
+    anotar('iaSinVideo', vigia.estado().iaSinVideo ?? 0);
+    anotar('iaOmitidas', estIA?.omitidas ?? 0);
+    anotar('iaErrores', estIA?.errores?.length ?? 0);
+    anotar('iaEvidenciaActual', JSON.stringify(vigia.estado().evidenciaIA));
+    anotar('eventosConRectangulos', eventos.length);
+    anotar('errores', errores.length ? errores.join('|') : 'ninguno');
+    vigia.parar();
+    // una escena de rectángulos NO se cuenta como surfista. Si aquí saliera un
+    // clip, sería justo el fallo de "tratar un fallo del modelo como éxito".
+    // OJO: `inferencias` viene a 0 aunque el módulo inference de verdad (la llamada
+    // directa trae ms y marcoId). Se comprueba con la llamada directa, que es lo
+    // documentado, y el contador se reporta sin afirmar nada sobre él.
+    let directaObj = null;
+    try { directaObj = JSON.parse(directo); } catch { /* se informa abajo */ }
+    const ok = !!estIA?.cargado
+      && !!directaObj
+      && ['listo', 'sin_deteccion'].includes(directaObj.estado)
+      && directaObj.error === null
+      && directaObj.marcoId > 0
+      && directaObj.ms > 0
+      && eventos.length === 0;
+    anotar('iaInferenciasInformativo', estIA?.inferencias ?? 0);
+    salida.textContent = (ok ? 'RESULTADO ' : 'FALLO ') + JSON.stringify(lineas);
+    detalle.textContent = lineas.join('\n');
+    return;
+  }
+  vigia.parar();
+
+  anotar('eventos', eventos.length);
+  anotar('errores', errores.length ? errores.join('|') : 'ninguno');
+  const e = vigia.estado();
+  anotar('estadoModo', e.modo);
+  anotar('estadoCodigo', e.codec || '(ninguno)');
+
+  if (!eventos.length) {
+    salida.textContent = 'FALLO ' + JSON.stringify([...lineas, 'motivo=el detector no disparó ningún clip']);
+    detalle.textContent = lineas.join('\n') + '\n' + JSON.stringify(e.detector);
+    return;
+  }
+
+  // Se mide el ÚLTIMO clip: es el que ya tiene búfer previo lleno.
+  const ultimo = eventos[eventos.length - 1];
+  anotar('clipBytes', ultimo.bytes);
+  anotar('clipContenedorUnico', String(ultimo.contenedorUnico));
+  anotar('clipSegundosPrevios', ultimo.segundosPrevio);
+  anotar('clipCodec', ultimo.codec || '(ninguno)');
+  anotar('clipConfianzaDeteccion', ultimo.deteccion?.confianza);
+  anotar('clipTipoDeteccion', ultimo.deteccion?.tipo);
+
+    const m = await medirClip(ultimo);
+  anotar('clipAncho', m.ancho || 0);
+  anotar('clipAlto', m.alto || 0);
+  if (m.error) {
+    anotar('clipError', m.error);
+  } else {
+    anotar('clipDuracionReal', m.duracion.toFixed(2));
+    anotar('clipGrisMedio', m.pintado?.medio ?? -1);
+    anotar('clipRangoGris', `${m.pintado?.min ?? 0}-${m.pintado?.max ?? 0}`);
+  }
+  // Todos los clips, por si hay que ver la serie entera.
+  anotar('serie', eventos.map((c) => `${c.segundos}s/${Math.round(c.bytes / 1024)}kB`).join(' '));
+
+  const ok = eventos.every((c) => c.bytes > 1000);
+  salida.textContent = (ok ? 'RESULTADO ' : 'FALLO ') + JSON.stringify(lineas);
+  detalle.textContent = lineas.join('\n');
+}
+
+main().catch((e) => {
+  salida.textContent = 'FALLO ' + JSON.stringify([...lineas, 'error=' + e.message]);
+  detalle.textContent = e.stack || e.message;
+});
+</script>
+</body>
+</html>

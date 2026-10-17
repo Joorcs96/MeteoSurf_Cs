@@ -391,14 +391,30 @@ def resolver_streams(dry_run: bool = False) -> int:
             "streams": salidas,
         }
         nuevo_hls = {k: v.get("hls") for k, v in salidas.items()}
-        if nuevo_hls != anterior:
+        # Se escribe cuando cambia la URL... y también cuando la anterior ya es
+        # vieja aunque la URL sea la misma. Si no, una emisión estable (el mismo
+        # streamid durante horas) dejaría de reproducirse en la web al caducar su
+        # ttl, sin que nadie lo haya tocado.
+        caducada = False
+        for cam_id, viejo in previo.get("streams", {}).items():
+            if not viejo.get("resolvedAt"):
+                caducada = True
+                break
+            edad = datetime.now(timezone.utc) - datetime.fromisoformat(
+                viejo["resolvedAt"].replace("Z", "+00:00")
+            )
+            if edad.total_seconds() > STREAM_TTL_MIN * 30:
+                caducada = True
+                break
+        if nuevo_hls != anterior or caducada:
             os.makedirs(os.path.dirname(STREAMS_JSON_PATH), exist_ok=True)
             with open(STREAMS_JSON_PATH, "w", encoding="utf-8") as f:
                 json.dump(indice, f, indent=2, ensure_ascii=False)
                 f.write("\n")
-            print(f"[OK] Escrito {STREAMS_JSON_PATH} ({resueltas}/{len(pendientes)} resueltas).")
+            motivo = "las emisiones han cambiado" if nuevo_hls != anterior else "la anterior ya caducaba"
+            print(f"[OK] Escrito {STREAMS_JSON_PATH} ({resueltas}/{len(pendientes)} resueltas): {motivo}.")
         else:
-            print("[OK] Las emisiones no han cambiado: no se reescribe data/streams.json.")
+            print("[OK] Las emisiones no han cambiado y la anterior aún es válida: no se reescribe data/streams.json.")
     else:
         print(f"[DRY-RUN] {resueltas}/{len(pendientes)} emisiones resueltas. No se escribe nada.")
     return resueltas

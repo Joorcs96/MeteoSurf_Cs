@@ -63,6 +63,51 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - El canal de Benicàssim Vela da 404 durante minutos cuando el servidor de Turisme CV
   re-publica: el grabador reintenta dos veces (5 s y 12 s) antes de seguir con el resto.
 - En local NO subir nada a la release; eso lo hace el workflow.
+## Vigía de ola y reparación del histórico (17/10/2026, rama Joorcs96/reparar-surfers)
+- [VERIFICADO] La causa de que "Ver cómo rompía" saliera vacío era `prevision_spots()` en `scripts/rewind.py`
+  con el `return salida` dentro del bucle: lo coló el merge `0afa82a`. Solo se pedía previsión del primer spot
+  (MorroGos), así que en cada pasada solo `cv-oropesa-hls` podía grabarse y Planetario, Pirámides, Gurugú,
+  Voramar, Heliopolis y la webcam del club se quedaban sin clips. Trampa para el futuro: al revisar tests que
+  pasan, comprobar que no estén **afirmando el bug** (dos tests afirmaban que Gurugu quedaba fuera).
+- [VERIFICADO] `SPOTS_CON_CAMARA` no tenía `Gurugu`, cuya cámara sí lo cubre. Añadido.
+- [VERIFICADO] `SESIONES_PATH` apuntaba a `data/sesiones_surf.json` y el fichero versionado es
+  `data/sesiones_confirmadas.json`. Corregido.
+- [VERIFICADO] **IPCamLive no manda CORS en `player.php`**: el navegador no puede sacar el `streamid` por su cuenta.
+  Sí manda `Access-Control-Allow-Origin: *` en el `.m3u8` y en los `.ts`. Por eso la resolución va en el servidor:
+  `backend/actualizar_webcams.py --streams` publica `data/streams.json` con `{alias, hls, snapshot, ok, motivo,
+  resolvedAt, ttlMin}`. El `streamid` rota solo (la de Peñíscola lleva `enabled:false` desde que caducó), así que
+  la URL lleva fecha y la web avisa en vez de intentar en balde cuando pasa de `ttlMin`.
+- [VERIFICADO] `fetch` resuelve contra la URL del **documento**, no del módulo. `js/cams.js` usa
+  `new URL('../data/streams.json', import.meta.url)` para que aguante subdirectorios y rutas distintas. Los
+  `fetch` antiguos (`webcams.json`, `rewinds.json`) funcionan solo porque la app vive en la raíz; no tocar sin
+  revisar.
+- [VERIFICADO] El muestreo por oleaje escribía `deteccion.es_possible_ola: true` solo por la altura, y el
+  frontend leía `evidencia?.posibleOla`, clave que ningún índice ha tenido. Ahora `deteccion_por_oleaje()`
+  escribe `imagenAnalizada: false` y `es_posible_ola: false`, y `badgeEvidencia()` solo pinta el distintivo con
+  evidencia de imagen.
+- [VERIFICADO] El detector NO usa el ángulo entre la tabla y el avance como condición: en una cámara de playa el
+  que coge la ola avanza con la tabla casi paralela, así que exigir perpendicularidad habría descartado lo que se
+  busca. Ese ángulo se mide y se publica como dato informativo. Los umbrales van en **píxeles por segundo de la
+  rejilla**, no en metros: la escala real de cada cámara es distinta y no está medida. `pxPorMetro` es opcional y
+  por defecto `null`, para no publicar metros inventados.
+- La espuma se separa por **polaridad** (más clara que el fondo) y el surfista por la contraria (más oscuro), no
+  bajando el contraste. Es la diferencia entre un detector y un detector con el listón bajo.
+- La persona y la tabla salen casi siempre como **un solo blob** (las piernas apoyan en la tabla). Por eso
+  `descomponerSilueta()` parte el blob en la banda ancha y fina de la tabla y en lo que sobresale por encima.
+  Con la prueba de que `esPersona()` sobre el blob entero falla (alto 10 px contra ancho 14 px).
+- Vigía (`iniciarVigiaOla` en `js/cams.js`): búfer de trozos WebM de 2 s con `MediaRecorder` sobre
+  `video.captureStream()`; al disparar, el clip = búfer previo + cola posterior (`ensamblarClip`, función pura y
+  probada). Es lo que hace que el clip incluya el inicio de la ola. Los clips se quedan en el dispositivo: no se
+  sube nada a ningún sitio, que es también lo que corresponde con una cámara de club.
+- Pruebas nuevas: `node tools/test_deteccion_ola.js` (52), `node tools/test_rewind_flujo.js` (81),
+  `python scripts/probar_surfers.py` (real contra la emisión del club).
+- Trampa de pruebas: `tools/test_rewind_flujo.js` extrae las funciones reales de `js/app.js` y `js/cams.js` del
+  fuente y las evalúa, porque una réplica daría verde mientras la web se rompe. Al extraer, cuidado con
+  `new Function`: el código va con CRLF y hay que quitar `export `.
+- [VERIFICADO] En este host **no** hay `cv2`, `av` ni `ffmpeg`, y `MediaRecorder` en Edge sin ventana devuelve
+  0 bytes aunque el vídeo se reproduzca. Por eso el detector es de navegador y sin dependencias, y la grabación
+  queda pendiente de comprobar con ventana (ver `DUDAS.md` 4).
+
 ## Imágenes libres, clips Planetario y evidencia de surf (11/10/2026)
 - Fotografías de spots (`js/spots.js`): 13 spots equipados con objeto `photo: { title, thumb, file, author, license, licenseUrl, url }`. Todas las fuentes provienen de Wikimedia Commons (CC BY-SA 4.0, CC BY-SA 3.0, CC BY 4.0), verificadas en vivo y accesibles bajo CSP `img-src 'self' data: blob: https:;`.
 - Iconos SVG sin emojis: Se añadieron iconos SVG limpios (viewBox="0 0 24 24") para rewind, search, pin, wave, wind, cam, star. Cumplen la regla estricta de Jordi: 0 emojis y 0 símbolos tipo check.

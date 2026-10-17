@@ -33,14 +33,20 @@ jobs:
         run: |
           python backend/actualizar_webcams.py
 
+      - name: Resolver las emisiones dinámicas
+        # La URL HLS real de la webcam del club (alias IPCamLive) rota sola y
+        # player.php no manda CORS, así que hay que resolverla aquí para que la
+        # web pueda reproducirla y grabarla.
+        run: python backend/actualizar_webcams.py --streams
+
       - name: Guardar cambios en el catálogo de webcams
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add webcams.json
+          git add webcams.json data/streams.json
           if ! git diff --staged --quiet; then
             git commit -m "Auto: verificación periódica de webcams [skip ci]"
             git push
           else
-            echo "Sin cambios pendientes en webcams.json."
+            echo "Sin cambios pendientes en webcams.json ni en data/streams.json."
           fi

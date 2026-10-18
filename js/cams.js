@@ -427,9 +427,34 @@ export function armarClipWebm(trozos, opciones) {
 
 // ------------------------------------------------------------------ grabadores
 
+// El alto del clip sale de la proporción real del vídeo. Si se calcula antes de
+// tiempo, con `videoWidth === 0` sale `Math.max(2, 0)` = 2 y el grabador se
+// queda grabando en un búfer de 640x2 píxeles. Se espera a que el vídeo diga
+// cuánto mide (o a que se dé por perdido, con un plazo corto).
+export const PLAZO_DIMENSIONES_MS = 5000;
+
+export function esperarDimensiones(video, plazoMs = PLAZO_DIMENSIONES_MS) {
+  const listo = () => video.videoWidth > 0 && video.videoHeight > 0;
+  if (listo()) return Promise.resolve(true);
+  return new Promise((resolver) => {
+    let fin = null;
+    const limpiar = () => {
+      clearTimeout(fin);
+      video.removeEventListener('loadedmetadata', alBajar);
+      video.removeEventListener('resize', alBajar);
+    };
+    const alBajar = () => { if (!listo()) return; limpiar(); resolver(true); };
+    video.addEventListener('loadedmetadata', alBajar);
+    video.addEventListener('resize', alBajar);
+    fin = setTimeout(() => { limpiar(); resolver(false); }, plazoMs);
+  });
+}
+
 function crearGrabadorCodificado(video, cfg) {
   const W = cfg.ancho;
-  const H = Math.max(2, Math.round(((W * video.videoHeight) / Math.max(1, video.videoWidth)) / 2) * 2);
+  // Se rellena al preparar, no antes: sin dimensiones reales no se sabe el alto
+  // (0 = todavía sin saber, no "2 píxeles").
+  let H = 0;
   const GOP = Math.max(1, Math.round(cfg.fps * cfg.gopS));
   const bucle = [];
   let Muxer = null;
@@ -446,6 +471,12 @@ function crearGrabadorCodificado(video, cfg) {
     if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') {
       throw new Error('Este navegador no tiene WebCodecs.');
     }
+    // Y luego las dimensiones. Con 0x0 el alto saldría 2 píxeles y el clip sería
+    // una franja ilegible; mejor no armar nada y decir por qué.
+    if (!await esperarDimensiones(video)) {
+      throw new Error('El directo no ha dado las medidas del vídeo a tiempo, así que no se puede grabar el clip con la proporción correcta.');
+    }
+    H = Math.max(2, Math.round(((W * video.videoHeight) / Math.max(1, video.videoWidth)) / 2) * 2);
     const mod = await import(MUXADOR_CDN);
     Muxer = mod.Muxer;
     ArrayBufferTarget = mod.ArrayBufferTarget;
@@ -498,6 +529,11 @@ function crearGrabadorCodificado(video, cfg) {
   }
 
   async function disparar() {
+    // Cinturón de seguridad: si el vídeo no tiene medidas, el alto es un invento
+    // y el clip sería una franja de 2 píxeles. No se arma.
+    if (H <= 2 || !video.videoWidth || !video.videoHeight) {
+      return { error: 'El directo no tiene medidas, así que el clip saldría con una proporción inventada.' };
+    }
     // OJO con las unidades: WebCodecs da los trozos en MICROsegundos y
     // performance.now() va en milisegundos. Compararlos tal cual salía un búfer
     // previo negativo de miles de horas.
@@ -569,7 +605,7 @@ function crearGrabadorCodificado(video, cfg) {
       modo: 'codificado',
       codec: codigo,
       ancho: W,
-      alto: H,
+      alto: H > 2 ? H : null,
       bucle: bucle.length,
       // Cuánto histórico hay guardado ahora mismo, que es lo que le importa a quien
       // vigila: la diferencia entre el trozo más viejo y el más nuevo.
@@ -665,7 +701,7 @@ export function iniciarVigiaOla(el, cam, opciones = {}) {
   const vigia = {
     cfg, detector, disponible: false, motivo: '', aviso: '', parado: false,
     modo: 'ninguno', ultimo: null, eventos: [], grabador: null,
-    _ultimoDisparo: 0, _iaUltima: null, _iaReloj: null, ia: null, _iaLlamadas: 0, _iaSinVideo: 0,
+    _ultimoDisparo: 0, _iaUltima: null, _iaReloj: null, ia: null, _iaLlamadas: 0, _iaSinVideo: 0, _analisisFallos: 0,
   };
 
   if (!video || el.dataset.cameraType !== 'hls') {
@@ -766,8 +802,23 @@ export function iniciarVigiaOla(el, cam, opciones = {}) {
     const vh = video.videoHeight, vw = video.videoWidth;
     const sy = Math.floor(cfg.bandaImagen[0] * vh);
     const sh = Math.max(8, Math.floor((cfg.bandaImagen[1] - cfg.bandaImagen[0]) * vh));
-    ctx.drawImage(video, 0, sy, vw, sh, 0, 0, lienzo.width, lienzo.height);
-    const datos = ctx.getImageData(0, 0, lienzo.width, lienzo.height).data;
+    // Un directo que no manda cabeceras CORS tiene el lienzo "tainted" y
+    // `getImageData` lanza SecurityError. Si eso ocurre NO se muere en silencio
+    // ni se finge que no hay surfista: se dice en el motivo y se deja de leer.
+    let datos;
+    try {
+      ctx.drawImage(video, 0, sy, vw, sh, 0, 0, lienzo.width, lienzo.height);
+      datos = ctx.getImageData(0, 0, lienzo.width, lienzo.height).data;
+    } catch (e) {
+      vigia._analisisFallos = (vigia._analisisFallos || 0) + 1;
+      vigia.motivo = `El directo no deja leer sus fotogramas (${e?.name || 'error de CORS'}): la cámara no manda cabeceras de origen, así que no se puede detectar ni grabar la ola.`;
+      clearInterval(relojAnalisis);
+      relojAnalisis = null;
+      vigia.disponible = false;
+      vigia.grabador?.parar();
+      vigia.grabador = null;
+      return;
+    }
     const grises = aGrisesReducidos(datos, lienzo.width, lienzo.height, detector.ajustes.anchoAnalisis, detector.ajustes.altoAnalisis);
     const salida = detector.push(grises, Date.now());
     if (!salida?.deteccion) return;
@@ -832,6 +883,7 @@ export function iniciarVigiaOla(el, cam, opciones = {}) {
     ia: vigia.ia?.estado?.() || null,
     iaLlamadas: vigia._iaLlamadas,
     iaSinVideo: vigia._iaSinVideo,
+    analisisFallos: vigia._analisisFallos,
     evidenciaIA: evidenciaIA() ? { tMs: evidenciaIA().tMs, persona: Math.round(evidenciaIA().persona.confianza * 100), tabla: Math.round(evidenciaIA().tabla.confianza * 100) } : null,
   });
   return vigia;

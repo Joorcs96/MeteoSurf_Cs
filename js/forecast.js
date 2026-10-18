@@ -330,6 +330,12 @@ export function rate(spot, surf, period, wind, speed, gust, extra = {}) {
     if (s > 4.0) s = 4.0;
   }
 
+  // Spots abrigados que con mar grande de fuera reciben olas ordenadas (Voramar, La Concha; observado
+  // por Jordi el 18/10/2026: surfistas y olas limpias con 1.2-1.6 m offshore del NE).
+  const offH = extra?.offshoreH;
+  const abrigo = spot?.abrigoBonus && offH >= 1.1 && p >= 4.5 ? Math.min(spot.abrigoBonus, offH * 1.2) : 0;
+  s += abrigo;
+
   // Mar de viento corto / desordenado
   const wh = extra?.windWaveH;
   const wt = extra?.windWaveT;
@@ -349,8 +355,10 @@ export function rate(spot, surf, period, wind, speed, gust, extra = {}) {
   else if (h < 1.05) maxCap = 5;
   else if (h < 1.40) maxCap = 6;
 
+  if (abrigo > 0) maxCap = Math.min(7, maxCap + 2);
+
   let rounded = Math.round(s);
-  if (rounded >= 7) {
+  if (rounded >= 7 && abrigo === 0) {
     const isCleanWind = wind && (wind.key === 'offshore' || wind.key === 'glassy' || wind.key === 'crossoff');
     if (!(h >= 1.40 && p >= 7.0 && isCleanWind && (speed ?? 0) < 25)) {
       rounded = 6;
@@ -419,6 +427,7 @@ export function horaForecast(spot, m, w, k) {
     .sort((a, b) => b.h - a.h);
   const abrigado = vientoAbrigado(spot, windSpeed, windDir, windGust);
   const rating = rate(spot, surf, period, wind, abrigado.speed, abrigado.gust, {
+    offshoreH: m.wave_height?.[k],
     swellH: m.swell_wave_height?.[k],
     swellT: m.swell_wave_period?.[k],
     windWaveH: m.wind_wave_height?.[k],

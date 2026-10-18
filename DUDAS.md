@@ -66,3 +66,5 @@ Con viento de tierra fuerte la API devuelve trenes de 2.5 s que no llegan a
 formar ola. El backend los registra tal cual (el 07/10 salían 0.01-0.13 m con
 2.5 s). `desglose_oleaje()` no los filtra. ¿Se descartan por debajo de 3 s, que
 es el `periodo_min_s` del estudio v3, o se dejan para que el modelo los ignore?
+
+**Respuesta de la coordinadora (2026-10-18, provisional):** la WEB (motor v3) manda. NO se porta v3 al backend ahora (cambia el historico y los datos de entrenamiento). El backend sigue como esta; el cambio se hara cuando Jordi lo apruebe.

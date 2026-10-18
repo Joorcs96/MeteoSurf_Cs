@@ -309,8 +309,12 @@ function comprobar(nombre, ok, detalle) {
   const obsVieja = { ...obs, fecha: '2026-10-09T02:00:00Z' }; // 4h de antigüedad
   const fcViejo = { raw, spots: {} };
   SPOTS.forEach((x, i) => fcViejo.spots[x.id] = processSpot(x, raw.marine[i].hourly, raw.weather[i].hourly, {}));
+  const alturasAntes = fcViejo.spots['Planetario'].hours.map((h) => h.waveHeight);
+  const notasAntes = fcViejo.spots['Planetario'].hours.map((h) => h.rating);
   aplicarNowcast(fcViejo, { oleaje: { principal: obsVieja } }, ahora);
   comprobar('observación > 3h ignorada', fcViejo.spots['Planetario'].hours[0].nowcastRatio == null);
+  comprobar('sin corrección válida la previsión queda igual',
+    JSON.stringify(fcViejo.spots['Planetario'].hours.map((h) => [h.waveHeight, h.rating])) === JSON.stringify(alturasAntes.map((a, i) => [a, notasAntes[i]])));
 
   // Ignorar nulos
   const obsNula = { ...obs, altura_m: null };

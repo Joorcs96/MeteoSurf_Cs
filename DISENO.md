@@ -44,3 +44,10 @@
 42. Escritorio: ancho máximo de 1180 px y ficha en dos columnas.
 43. Preferencia del sistema y atributo data-theme usan los mismos tokens.
 44. Validación: capturas claras/oscuras, desbordamientos, CSP y pruebas existentes.
+
+Revisión 18/10:
+- Estilo minimalista tecnológico con carácter atrevido: fondo oscuro profundo (#090b0e), acento verde ácido (#0df59e) y relieve sutil.
+- Tarjetas de spot individuales con fondo de superficie, borde 1px, franja lateral del color de calidad y radio de 14 px.
+- Tipografía Inter con titulares más pesados y apretados (800) y cifras de altura de ola ampliadas (30-38 px).
+- Miniatura de mapa sobria (CARTO Voyager zoom 14, 64x64 px, radio 12 px, centrado exacto con indicador de calidad sin marcos recargados).
+- Espaciado en cuadrícula con separación de 12-16 px y mayor contraste en chips y controles táctiles.

@@ -1,6 +1,35 @@
-{
-  "updatedAt": null,
+﻿{
+  "updatedAt": "2026-10-01T12:00:00+02:00",
   "timezone": "Europe/Madrid",
   "dias": 30,
-  "rewinds": []
+  "rewinds": [
+    {
+      "id": "Planetario-20261001-1200",
+      "spot": "Planetario",
+      "spotNombre": "Planetario",
+      "camara": "cv_grao_castellon",
+      "camaraNombre": "El Grao",
+      "camaraCorta": "El Grao",
+      "credito": "Turisme CV",
+      "hora": "2026-09-28T10:00:00Z",
+      "horaLocal": "2026-09-28 12:00",
+      "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      "archivo": "rewind_Planetario.mp4",
+      "release": "rewinds-2026-10",
+      "duracion": 20.0,
+      "bytes": 2000000,
+      "ancho": 854,
+      "alto": 480,
+      "desenfoque": 2,
+      "prevision": {
+        "altura": 0.8,
+        "periodo": 6.0,
+        "direccion": 90,
+        "direccionTxt": "E",
+        "viento": 10.0,
+        "vientoDireccion": 270,
+        "vientoDireccionTxt": "O"
+      }
+    }
+  ]
 }

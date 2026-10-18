@@ -426,6 +426,9 @@ export function horaForecast(spot, m, w, k) {
     .filter((t) => t.h && t.h >= 0.05)
     .sort((a, b) => b.h - a.h);
   const abrigado = vientoAbrigado(spot, windSpeed, windDir, windGust);
+  // La racha del modelo se pasa de largo: el 18/10 la estación de Castellón midió 33 km/h con 20 de media
+  // (x1.6) y el modelo daba 54 con 24 (x2.2). Se limita a x1.6 la media.
+  if (abrigado.gust != null && abrigado.speed != null) abrigado.gust = Math.min(abrigado.gust, abrigado.speed * 1.6);
   const rating = rate(spot, surf, period, wind, abrigado.speed, abrigado.gust, {
     offshoreH: m.wave_height?.[k],
     swellH: m.swell_wave_height?.[k],

@@ -1,0 +1,91 @@
+name: Vigilante Continuo de Cámaras
+
+on:
+  schedule:
+    # Inicio diario a las 06:00 UTC (08:00 Madrid, hora de inicio de la franja diurna)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      modo_prueba:
+        description: 'Modo prueba corto (5 min o 6 ciclos de verificación)'
+        type: boolean
+        required: false
+        default: false
+      duracion_minutos:
+        description: 'Minutos de trabajo del vigilante (máx ~350 min / ~5h50)'
+        type: number
+        required: false
+        default: 350
+      subir_release:
+        description: 'Subir clips seleccionados a GitHub Release'
+        type: boolean
+        required: false
+        default: true
+
+concurrency:
+  group: vigilante-camaras
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  vigilante:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar herramientas del sistema y dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          pip install Pillow numpy
+
+      - name: Ejecutar pruebas unitarias sin red
+        run: |
+          python -m unittest scripts.test_vigilante
+
+      - name: Ejecutar Vigilante Continuo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS=""
+          if [ "${{ inputs.modo_prueba }}" = "true" ]; then
+            ARGS="--modo-prueba --duracion-minutos 5"
+          else
+            DURACION="${{ inputs.duracion_minutos || 350 }}"
+            ARGS="--duracion-minutos $DURACION"
+          fi
+
+          if [ "${{ inputs.subir_release }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ]; then
+            ARGS="$ARGS --subir"
+          fi
+
+          python scripts/vigilante.py $ARGS --repo "${{ github.repository }}"
+
+      - name: Guardar y sincronizar índice de rewinds
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/rewinds.json)" ]; then
+            git add data/rewinds.json
+            git commit -m "Auto: actualización de índice de rewinds por vigilante [skip ci]"
+            git push
+          else
+            echo "Sin cambios pendientes en data/rewinds.json"
+          fi

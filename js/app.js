@@ -348,8 +348,11 @@ function spotMapStyle(lat, lon) {
       const tilePosX = posX + dx * 256;
       const tilePosY = posY + dy * 256;
       if (tilePosX < 64 && tilePosX + 256 > 0 && tilePosY < 64 && tilePosY + 256 > 0) {
+        // CARTO Voyager: https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx + dx}/${ty + dy}@2x.png
+        // CARTO impone marca de agua 'API KEY REQUIRED'; usamos OpenStreetMap para renderizar el mapa real y nítido
         tiles.push({
-          url: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx + dx}/${ty + dy}@2x.png`,
+          url: `https://tile.openstreetmap.org/${z}/${tx + dx}/${ty + dy}.png`,
+          carto: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx + dx}/${ty + dy}@2x.png`,
           pos: `${tilePosX}px ${tilePosY}px`
         });
       }

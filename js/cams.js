@@ -209,6 +209,10 @@ export function reproducirClip(el, clip, { onError } = {}) {
   Object.assign(video, { controls: true, playsInline: true, autoplay: true });
   video.setAttribute('playsinline', '');
   el.appendChild(video);
+  // Si mientras llega el archivo se cambia de cámara, el `blob` ya no lo usa
+  // nadie: sin esto se quedaba una URL de objeto viva en memoria para siempre
+  // (el `revokeObjectURL` de la limpieza ya había corrido antes de crearse).
+  const sesion = sessions.get(el);
   let url = '';
   fetch(clip.url, { mode: 'cors' })
     .then((r) => {
@@ -217,10 +221,12 @@ export function reproducirClip(el, clip, { onError } = {}) {
     })
     .then((b) => {
       if (!b.size) throw new Error('El archivo vino vacío');
+      if (sessions.get(el) !== sesion) return;
       url = URL.createObjectURL(b);
       video.src = url;
     })
     .catch((e) => {
+      if (sessions.get(el) !== sesion) return;
       // Segundo intento: la URL directa, por si el navegador sí sabe con ella.
       video.src = clip.url;
       onError?.(`No se ha podido traer el clip (${e.message}). Se intenta con la descarga directa.`);
@@ -433,20 +439,29 @@ export function armarClipWebm(trozos, opciones) {
 // cuánto mide (o a que se dé por perdido, con un plazo corto).
 export const PLAZO_DIMENSIONES_MS = 5000;
 
-export function esperarDimensiones(video, plazoMs = PLAZO_DIMENSIONES_MS) {
+export function esperarDimensiones(video, plazoMs = PLAZO_DIMENSIONES_MS, cancelado = () => false) {
   const listo = () => video.videoWidth > 0 && video.videoHeight > 0;
   if (listo()) return Promise.resolve(true);
   return new Promise((resolver) => {
     let fin = null;
+    let reloj = null;
     const limpiar = () => {
       clearTimeout(fin);
-      video.removeEventListener('loadedmetadata', alBajar);
-      video.removeEventListener('resize', alBajar);
+      clearInterval(reloj);
+      video.removeEventListener('loadedmetadata', alBazar);
+      video.removeEventListener('resize', alBazar);
     };
-    const alBajar = () => { if (!listo()) return; limpiar(); resolver(true); };
-    video.addEventListener('loadedmetadata', alBajar);
-    video.addEventListener('resize', alBajar);
-    fin = setTimeout(() => { limpiar(); resolver(false); }, plazoMs);
+    // Un solo camino de salida: se resuelve una vez y se limpian los oyentes.
+    const salir = (valor) => { limpiar(); resolver(valor); };
+    const alBazar = () => { if (listo()) salir(true); };
+    video.addEventListener('loadedmetadata', alBazar);
+    video.addEventListener('resize', alBazar);
+    // Si se cambia de cámara o se desarma la vigía mientras se espera, no se
+    // espera ni al plazo entero: se rinde en el momento. Sin esto, al llegar las
+    // medidas tarde `preparar()` seguía adelante con una cámara que ya no existe.
+    if (cancelado()) salir(false);
+    reloj = setInterval(() => { if (cancelado()) salir(false); }, 150);
+    fin = setTimeout(() => salir(false), plazoMs);
   });
 }
 
@@ -466,16 +481,21 @@ function crearGrabadorCodificado(video, cfg) {
   let error = null;
   let codigo = '';
   let codigoWebm = '';
+  let parado = false;
 
   async function preparar() {
     if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') {
       throw new Error('Este navegador no tiene WebCodecs.');
     }
     // Y luego las dimensiones. Con 0x0 el alto saldría 2 píxeles y el clip sería
-    // una franja ilegible; mejor no armar nada y decir por qué.
-    if (!await esperarDimensiones(video)) {
-      throw new Error('El directo no ha dado las medidas del vídeo a tiempo, así que no se puede grabar el clip con la proporción correcta.');
+    // una franja ilegible; mejor no armar nada y decir por qué. Se rinde antes
+    // si `parar()` se ha llamado mientras esperaba (cambio de cámara o desarme).
+    const alParar = 'Se ha parado la vigía (cambio de cámara o desarme) mientras se esperaba la imagen del directo, así que no se arma la grabación.';
+    if (!await esperarDimensiones(video, undefined, () => parado)) {
+      throw new Error(parado ? alParar
+        : 'El directo no ha dado las medidas del vídeo a tiempo, así que no se puede grabar el clip con la proporción correcta.');
     }
+    if (parado) throw new Error(alParar);
     H = Math.max(2, Math.round(((W * video.videoHeight) / Math.max(1, video.videoWidth)) / 2) * 2);
     const mod = await import(MUXADOR_CDN);
     Muxer = mod.Muxer;
@@ -582,7 +602,12 @@ function crearGrabadorCodificado(video, cfg) {
   return {
     modo: 'codificado',
     async iniciar() {
+      parado = false;
       await preparar();
+      // `parar()` pudo llamarse mientras se esperaba la imagen (al cambiar de
+      // cámara). Si se sigue aquí, el grabador se pondría a codificar en el
+      // aire y no pararía nunca.
+      if (parado) return;
       capturando = true;
       if (video.requestVideoFrameCallback) {
         const ciclo = () => {
@@ -597,6 +622,7 @@ function crearGrabadorCodificado(video, cfg) {
     },
     disparar,
     parar() {
+      parado = true;
       capturando = false;
       if (reloj) clearInterval(reloj);
       try { encoder?.close(); } catch { /* nada */ }
@@ -737,11 +763,16 @@ export function iniciarVigiaOla(el, cam, opciones = {}) {
         return false;
       }
       await vigia.grabador.iniciar();
+      // Si mientras se esperaba la imagen se cambió de cámara o se desarmó, el
+      // grabador ya está parado: no se reactiva ni se pone a analizar el directo
+      // nuevo como si fuera el que se pidió mirar.
+      if (vigia.parado) { vigia.grabador.parar(); vigia.grabador = null; return false; }
       if (cfg.usarIA) {
         // El modelo se pide solo al armar la vigía, nunca al abrir la página: son
         // unos 18 MB y no tiene sentido bajarlos si nadie está mirando.
         vigia.ia = crearDetectorIA();
         const carga = await vigia.ia.cargar();
+        if (vigia.parado) { try { vigia.ia.liberar(); } catch { /* nada */ } vigia.ia = null; return false; }
         if (!carga.ok) {
           vigia.motivo = `No se ha podido cargar el detector de persona y tabla (${carga.error?.codigo || 'sin codigo'}): ${carga.error?.mensaje || 'motivo desconocido'}. Sin ese modelo no se puede decidir que sea un surfista, así que la vigía se queda apagada.`;
           vigia.grabador.parar();
@@ -756,6 +787,7 @@ export function iniciarVigiaOla(el, cam, opciones = {}) {
       }
       return true;
     } catch (e) {
+      if (vigia.parado) return false;
       vigia.motivo = e.message || 'No se pudo preparar la grabación.';
       return false;
     }

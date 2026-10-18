@@ -133,11 +133,10 @@
     },
     {
       "id": "cv-benicassim-vela-hls",
-      "name": "Comunitat Valenciana",
-      "short": "Benicàssim Vela (club náutico)",
+      "name": "Playa de la Escuela de Vela (Benicàssim)",
+      "short": "Escuela de Vela",
       "spots": [
-        "Heliopolis",
-        "Voramar"
+        "Heliopolis"
       ],
       "priority": 1,
       "embedType": "hls",
@@ -148,7 +147,7 @@
       "distanceKm": 2.6,
       "tokenRefresh": null,
       "verified": false,
-      "notes": "Única cámara con vídeo real en directo cerca de Heliópolis (2,6 km) y razonablemente cerca de Voramar (1,9 km) — para Voramar se recomienda mejor la cámara del Hotel Voramar (prioridad 1 de ese spot); esta queda de prioridad 2 ahí. HLS con CORS * confirmado en manifest, sub-lista (chunklist_w*.m3u8) y segmentos .ts.",
+      "notes": "CORRECCION 18/10/2026 (Jordi): esta camara esta en la playa de la Escuela de Vela de Benicassim, NO en Voramar; por eso ya no esta asociada a Voramar. Única cámara con vídeo real en directo cerca de Heliópolis (2,6 km) y razonablemente cerca de Voramar (1,9 km) — para Voramar se recomienda mejor la cámara del Hotel Voramar (prioridad 1 de ese spot); esta queda de prioridad 2 ahí. HLS con CORS * confirmado en manifest, sub-lista (chunklist_w*.m3u8) y segmentos .ts.",
       "enabled": false,
       "lastChecked": "2026-10-18T14:42:24.172073+00:00",
       "failCount": 22

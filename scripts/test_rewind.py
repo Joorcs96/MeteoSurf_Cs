@@ -78,7 +78,7 @@ class TestSeleccionCamaras(unittest.TestCase):
     def test_cobertura_de_spots(self):
         cams = {c["id"]: c for c in rewind.camaras_rewind(self.webcams)}
         self.assertEqual(cams["cv_grao_castellon"]["spotsCubiertos"], ["Planetario", "Piramides"])
-        self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Voramar", "Heliopolis"])
+        self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Heliopolis"])
         self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Concha", "Renega"])
 
     def test_no_toma_camaras_deshabilitadas(self):

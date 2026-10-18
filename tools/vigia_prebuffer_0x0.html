@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>MeteoSurf · Regresión del prebuffer con vídeo 0x0</title>
+<!--
+  Regresión del defecto medido por el auditor y el probador: si la vigía se arma
+  mientras el `<video>` todavía no tiene medidas (0x0), el alto del clip salía
+  `Math.max(2, 0)` = 2 píxeles **para siempre**, `disponible` ponía `true` y no
+  había ni error ni aviso.
+
+  Dos casos, con el código REAL de `js/cams.js` en el navegador CON VENTANA:
+
+   * `tarde`: se arma la vigía con el vídeo en 0x0 y las measures llegan 1,2 s
+     después. El clip tiene que salir con la proporción de verdad (640x360) y
+     reproducirse.
+   * `nunca`: el vídeo no da medidas nunca. La vigía no se arma, `disponible`
+     queda en false y el motivo llega a la interfaz (este nodo es el mismo
+     `#record-status` que pinta `js/app.js`).
+-->
+</head>
+<body>
+<p id="resultado">ejecutando…</p>
+<div id="camA"></div>
+<div id="camB"></div>
+<p id="errorVisible"></p>
+<pre id="detalle"></pre>
+<script type="module">
+import { iniciarVigiaOla } from '../js/cams.js';
+
+const salida = document.getElementById('resultado');
+const detalle = document.getElementById('detalle');
+const lineas = [];
+// Cada valor va en JSON, como en las demás páginas de prueba, para que el
+// script de Node pueda leerlo sin depender de comas ni acentos.
+const anotar = (k, v) => lineas.push(JSON.stringify(`${k}=${v}`));
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const AJUSTES = { prebufferS: 6, postS: 0, gopS: 1, ancho: 640, fps: 12, bitrate: 1_000_000, detectar: false };
+
+function contenedor(id) {
+  const el = document.getElementById(id);
+  el.dataset.cameraType = 'hls';        // la vigía solo arranca con un directo HLS
+  const v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.setAttribute('playsinline', '');
+  el.appendChild(v);
+  return { el, video: v };
+}
+
+async function main() {
+  // ---------------------------------------------------------------- caso 1
+  const a = contenedor('camA');
+  anotar('c1AltoAlArmar', a.video.videoWidth);
+  const lienzo = document.createElement('canvas');
+  lienzo.width = 640; lienzo.height = 360;
+  const lctx = lienzo.getContext('2d');
+  let t0 = performance.now();
+  (function pintar() {
+    const t = (performance.now() - t0) / 1000;
+    lctx.fillStyle = '#8fa3ad'; lctx.fillRect(0, 0, 640, 360);
+    lctx.fillStyle = '#1d2529'; lctx.fillRect((t * 120) % 700 - 50, 150, 22, 90);
+    requestAnimationFrame(pintar);
+  })();
+
+  const vigiaA = iniciarVigiaOla(a.el, {}, AJUSTES);
+  const armado = vigiaA.preparar();                       // vídeo todavía en 0x0
+  anotar('c1AnchoAlArmar', a.video.videoWidth);
+  await esperar(1200);                                    // ...y ahora sí, la imagen
+  a.video.srcObject = lienzo.captureStream(12);
+  await a.video.play().catch(() => {});
+  const okA = await armado;
+  anotar('c1Preparado', okA);
+  const eA = vigiaA.estado();
+  anotar('c1Disponible', eA.disponible);
+  anotar('c1AltoClip', eA.alto === null || eA.alto === undefined ? 'null' : eA.alto);
+  anotar('c1Motivo', (eA.motivo || '(ninguno)').slice(0, 80).replace(/\s+/g, ' '));
+
+  await esperar(3500);                                    // algo de búfer previo
+  const clip = await vigiaA.grabador.disparar();
+  anotar('c1ClipError', clip?.error || '(ninguno)');
+  anotar('c1ClipAlto', clip?.alto === undefined ? 'null' : clip?.alto);
+  anotar('c1ClipBytes', clip?.bytes || 0);
+  anotar('c1UnContenedor', String(clip?.contenedorUnico === true));
+  if (clip?.blob) {
+    const url = URL.createObjectURL(clip.blob);
+    const v2 = document.createElement('video');
+    v2.muted = true; v2.src = url;
+    document.body.appendChild(v2);
+    const dur = await new Promise((res) => {
+      v2.addEventListener('loadedmetadata', () => res(v2.duration || 0), { once: true });
+      v2.addEventListener('error', () => res(0), { once: true });
+      setTimeout(() => res(v2.duration || 0), 8000);
+    });
+    anotar('c1ClipDuracion', Math.round(dur * 100) / 100);
+    v2.remove(); URL.revokeObjectURL(url);
+  }
+  vigiaA.parar();
+
+  // ---------------------------------------------------------------- caso 2
+  const b = contenedor('camB');                           // sin srcObject: 0x0 para siempre
+  const vigiaB = iniciarVigiaOla(b.el, {}, AJUSTES);
+  const okB = await vigiaB.preparar();
+  const eB = vigiaB.estado();
+  anotar('c2Preparado', okB);
+  anotar('c2Disponible', eB.disponible);
+  anotar('c2Motivo', (eB.motivo || '(ninguno)').slice(0, 120).replace(/\s+/g, ' '));
+  // Esto es lo que `js/app.js` pinta en `#record-status` cuando la vigía no arma.
+  document.getElementById('errorVisible').textContent = okB ? '' : (vigiaB.motivo || 'No se pudo preparar la grabación.');
+  anotar('c2ErrorEnPantalla', document.getElementById('errorVisible').textContent ? 'true' : 'false');
+  anotar('c2HablaDeMedidas', /medidas del vídeo/.test(vigiaB.motivo || '') ? 'true' : 'false');
+  await esperar(1500);
+  const disparo = await vigiaB.grabador.disparar();
+  anotar('c2Disparo', disparo?.error ? 'error visible' : (disparo ? 'clip' : 'nada'));
+  vigiaB.parar();
+
+  detalle.textContent = lineas.join('\n');
+  salida.textContent = `RESULTADO [${lineas.join(',')}]`;
+}
+
+main().catch((e) => {
+  detalle.textContent = lineas.join('\n') + '\nEXCEPCIÓN ' + (e && e.stack || e);
+  salida.textContent = `FALLO [${JSON.stringify(`error=${String(e && e.message || e).replace(/["\[\],]/g, ' ')}`)}]`;
+});
+</script>
+</body>
+</html>

@@ -231,19 +231,46 @@ class TestVigiaE2E(unittest.TestCase):
         self.assertEqual(estado.get("rois"), {"ancho": 320, "alto": 180})
 
 
+# ------------------------------- regresión del prebuffer con vídeo 0x0
+    def test_04_prebuffer_con_video_0x0(self):
+        # El defecto que paró la publicación: con el vídeo aún sin medidas al
+        # armar la vigía, el alto del clip salía 2 píxeles para siempre y la
+        # interfaz decía que todo estaba bien.
+        d = self._e2e("pw-prebuffer-0x0.cjs", budget=90000)
+        # Caso 1: 0x0 al armar, medidas 1,2 s después.
+        self.assertEqual(d.get("c1AnchoAlArmar"), "0", "la prueba no llegó a arrancar con el vídeo sin medidas")
+        self.assertEqual(d.get("c1Preparado"), "true", f"la vigía no esperó a las medidas: {d.get('c1Motivo')}")
+        self.assertEqual(d.get("c1Disponible"), "true", d.get("c1Motivo"))
+        self.assertEqual(d.get("c1AltoClip"), "360", "el alto del clip no sale de la proporción real del vídeo")
+        self.assertEqual(d.get("c1ClipError"), "(ninguno)", d.get("c1ClipError"))
+        self.assertEqual(d.get("c1ClipAlto"), "360", "el clip se armó con una proporción inventada")
+        self.assertGreater(int(d.get("c1ClipBytes", "0")), 5000, "el clip está vacío")
+        self.assertEqual(d.get("c1UnContenedor"), "true")
+        self.assertGreater(float(d.get("c1ClipDuracion", "0")), 0.5, "el clip no se reproduce")
+        # Caso 2: 0x0 para siempre. No se arma y se ve el motivo.
+        self.assertEqual(d.get("c2Preparado"), "false", "la vigía se armó sin medidas del vídeo")
+        self.assertEqual(d.get("c2Disponible"), "false")
+        self.assertEqual(d.get("c2HablaDeMedidas"), "true", f"el motivo no explica el fallo: {d.get('c2Motivo')}")
+        self.assertEqual(d.get("c2ErrorEnPantalla"), "true", "el fallo no llega a la interfaz")
+        self.assertEqual(d.get("c2Disparo"), "error visible",
+                         "un disparo sin medidas tiene que devolver error, no un clip de 2 píxeles")
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--budget", type=int, default=150000, help="presupuesto de la página en ms")
-    p.add_argument("--solo", choices=["deteccion", "club", "ia"], default="",
-                   help="ejecutar solo una de las tres")
+    p.add_argument("--solo", choices=["deteccion", "club", "ia", "prebuffer"], default="",
+                   help="ejecutar solo una de las cuatro")
     args = p.parse_args()
     TestVigiaE2E.budget_ms = args.budget
     nombres = {
         "deteccion": "test_01_deteccion_a_clip",
         "club": "test_02_emision_real_del_club",
         "ia": "test_03_modelo_persona_y_tabla",
+        "prebuffer": "test_04_prebuffer_con_video_0x0",
     }
-    todas = ["test_01_deteccion_a_clip", "test_02_emision_real_del_club", "test_03_modelo_persona_y_tabla"]
+    todas = ["test_01_deteccion_a_clip", "test_02_emision_real_del_club",
+             "test_03_modelo_persona_y_tabla", "test_04_prebuffer_con_video_0x0"]
     suite = unittest.TestSuite([TestVigiaE2E(nombres[args.solo])] if args.solo
                                else [TestVigiaE2E(n) for n in todas])
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1

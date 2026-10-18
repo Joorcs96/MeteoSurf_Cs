@@ -164,6 +164,43 @@ seccion('Esperar a que el vídeo diga cuánto mide');
   comprobar('el plazo por defecto es corto (5 s)', /PLAZO_DIMENSIONES_MS = 5000/.test(FUENTE));
 }
 
+// ------------------------------------------- cancelar al cambiar de cámara
+
+seccion('Cambiar de cámara o desarmar mientras espera');
+{
+  let cancelado = false;
+  const v = videoFalso();
+  const t0 = Date.now();
+  const esperando = esperarDimensiones(v, 60_000, () => cancelado);
+  setTimeout(() => { cancelado = true; }, 30);   // el usuario cambia de cámara aquí
+  const r = await esperando;
+  comprobar('cambiar de cámara corta la espera al momento', r === false);
+  comprobar('...y no espera al plazo entero', Date.now() - t0 < 3000, `${Date.now() - t0} ms`);
+  comprobar('...limpiando oyentes al cancelar', v.oyentes.get('loadedmetadata').length === 0 && v.oyentes.get('resize').length === 0);
+  cancelado = true;
+
+  const yaCancelado = videoFalso();
+  comprobar('si ya se había parado, no espera ni un instante', (await esperarDimensiones(yaCancelado, 60_000, () => true)) === false);
+
+  // Y en el grabador: parar() mientras `iniciar()` espera no puede dejar
+  // codificando en el aire, ni armar un clip con la cámara que ya no se mira.
+  VideoEncoderFalso.configuring = [];
+  const v2 = videoFalso();
+  const { grabador: g, armados: a } = crearGrabador(v2, CFG);
+  const arranque = g.iniciar();
+  await new Promise((r2) => setTimeout(r2, 40));
+  g.parar();                       // el usuario cambia de cámara aquí
+  v2.dimensions(1280, 720);         // ...y las medidas llegan tarde
+  v2.emit('loadedmetadata');
+  let motivo = '';
+  await arranque.catch((e) => { motivo = e.message; });
+  await new Promise((r2) => setTimeout(r2, 40));
+  comprobar('parar() durante la espera no configura ningún codificador', VideoEncoderFalso.configuring.length === 0, JSON.stringify(VideoEncoderFalso.configuring));
+  comprobar('no se arma ningún clip de la cámara abandonada', a.length === 0, `${a.length}`);
+  comprobar('el motivo dice que se paró la vigía', /parado la vigía|cambiado de cámara/.test(motivo), motivo);
+  comprobar('la espera de medidas queda vacía', g.estado().bucle === 0);
+}
+
 // ----------------------------------------------------- 0x0 sin clip de 640x2
 
 seccion('Vídeo 0x0: no se arma un clip de 640x2');
@@ -214,6 +251,27 @@ seccion('CORS: leer el lienzo no puede morir en silencio');
   comprobar('tras el fallo la vigía deja de estar disponible', /catch[\s\S]{0,900}?vigia\.disponible = false/.test(analizar), '');
   comprobar('el fallo se cuenta, no se esconde', /_analisisFallos/.test(analizar) && /analisisFallos: vigia\._analisisFallos/.test(FUENTE), '');
   comprobar('el fallo se detiene ahí: no se sigue analizando en silencio', /catch[\s\S]{0,900}?return;/.test(analizar), '');
+}
+
+seccion('Traer el clip histórico no deja blobs huérfanos');
+{
+  const rep = extraer(FUENTE, 'reproducirClip');
+  comprobar('guarda la sesión al empezar', /const sesion = sessions\.get\(el\)/.test(rep), '');
+  comprobar('si ya no es la misma cámara, no crea la URL de objeto', /sessions\.get\(el\) !== sesion\) return;/.test(rep), '');
+  comprobar('si el fetch falla, cae a la URL directa y avisa', /video\.src = clip\.url/.test(rep) && /onError\?\./.test(rep), '');
+  comprobar('la URL creada se libera al cambiar de cámara', /revokeObjectURL\(url\)/.test(rep), '');
+  comprobar('el fetch va con `mode: cors` a propósito, no credenciales', /fetch\(clip\.url, \{ mode: 'cors' \}\)/.test(rep), '');
+}
+
+seccion('La PWA entrega los js nuevos a quien ya la tenía instalada');
+{
+  const sw = leer('sw.js');
+  const version = sw.match(/const CACHE = 'meteosurf-cs-v(\d+)/)?.[1];
+  comprobar('la caché lleva número de versión', !!version, sw.split('\n')[2] || '');
+  comprobar('está por encima de la versión que ya hay publicada', Number(version) >= 18, `v${version}`);
+  comprobar('los js que cambian están en la lista de la PWA', ['./js/cams.js', './js/app.js', './js/deteccion.js'].every((u) => sw.includes(u)), '');
+  comprobar('al activar borra las cachés viejas', /k !== CACHE[\s\S]{0,60}caches\.delete\(k\)/.test(sw), '');
+  comprobar('red primero: si hay red, el usuario ve la versión nueva', /fetch\(e\.request, \{ cache: 'no-cache' \}\)/.test(sw), '');
 }
 
 console.log(`\n${fallos ? 'FALLOS' : 'TODO EN VERDE'}: ${total - fallos}/${total} pruebas`);

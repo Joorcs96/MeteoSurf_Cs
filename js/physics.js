@@ -290,6 +290,13 @@ export const FACTOR = {
 // El Gurugú está 1 km al norte, en el Serradal, con la misma costa: comparte tabla hasta recalcularla.
 FACTOR.Piramides = FACTOR.Gurugu;
 
+// Suelo por difracción/refracción (Jordi, 18/10/2026, contrastado con la cámara de Voramar): con mar
+// grande del NNE-NE el trazado de rayos da 0 porque la punta tapa la costa, pero en la realidad el
+// tren entra rodeando la punta, ordenado y más pequeño. Factor mínimo por dirección (cada 10°).
+const PISO_DIFRACCION = {
+  Voramar: { 20: 0.25, 30: 0.35, 40: 0.45, 50: 0.55, 60: 0.55, 70: 0.55, 80: 0.55 }
+};
+
 export const SPOTS_CON_FISICA = Object.keys(FACTOR);
 export const TIENE_FISICA = (id) => Object.prototype.hasOwnProperty.call(FACTOR, id);
 
@@ -317,5 +324,10 @@ export function factorOleaje(id, dir, periodo) {
   const w = (d - DIRS[i]) / paso;
   const v0 = enPeriodo(tabla[i], periodo);
   const v1 = enPeriodo(tabla[(i + 1) % DIRS.length], periodo);
-  return v0 + (v1 - v0) * w;
+  const v = v0 + (v1 - v0) * w;
+  const piso = PISO_DIFRACCION[id];
+  if (!piso) return v;
+  const f0 = piso[DIRS[i]] ?? 0;
+  const f1 = piso[DIRS[(i + 1) % DIRS.length]] ?? 0;
+  return Math.max(v, f0 + (f1 - f0) * w);
 }

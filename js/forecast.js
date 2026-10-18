@@ -221,9 +221,17 @@ export const windEfectivo = (speed, gust) => {
   return Math.max(speed, r);
 };
 
+// Spots abrigados del Norte (punta/cabo): el viento de ese sector llega bastante más flojo que en el modelo.
+export function vientoAbrigado(spot, speed, dirFrom, gust) {
+  const sh = spot.windShelter;
+  if (!sh || dirFrom == null || isNaN(dirFrom) || !inWindow(dirFrom, sh.sector)) return { speed, gust };
+  return { speed: speed == null ? speed : speed * sh.factor, gust: gust == null ? gust : gust * sh.factor };
+}
+
 // Estados: offshore (terral), cross-off, cross, cross-on, onshore. Calma si el viento efectivo es < 6 km/h.
 export function windState(spot, speed, dirFrom, gust) {
   if (speed == null || dirFrom == null || isNaN(speed) || isNaN(dirFrom)) return { key: 'na', label: '–', effective: null };
+  ({ speed, gust } = vientoAbrigado(spot, speed, dirFrom, gust));
   const v = windEfectivo(speed, gust);
   const r = (key, label) => ({ key, label, effective: v });
   const off = norm360(spot.facing + 180);
@@ -409,7 +417,8 @@ export function horaForecast(spot, m, w, k) {
     .map((t, idx) => ({ ...t, kind: ['Fondo', 'Fondo 2', 'Viento', 'Total'][idx] }))
     .filter((t) => t.h && t.h >= 0.05)
     .sort((a, b) => b.h - a.h);
-  const rating = rate(spot, surf, period, wind, windSpeed, windGust, {
+  const abrigado = vientoAbrigado(spot, windSpeed, windDir, windGust);
+  const rating = rate(spot, surf, period, wind, abrigado.speed, abrigado.gust, {
     swellH: m.swell_wave_height?.[k],
     swellT: m.swell_wave_period?.[k],
     windWaveH: m.wind_wave_height?.[k],

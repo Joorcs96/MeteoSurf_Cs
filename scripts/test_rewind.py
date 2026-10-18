@@ -39,7 +39,7 @@ class TestLeerSpots(unittest.TestCase):
         self.spots = rewind.leer_spots()
 
     def test_todos_los_spots_del_catalogo(self):
-        self.assertEqual(len(self.spots), 13)
+        self.assertEqual(len(self.spots), 14)
         for spot_id in ("Planetario", "Piramides", "Voramar", "MorroGos", "Renega"):
             self.assertIn(spot_id, self.spots)
 
@@ -79,7 +79,7 @@ class TestSeleccionCamaras(unittest.TestCase):
         cams = {c["id"]: c for c in rewind.camaras_rewind(self.webcams)}
         self.assertEqual(cams["cv_grao_castellon"]["spotsCubiertos"], ["Planetario", "Piramides"])
         self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Voramar", "Heliopolis"])
-        self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Renega"])
+        self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Concha", "Renega"])
 
     def test_no_toma_camaras_deshabilitadas(self):
         cams = rewind.camaras_rewind(self.webcams)

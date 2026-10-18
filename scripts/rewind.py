@@ -52,7 +52,7 @@ ALIAS_SURFERS_CASTELLON = "609a27d8a9c83"
 
 # Spots con cámara, por área. Es lo que el enunciado pide: Grao, Benicàssim y Oropesa.
 SPOTS_CON_CAMARA: Tuple[str, ...] = (
-    "Planetario", "Piramides", "Voramar", "Heliopolis", "MorroGos", "Renega",
+    "Planetario", "Piramides", "Voramar", "Heliopolis", "MorroGos", "Concha", "Renega",
 )
 # Orden para nombrar el clip cuando una cámara cubre más de un spot.
 PREFERENCIA_SPOT: Tuple[str, ...] = SPOTS_CON_CAMARA

@@ -70,6 +70,23 @@ export const SPOTS = [
     }
   }),
   S({
+    // Jordi, 18/10/2026: Playa de la Concha (Oropesa), punto del enlace de Google Maps compartido.
+    // Orientación y ventana estimadas a partir de la bahía (resguardada del N por el cabo y el castillo); sin medir con OSM.
+    id: 'Concha', name: 'La Concha', zone: 'oropesa', zoneName: 'Oropesa del Mar · La Concha',
+    lat: 40.08046, lon: 0.13854, facing: 110, exposureFactor: 0.85, swellWindow: [55, 175], maxGood: 1.5,
+    bottom: 'Arena', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO',
+    desc: 'Playa urbana de Oropesa, en la bahía al sur del castillo. Algo abrigada del Norte; funciona con mar del Este y Sureste y queda limpia con poniente.',
+    photo: {
+      title: 'Playa de la Concha de Oropesa del Mar',
+      thumb: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Playa_de_la_Concha_de_Oropesa_del_Mar.jpg/960px-Playa_de_la_Concha_de_Oropesa_del_Mar.jpg',
+      file: 'Playa_de_la_Concha_de_Oropesa_del_Mar.jpg',
+      author: 'Nuripoll',
+      license: 'CC BY-SA 4.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+      url: 'https://commons.wikimedia.org/wiki/File:Playa_de_la_Concha_de_Oropesa_del_Mar.jpg'
+    }
+  }),
+  S({
     id: 'Renega', name: 'La Renegà', zone: 'oropesa', zoneName: 'Oropesa del Mar',
     lat: 40.06195, lon: 0.1206, facing: 148, exposureFactor: 0.9, swellWindow: [60, 212], maxGood: 1.5,
     bottom: 'Roca y lajas', bestTide: 'Alta', bestSwell: 'E con periodo', bestWind: 'O y NO',

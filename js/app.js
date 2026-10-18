@@ -2,7 +2,7 @@
 import { SPOTS, ZONES } from './spots.js';
 import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360, windState } from './forecast.js';
 import { compassSVG, dirArrow } from './compass.js';
-import { loadCams, camsForSpot, playCam, stopCam, playClip, recordClip } from './cams.js';
+import { loadCams, camsForSpot, playCam, stopCam, playClip, recordClip, getCamPoster, camThumb } from './cams.js';
 import { aplicarNowcast } from './nowcast.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -690,7 +690,17 @@ function renderSpot(id) {
     view.querySelectorAll('[data-clip]').forEach((b) => b.classList.remove('on'));
     $('#record-clip').hidden = cams[state.camIdx]?.embedType !== 'hls' || !HTMLVideoElement.prototype.captureStream || !window.MediaRecorder;
     const cam = cams[state.camIdx];
-    playCam(camEl, cam);
+    playCam(camEl, cam, {
+      autoplay: true,
+      spot,
+      onFallback: (nextCam, nextIdx) => {
+        state.camIdx = nextIdx;
+        view.querySelectorAll('[data-cam]').forEach((x, i) => x.classList.toggle('on', i === nextIdx));
+        $('#cam-source').innerHTML = nextCam
+          ? `${esc(nextCam.name)}${nextCam.credit ? ` · Imagen: <a href="${esc(nextCam.pageUrl)}" target="_blank" rel="noopener">${esc(nextCam.credit)}</a>` : ''}${nextCam.distanceKm ? ` · a ${nextCam.distanceKm} km del pico` : ''}`
+          : '';
+      }
+    });
     $('#cam-source').innerHTML = cam
       ? `${esc(cam.name)}${cam.credit ? ` · Imagen: <a href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">${esc(cam.credit)}</a>` : ''}${cam.distanceKm ? ` · a ${cam.distanceKm} km del pico` : ''}`
       : '';
@@ -1013,6 +1023,7 @@ function renderCams() {
     <div class="cam-grid">
       ${filtered.length ? filtered.map(({ s, cams }) => {
         const c = cams[0];
+        const poster = getCamPoster(c) || camThumb(c);
         const f = state.fc?.spots[s.id];
         const h = f ? f.hours[nowIndex(f.hours)] : null;
         return `<div class="cam-card">
@@ -1027,7 +1038,7 @@ function renderCams() {
             </div>` : ''}
           </div>
           <div class="cam cam-card-video" data-camspot="${esc(s.id)}">
-            <button class="cam-placeholder" aria-label="Reproducir cámara de ${esc(s.name)}">
+            <button class="cam-placeholder" ${poster ? `style="background-image:url('${esc(poster)}');background-size:cover;background-position:center"` : ''} aria-label="Reproducir cámara de ${esc(s.name)}">
               <div class="cam-placeholder-overlay">
                 <span class="cam-live-badge">EN DIRECTO</span>
                 ${PLAY_SVG}
@@ -1061,7 +1072,7 @@ function renderCams() {
     el.dataset.ph = el.innerHTML;
     placeholder.remove();
     const spot = SPOTS.find((s) => s.id === el.dataset.camspot);
-    playCam(el, camsForSpot(spot)[0]);
+    playCam(el, camsForSpot(spot)[0], { autoplay: true, spot });
   }));
 }
 

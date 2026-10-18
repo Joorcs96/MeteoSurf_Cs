@@ -12,6 +12,13 @@
 | `crossOrigin` en el vídeo HLS | Hecho: sin eso el lienzo queda tainted y la vigía no puede leer píxeles | Joorcs96/reparar-surfers | — |
 | Caducidad del streamid | Hecho: `data/streams.json` se refresca aunque la URL no cambie, si no la webava a apagar una emisión sana | Joorcs96/reparar-surfers | Vigilar el TTL |
 | Pruebas | 52 detector + 114 flujo + 73 rewind + 131 suite + 4 UI + 2 suites JS + 2 E2E con ventana | Joorcs96/reparar-surfers | Probador antes de integrar |
+| Altura del clip con vídeo 0x0 (bloqueante) | Hecho y medido: se espera a `loadedmetadata`/`resize` con plazo de 5 s; si no llegan, la vigía no se arma y el motivo sale en pantalla. Antes: 640x2 para siempre con `disponible=true` | Joorcs96/reparar-surfers | — |
+| Cancelar al cambiar de cámara o desarmar | Hecho: la espera se corta en ≤150 ms y no queda grabador grabando en el aire | Joorcs96/reparar-surfers | — |
+| `getImageData` prohibido por CORS | Hecho: try/catch, motivo visible, `disponible=false`, contador `analisisFallos`, sin fingir que no hay surfista | Joorcs96/reparar-surfers | — |
+| PWA para quien ya la tenía instalada | Hecho: caché a `v18-surfers-vigia` (main ya iba por v17) y `js/deteccion.js` + `js/detector-ia.js` en la lista, que faltaban | Joorcs96/reparar-surfers | Al integrar, no bajar de v18 |
+| Blob huérfano al cambiar de cámara | Hecho: `reproducirClip()` no crea la URL de objeto si la sesión ya no es la misma | Joorcs96/reparar-surfers | — |
+| Regresión de navegador 0x0 → medidas | Hecho: `tools/vigia_prebuffer_0x0.html` + `pw-prebuffer-0x0.cjs`, `test_04` del e2e (clip 640x360 y un contenedor; sin medidas, motivo en pantalla y disparo con error) | Joorcs96/reparar-surfers | — |
+| Integrar con `main` | **Sin hacer**: main avanzó (3e5b6e9, 9849a2b) y reescribe `js/cams.js` y `js/app.js` sin la vigía. Rebase no limpio | Joorcs96/reparar-surfers | Decidir el coordinador: qué rama va primero |
 
 Evidencia medida en `docs/E2E_VIGIA.md`. Lo que **no** está demostrado y está dicho sin adornos en
 `DUDAS.md` 4: que el detector acierte con un surfista real, y que funcione en el iPhone de Jordi.
@@ -86,7 +93,6 @@ Capturas y logs: `.capturas/rediseno/` (no subir a git). GrabaciÃ³n MP4 real d
 Sin merge a main; `js/spots.js` y `js/compass.js` intactos. Pruebas Python reproducibles con `python -m unittest scripts.test_realtime backend.test_motor_fisica scripts.test_rewind` (84 tests OK). Pruebas JS con `node tools/test_rating_conservador.js` (16 tests OK) y `node tools/test_formato_null.js` (15 tests OK).
 La excepciÃ³n TLS mantiene un riesgo de autenticidad en los datos pÃºblicos; `REALTIME_CA_BUNDLE` permite exigir verificaciÃ³n. AEMET experimental retirado: las fuentes requeridas funcionan sin secretos.
 
-<<<<<<< HEAD
 | Pruebas y capturas mÃ³viles | Hechas: script real, 8 pruebas Python, escenarios de navegador, sintaxis JS y claro/oscuro 390â844 | Joorcs96/ms-realtime-reviewed | Capturas e informes locales en `.capturas/` |
 | Calibrar la previsiÃ³n (relevo del worker sin cuota) | Hecha: trenes de oleaje separados, periodo 4â6 s sin penalizar, viento de mar penaliza desde 12 km/h. 44 pruebas en verde | Joorcs96/calibracion-prevision | Decidir DUDAS.md 1 (portar el motor v3 al backend) |
 
@@ -111,6 +117,4 @@ Verificado ademÃ¡s contra la API real (`forecast_days=3`, sin tocar
 repartida entre 0 y 4, con el 4/5 entrando solo con terral.
 
 Sin merge a main. `js/` y `historico_olas.csv` intactos.
-=======
 | Rediseño | Hecha: adaptado a main (Outfit, motion, data preserved) | Joorcs96/redisenar-main | Revisar |
->>>>>>> seguridad-csp

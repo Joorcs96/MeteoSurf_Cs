@@ -247,3 +247,14 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - [VERIFICADO] Pruebas: python -m unittest scripts.test_historico_datos (5/5 tests OK: idempotencia dedup, esquemas, integridad historico_olas.csv original, apertura y escaneo de fórmulas de Excel, y calibración 09/10).
 - [VERIFICADO] Coste cero: scripts/archivar_historico.py --agregar-snapshot listo para ejecutarse en GitHub Actions tras realtime.py sin duplicar peticiones a Portus.
 
+
+## Vigía de ola, cierre antes de publicar (18/10/2026)
+- [VERIFICADO] `esperarDimensiones()` espera a `loadedmetadata`/`resize` con plazo de 5 s; si el vídeo sigue en 0x0 lanza error con motivo y `disponible` queda en false. Antes el alto salía `Math.max(2, 0)` = 2 px para siempre (medido 640x2 en Chromium y Edge).
+- [VERIFICADO] La espera se puede CANCELAR: `parar()` mientras se espera (cambio de cámara o desarme) corta en <=150 ms, no arma grabador ni devuelve a `capturando = true`. Antes el grabador se quedaba codificando en el aire.
+- [VERIFICADO] `getImageData` va en try/catch: un SecurityError (directo sin CORS) rellena `vigia.motivo` con el nombre del error, pone `disponible = false`, cuenta `analisisFallos` y para el análisis. No se finge que no hay surfista.
+- [VERIFICADO] PWA: `sw.js` sube a `meteosurf-cs-v18-surfers-vigia` (por encima de la v17 que ya hay en main) y mete `js/deteccion.js` y `js/detector-ia.js` en la lista, que no estaban e `import`an desde `cams.js`: a quien ya la tenía instalada le fallaba la vigía sin red.
+- [VERIFICADO] `reproducirClip()` no crea la URL de objeto si ya se cambió de cámara (fuga de memoria: el `revokeObjectURL` ya había corrido). El fallback a la URL directa y el aviso se conservan; `fetch` sigue con `mode: cors` y sin credenciales.
+- [VERIFICADO] `clipsForSpot()` filtra por el conjunto de cámaras del spot (`cams.spots` incluye `spot.id`), así que una cámara compartida enseña sus clips en los dos spots y en ninguno más. Sin fuga.
+- [VERIFICADO] Regresión en navegador CON VENTANA (`tools/vigia_prebuffer_0x0.html` + `tools/pw-prebuffer-0x0.cjs`, `test_04` del e2e): con 0x0 al armar y medidas 1,2 s después el clip sale 640x360, un contenedor y se reproduce; sin medidas nunca no se arma, el motivo sale en pantalla y `disparar()` devuelve error.
+- [NO VERIFICADO] En móvil real (Safari iOS 16.4+) con la cámara del club: el recorrido de 0x0 a medidas. En pruebas sale bien en Chromium y Edge con ventana.
+- PENDIENTE DE DECIDIR (coordinador): `origin/main` avanzó con 3e5b6e9 y 9849a2b, que reescriben `js/cams.js` y `js/app.js` (carga rápida de webcams) y `main` NO tiene la vigía. Rebasear esta rama sobre main no es limpio: o choca en `cams.js`/`app.js` o se pierden los cambios de main. Integrar con cuidado y dejar la versión de caché >= v18.

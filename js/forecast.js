@@ -333,7 +333,7 @@ export function rate(spot, surf, period, wind, speed, gust, extra = {}) {
   // Spots abrigados que con mar grande de fuera reciben olas ordenadas (Voramar, La Concha; observado
   // por Jordi el 18/10/2026: surfistas y olas limpias con 1.2-1.6 m offshore del NE).
   const offH = extra?.offshoreH;
-  const abrigo = spot?.abrigoBonus && offH >= 1.1 && p >= 4.5 ? Math.min(spot.abrigoBonus, offH * 1.2) : 0;
+  const abrigo = spot?.abrigoBonus && offH >= 1.1 && p >= 4.5 ? Math.min(spot.abrigoBonus, offH * 3) : 0;
   s += abrigo;
 
   // Mar de viento corto / desordenado

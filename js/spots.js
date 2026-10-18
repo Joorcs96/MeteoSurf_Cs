@@ -74,7 +74,7 @@ export const SPOTS = [
     // Orientación y ventana estimadas a partir de la bahía (resguardada del N por el cabo y el castillo); sin medir con OSM.
     id: 'Concha', name: 'La Concha', zone: 'oropesa', zoneName: 'Oropesa del Mar · La Concha',
     lat: 40.08046, lon: 0.13854, facing: 110, exposureFactor: 1, swellWindow: [25, 175], maxGood: 1.5,
-    windShelter: { sector: [330, 60], factor: 0.4 }, abrigoBonus: 1.5,
+    windShelter: { sector: [330, 60], factor: 0.4 }, abrigoBonus: 2.8,
     bottom: 'Arena', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO',
     desc: 'Playa urbana de Oropesa, en la bahía al sur del castillo. Algo abrigada del Norte; funciona con mar del Este y Sureste y queda limpia con poniente.',
     photo: {
@@ -106,7 +106,7 @@ export const SPOTS = [
   S({
     id: 'Voramar', name: 'Voramar', zone: 'oropesa', zoneName: 'Benicàssim',
     lat: 40.05464, lon: 0.08248, facing: 142, exposureFactor: 0.85, swellWindow: [20, 204], maxGood: 1.5,
-    windShelter: { sector: [330, 60], factor: 0.4 }, abrigoBonus: 2.5,
+    windShelter: { sector: [330, 60], factor: 0.4 }, abrigoBonus: 3.8,
     bottom: 'Arena y roca', bestTide: 'Media a alta', bestSwell: 'E a SE', bestWind: 'NO y N',
     desc: 'Extremo norte de Benicàssim, al abrigo de la punta. Aguanta temporales grandes y queda protegido del viento del Norte.',
     photo: {

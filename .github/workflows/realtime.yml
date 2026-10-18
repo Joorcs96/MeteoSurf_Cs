@@ -40,16 +40,29 @@ jobs:
           # el paso de guardar abajo no encuentra nada que commitear cuando no hay novedades.
           python scripts/realtime.py --comprobar
 
+      - name: Instalar dependencias del exportador a Excel
+        run: |
+          python -m pip install --disable-pip-version-check --quiet openpyxl
+
+      - name: Agregar el snapshot al histórico y exportar el Excel
+        run: |
+          # Sin llamadas nuevas a la fuente: se reutiliza el data/realtime.json ya descargado.
+          python scripts/archivar_historico.py --agregar-snapshot
+          python scripts/exportar_excel.py
+
       - name: Guardar cambios en los datos reales
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/realtime.json
+          git add data/realtime.json \
+                  data/historico_observaciones.jsonl \
+                  data/historico_observaciones.csv \
+                  data/MeteoSurf_Historico_Calibracion.xlsx
           if ! git diff --staged --quiet; then
-            git commit -m "Auto: observaciones reales de oleaje, nivel del mar y viento [skip ci]"
+            git commit -m "Auto: observaciones reales, histórico y Excel de calibración [skip ci]"
             # Otros cron pueden haber publicado mientras se consultaban las estaciones.
             git pull --rebase origin "$GITHUB_REF_NAME"
             git push
           else
-            echo "Sin cambios en data/realtime.json: las medidas siguen iguales."
+            echo "Sin cambios en los datos: las medidas siguen iguales."
           fi

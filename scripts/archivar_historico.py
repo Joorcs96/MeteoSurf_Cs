@@ -439,7 +439,7 @@ def main() -> None:
     if args.bootstrap:
         bootstrap_completo()
         verificar_estadisticas()
-    elif args.agregar-snapshot:
+    elif args.agregar_snapshot:
         anadidos, total = archivar_snapshot_actual()
         print(f"[INFO] Snapshot procesado: {anadidos} nuevos registros añadidos. Total acumulado: {total}.")
     elif args.verificar:

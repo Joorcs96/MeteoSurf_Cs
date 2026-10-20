@@ -1,0 +1,13 @@
+name = "meteosurf-avisos"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Los secretos (VAPID_PRIVATE, VAPID_PUBLIC, VAPID_SUBJECT, ADMIN_TOKEN) NO van aqui:
+# se anaden con `npx wrangler secret put <NOMBRE>` para no publicarlos en el repo.
+# En local se leen de .dev.vars (ignorado por git).
+
+# Crear el namespace: npx wrangler kv namespace create SUBS
+# y pegar aqui el id devuelto.
+[[kv_namespaces]]
+binding = "SUBS"
+id = "REEMPLAZAR_CON_EL_ID_DEL_NAMESPACE"

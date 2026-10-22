@@ -1,12 +1,19 @@
 # Rediseño visual profesional y herramientas de diseño · 16/10/2026
 
+Estado real a 22/10/2026: rama rebasada sobre `origin/main` (877ed84) y lista para auditoría
+independiente. **No publicada**: `main` intacto, sin merge.
+
 | Tarea | Estado | Rama | Siguiente paso |
 | --- | --- | --- | --- |
-| Contrato visual y tokens costeros | Hecho: paleta azul tinta y arena (#f7f8f9 / #0d1b2a / #1d7090) en claro y oscuro en `:root` de `css/app.css` | Joorcs96/diseno-profesional | Revisión independiente |
-| Supresión de barras inferiores en escritorio | Hecho: ocultadas `.tabbar` y `.quick-spots` en `>= 800px`, liberando 120 px de viewport vertical y eliminando redundancia con `.topnav` | Joorcs96/diseno-profesional | Revisión independiente |
-| Tarjetas de spot y resumen de mejor ventana | Hecho: tarjetas elevadas con sutil borde, tipografía `tabular-nums` en altura, metadatos estructurados y banner sobrio | Joorcs96/diseno-profesional | Revisión independiente |
-| Integración de las 5 herramientas y guía técnica | Hecho: `docs/diseno-web.md` documenta Taste Skill, Web Design Guidelines, Awesome Design, Image-to-Code y Playwright CLI | Joorcs96/diseno-profesional | Revisión independiente |
-| Validación Playwright y smoke visual | Hecho: 32 checks en verde (390×844 y 1440×1000 en claro/oscuro), 0 errores JS propios, 0 overflow horizontal, capturas guardadas | Joorcs96/diseno-profesional | PR y entrega a coordinador |
+| Contrato visual y tokens costeros | Hecho: paleta azul tinta y arena (#f7f8f9 / #0d1b2a / #1d7090) en claro y oscuro en `:root` de `css/app.css` | diseno-listo-auditoria | Revisión independiente |
+| Supresión de barras inferiores en escritorio | Hecho: ocultadas `.tabbar` y `.quick-spots` en `>= 800px`, liberando 120 px de viewport vertical y eliminando redundancia con `.topnav` | diseno-listo-auditoria | Revisión independiente |
+| Tarjetas de spot y resumen de mejor ventana | Hecho: tarjetas elevadas con sutil borde, tipografía `tabular-nums` en altura, metadatos estructurados y banner sobrio | diseno-listo-auditoria | Revisión independiente |
+| Integración de las 5 herramientas y guía técnica | Hecho: `docs/diseno-web.md` documenta Taste Skill, Web Design Guidelines, Awesome Design, Image-to-Code y Playwright CLI | diseno-listo-auditoria | Revisión independiente |
+| Commit 4375128 (herramientas) incorporado | Hecho: `.agents/skills/web-design-guidelines/` (LICENSE, SKILL.md, guidelines.md) y `docs/herramientas-diseno.md` idénticos al commit aprobado | diseno-listo-auditoria | Revisión independiente |
+| Rebase sobre main actual | Hecho: rebase sobre `origin/main` 877ed84; único conflicto en `sw.js` resuelto conservando la lógica de main y bumpeando caché a `meteosurf-cs-v21-diseno-profesional` | diseno-listo-auditoria | Revisión independiente |
+| Validación Playwright y smoke visual | Hecho: 160/160 comprobaciones en verde (390×844 y 1440×1000, claro/oscuro, 5 vistas), 0 errores JS propios, 0 overflow horizontal, capturas en `Temp/meteosurf-diseno-20261015/qa/shots/` | diseno-listo-auditoria | Auditoría y probador independientes |
+| Pruebas unitarias | Hecho: 34/34 tests de física (backend/test_motor_fisica.py) y 32/32 JS (tools/test_formato_null.js 15 + tools/test_rating_conservador.js 17) | diseno-listo-auditoria | Probador independiente |
+| Publicación | Pendiente: no hay merge a `main` ni despliegue | diseno-listo-auditoria | Tras auditoría, decide el coordinador |
 
 ---
 

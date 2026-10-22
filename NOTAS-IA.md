@@ -145,3 +145,10 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - [VERIFICADO] Herramientas: documentadas en `docs/diseno-web.md` (Taste Skill V:5/M:3/D:7, Web Design Guidelines, Awesome Design, Image-to-Code con fotos reales Wikimedia Commons y capturas Edge Playwright, Playwright CLI).
 - [VERIFICADO] Validación: 32/32 comprobaciones superadas en `qa/run-smoke.cjs` (390×844 móvil y 1440×1000 escritorio en claro y oscuro; 0 errores propios, 0 overflow horizontal). `python -m unittest backend.test_motor_fisica scripts.test_ui_responsive` y suites unitarias JS en verde. Caché SW: `meteosurf-cs-v16-diseno-profesional`.
 
+## Preparación para auditoría final (22/10/2026)
+- [VERIFICADO] Rama rebasada sobre `origin/main` (877ed84). Único conflicto: `sw.js`; se conservó la lógica de main (`cache: 'no-cache'`, salto de `.mp4`, `Request` con `cache: 'reload'`) y solo se bumpeó el nombre de caché a `meteosurf-cs-v21-diseno-profesional`.
+- [VERIFICADO] El commit 4375128 (herramientas) queda incorporado: `.agents/skills/web-design-guidelines/` y `docs/herramientas-diseno.md` son idénticos al contenido aprobado (diff vacío).
+- [VERIFICADO] Pruebas tras el rebase: 34/34 física (`python -m unittest backend.test_motor_fisica`, desde la raíz del repo) y 32/32 JS (15 + 17 en `tools/`). `git diff --check` limpio.
+- [VERIFICADO] El smoke original de `Temp/meteosurf-diseno-20261015/qa/` había sido borrado por la limpieza de Temp; se recreó `qa/run-smoke.cjs` (Playwright 1.63 + Edge headless, 5 vistas x 2 viewports x 2 temas, 160 comprobaciones) y pasó 160/160. Ejecutar: `NODE_PATH=%APPDATA%\npm\node_modules node qa/run-smoke.cjs <raiz-repo>`.
+- [NO VERIFICADO] Nada publicado: `main` intacto, sin merge ni despliegue. Rama remota para auditoría: `diseno-listo-auditoria` (push normal, sin force).
+

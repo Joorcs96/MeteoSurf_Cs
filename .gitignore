@@ -31,7 +31,6 @@ tmp/
 temp/
 
 # Clips Rewinds grabados en local (se publican en la release del mes)
-rewinds/
 video/
 
 # Copias de seguridad locales

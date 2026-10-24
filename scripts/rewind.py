@@ -210,6 +210,17 @@ def url_descarga(repo: str, tag: str, archivo: str) -> str:
     return f"https://github.com/{repo}/releases/download/{tag}/{archivo}"
 
 
+def url_publica(repo: str, archivo: str) -> str:
+    """URL del clip en la propia web (GitHub Pages) para que lo reproduzca cualquier móvil.
+
+    Los assets de una release se sirven como `application/octet-stream` con
+    descarga forzada y CORS cerrado: en el iPhone el vídeo sale "no disponible".
+    En la web va con `video/mp4`, sin descarga forzada y con rangos.
+    """
+    propietario, _, nombre = repo.partition("/")
+    return f"https://{propietario.lower()}.github.io/{nombre}/rewinds/{archivo}"
+
+
 def rosa(grados: Optional[float]) -> Optional[str]:
     if grados is None:
         return None
@@ -1019,6 +1030,26 @@ def limpiar_clips_locales(directorio: Path, max_dias: int = DIAS_REPOSO) -> int:
     return borrados
 
 
+def limpiar_huerfanos(directorio: Path, indice: Dict[str, Any], dry_run: bool = False) -> int:
+    """Borra de `rewinds/` los archivos que el índice ya no nombra (clips viejos o sueltos).
+
+    La carpeta se publica con la web, y en un checkout del workflow todos los
+    archivos tienen la fecha de hoy, así que no vale mirar su antigüedad.
+    """
+    if not directorio.is_dir():
+        return 0
+    usados = set()
+    for e in indice.get("rewinds", []):
+        usados.update(n for n in (e.get("archivo"), e.get("archivoFoto")) if n)
+    borrados = 0
+    for ruta in directorio.iterdir():
+        if ruta.is_file() and ruta.name not in usados:
+            if not dry_run:
+                ruta.unlink()
+            borrados += 1
+    return borrados
+
+
 # ------------------------------------------------------------------ GitHub Releases
 
 
@@ -1251,8 +1282,8 @@ def grabar_camara(
     })
 
     foto = clip.with_suffix(".jpg")
-    url = url_descarga(args.repo, tag, archivo)
-    url_foto = url_descarga(args.repo, tag, foto.name) if extraer_foto(clip, foto) else None
+    url = url_publica(args.repo, archivo)
+    url_foto = url_publica(args.repo, foto.name) if extraer_foto(clip, foto) else None
     entradas = [
         entrada_indice(
             spots[sid], cam, prevision[sid], info, momento, archivo, tag, url,
@@ -1408,15 +1439,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if clip is None:
             fallos += 1
             continue
-        if args.subir and not args.dry_run:
-            if not subir_clip(clip, args.repo, etiqueta_release(momento)):
-                fallos += 1
-                continue
-            foto = clip.with_suffix(".jpg")
-            if foto.exists() and not subir_clip(foto, args.repo, etiqueta_release(momento)):
-                for n in nuevas:
-                    n.pop("foto", None)
-                    n.pop("archivoFoto", None)
+        # Los clips se quedan en `rewinds/` y el workflow los publica con la web:
+        # ya no se suben a la release (allí el móvil no los reproducía).
         clips.append(clip)
         entradas.extend(nuevas)
         print()
@@ -1437,7 +1461,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         borrados = borrar_assets_viejos(args.repo, args.dias, args.dry_run)
         if borrados:
             print(f"[INFO] Borrados {len(borrados)} clips de más de {args.dias} días de las releases.")
-    locales = limpiar_clips_locales(args.salida, args.dias)
+    locales = limpiar_huerfanos(args.salida, indice, args.dry_run)
 
     if not args.dry_run:
         guardar_indice(indice, args.indice)

@@ -200,44 +200,21 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
 }
 
 // Reutiliza el reproductor y libera la emisión anterior antes de cargar el archivo.
-// GitHub sirve los adjuntos de las releases como descarga (`Content-Disposition:
-// attachment`) y con tipo `application/octet-stream`. En escritorio eso abre el
-// reproductor, pero en iOS y Android el navegador no lo trata como vídeo y no
-// arranca. La salida es traer el archivo con `fetch` y darle un Blob, que es
-// siempre un medio real. Si el fetch falla (sin red, CORS, archivo caído) se avisa
-// con claridad y se deja el enlace de descarga, que sí funciona siempre.
+// Los clips nuevos se sirven desde la propia web (`rewinds/`), con tipo video/mp4.
+// Los de las releases de GitHub (clips antiguos) llegan como descarga forzada
+// y en el móvil pueden no arrancar: el aviso de error deja ver el motivo.
 export function reproducirClip(el, clip, { onError } = {}) {
   const video = document.createElement('video');
   Object.assign(video, { controls: true, playsInline: true, autoplay: true });
   video.setAttribute('playsinline', '');
   el.appendChild(video);
-  // Si mientras llega el archivo se cambia de cámara, el `blob` ya no lo usa
-  // nadie: sin esto se quedaba una URL de objeto viva en memoria para siempre
-  // (el `revokeObjectURL` de la limpieza ya había corrido antes de crearse).
-  const sesion = sessions.get(el);
-  let url = '';
-  fetch(clip.url, { mode: 'cors' })
-    .then((r) => {
-      if (!r.ok) throw new Error(`El archivo respondió ${r.status}`);
-      return r.blob();
-    })
-    .then((b) => {
-      if (!b.size) throw new Error('El archivo vino vacío');
-      if (sessions.get(el) !== sesion) return;
-      url = URL.createObjectURL(b);
-      video.src = url;
-    })
-    .catch((e) => {
-      if (sessions.get(el) !== sesion) return;
-      // Segundo intento: la URL directa, por si el navegador sí sabe con ella.
-      video.src = clip.url;
-      onError?.(`No se ha podido traer el clip (${e.message}). Se intenta con la descarga directa.`);
-    });
+  // Directo a la URL: el `fetch` + blob de antes lo cortaba la CSP (connect-src) y
+  // las releases no mandan CORS, así que siempre acababa en un aviso falso.
+  video.src = clip.url;
   active.set(el, () => {
     video.pause();
     video.removeAttribute('src');
     video.load();
-    if (url) URL.revokeObjectURL(url);
   });
   return video;
 }

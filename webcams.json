@@ -195,28 +195,6 @@
       "failCount": 0
     },
     {
-      "id": "skyline-jpg-morrogos",
-      "name": "SkylineWebcams",
-      "short": "Morro de Gos (Hotel Koral Beach)",
-      "spots": [
-        "MorroGos",
-        "Renega"
-      ],
-      "priority": 2,
-      "embedType": "jpg",
-      "embedUrl": "https://cdn.skylinewebcams.com/live2815.jpg",
-      "pageUrl": "https://www.skylinewebcams.com/en/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
-      "credit": "SkylineWebcams / Hotel Servigroup Koral Beach",
-      "refreshSeconds": 90,
-      "distanceKm": 0.2,
-      "tokenRefresh": null,
-      "verified": true,
-      "notes": "Hotel justo en la playa de Morro de Gos (más cerca que la cámara de CV) pero sólo foto fija cada ~18 min, sin vídeo, mismo bloqueo de iframe que el resto de Skyline.",
-      "enabled": true,
-      "lastChecked": "2026-10-24T07:27:32.859464+00:00",
-      "failCount": 0
-    },
-    {
       "id": "ipcamlive-peniscola-iframe",
       "name": "Gran Hotel Peñíscola",
       "short": "Peñíscola playa Norte",
@@ -367,7 +345,8 @@
       "verified": true,
       "lastChecked": "2026-10-24T07:27:32.859464+00:00",
       "failCount": 0,
-      "notes": "Misma cámara IPCamLive del club (alias 609a27d8a9c83) pero por la emisión HLS directa, que es la única forma de grabar en el navegador y la que usa scripts/rewind.py. embedUrl está vacío a propósito: la URL real la resuelve backend/actualizar_webcams.py --streams en data/streams.json, porque player.php no manda CORS y el navegador no puede sacar el streamid por su cuenta."
+      "notes": "Misma cámara IPCamLive del club (alias 609a27d8a9c83) pero por la emisión HLS directa, que es la única forma de grabar en el navegador y la que usa scripts/rewind.py. embedUrl está vacío a propósito: la URL real la resuelve backend/actualizar_webcams.py --streams en data/streams.json, porque player.php no manda CORS y el navegador no puede sacar el streamid por su cuenta.",
+      "soloGrabacion": true
     }
   ]
 }

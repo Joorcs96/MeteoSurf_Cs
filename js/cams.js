@@ -30,7 +30,9 @@ export async function loadCams() {
     // Las que se resuelven en el servidor no tienen embedUrl fija: si se
     // filtraran por `embedUrl` desaparecerían del catálogo y no habría forma de
     // explicar por qué. Se meten siempre y luego se ven o no según el estado.
-    catalog = todas.filter((c) => c.enabled !== false && (c.embedUrl || c.resolver));
+    // `soloGrabacion`: la usa solo el grabador de Rewinds; en la web se ve la otra
+    // entrada de la misma cámara (el visor siempre disponible).
+    catalog = todas.filter((c) => c.enabled !== false && !c.soloGrabacion && (c.embedUrl || c.resolver));
   } catch { catalog = []; }
   return catalog;
 }

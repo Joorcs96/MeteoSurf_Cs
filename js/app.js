@@ -240,7 +240,7 @@ function renderHome() {
     renderHome();
   }));
   bindFavs();
-  if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p><a href="#/asistente">Preguntar al asistente</a></p>'); })
+  if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p style="margin-top:10px"><a class="chip btn" href="#/asistente" style="display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;text-decoration:none;font-weight:600">🤙 Preguntar al asistente</a></p>'); })
     .catch(() => $('#region-report')?.remove());
   else $('#region-report')?.remove();
   showOnboarding();
@@ -1725,6 +1725,17 @@ async function refresh(force = false) {
 
 async function init() {
   window.addEventListener('hashchange', route);
+  const fab = $('#fab-assistant');
+  if (fab) {
+    const hideFab = () => { fab.style.display = (location.hash.startsWith('#/asistente') || location.hash.startsWith('#/mapa')) ? 'none' : ''; };
+    window.addEventListener('hashchange', hideFab);
+    hideFab();
+    if (store.get('visited_asistente', null)) fab.style.display = 'none';
+    fab.addEventListener('click', () => {
+      store.set('visited_asistente', '1');
+      location.hash = '#/asistente';
+    });
+  }
   $('#refresh')?.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); });
   $('#theme')?.addEventListener('click', () => {
     const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

@@ -38,8 +38,8 @@ _leer_webcams_real = rewind.leer_webcams
 SEA_LAT_LON_ESPERADO = {
     "Planetario": (39.976, 0.0419),
     "Piramides": (39.9954, 0.0464),
-    "Voramar": (40.0452, 0.0921),
-    "Heliopolis": (40.0206, 0.0595),
+    "Voramar": (40.0446, 0.0910),
+    "Heliopolis": (40.0222, 0.0602),
     "MorroGos": (40.0928, 0.1640),
     "Renega": (40.0518, 0.1289),
     "Gurugu": (40.0039, 0.0498),

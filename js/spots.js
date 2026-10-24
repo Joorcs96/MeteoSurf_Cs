@@ -2,6 +2,9 @@
 // facing: azimut hacia el que mira la playa (normal a la costa, hacia el mar), en grados desde el norte.
 // swellWindow: sector de procedencia del mar que llega a la rompiente [desde, hasta] en sentido horario.
 // seaLat/seaLon: punto mar adentro (~1 km) donde se piden los datos de oleaje.
+// Orientaciones (facing) medidas el 24/10/2026 con el contorno de la playa en OpenStreetMap
+// (eje principal del tramo a 450 m del punto): Concha 141, Voramar 147, Heliópolis 107, Renegà 147,
+// Morro de Gos 99, Peñíscola 103, Gurugú 114, Planetario 101, Nules 121, Almenara 117.
 // exposureFactor: reducción por abrigo o fondo (1 = playa abierta). maxGood: tamaño (m) a partir del que satura.
 
 export const ZONES = [
@@ -73,7 +76,7 @@ export const SPOTS = [
     // Jordi, 18/10/2026: Playa de la Concha (Oropesa), punto del enlace de Google Maps compartido.
     // Orientación y ventana estimadas a partir de la bahía (resguardada del N por el cabo y el castillo); sin medir con OSM.
     id: 'Concha', name: 'La Concha', zone: 'oropesa', zoneName: 'Oropesa del Mar · La Concha',
-    lat: 40.08046, lon: 0.13854, facing: 110, exposureFactor: 1, swellWindow: [25, 175], maxGood: 1.5,
+    lat: 40.08046, lon: 0.13854, facing: 140, exposureFactor: 1, swellWindow: [25, 175], maxGood: 1.5,
     windShelter: { sector: [330, 60], factor: 0.4 }, abrigoBonus: 2.8,
     bottom: 'Arena', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO',
     desc: 'Playa urbana de Oropesa, en la bahía al sur del castillo. Algo abrigada del Norte; funciona con mar del Este y Sureste y queda limpia con poniente.',
@@ -105,7 +108,7 @@ export const SPOTS = [
   }),
   S({
     id: 'Voramar', name: 'Voramar', zone: 'oropesa', zoneName: 'Benicàssim',
-    lat: 40.05464, lon: 0.08248, facing: 142, exposureFactor: 0.85, swellWindow: [20, 204], maxGood: 1.5,
+    lat: 40.05464, lon: 0.08248, facing: 147, exposureFactor: 0.85, swellWindow: [20, 204], maxGood: 1.5,
     windShelter: { sector: [330, 60], factor: 0.4 }, abrigoBonus: 3.8,
     bottom: 'Arena y roca', bestTide: 'Media a alta', bestSwell: 'E a SE', bestWind: 'NO y N',
     desc: 'Extremo norte de Benicàssim, al abrigo de la punta. Aguanta temporales grandes y queda protegido del viento del Norte.',
@@ -121,7 +124,7 @@ export const SPOTS = [
   }),
   S({
     id: 'Heliopolis', name: 'Heliópolis', zone: 'oropesa', zoneName: 'Benicàssim',
-    lat: 40.02567, lon: 0.04526, facing: 115, swellWindow: [60, 190], abrigoBonus: 2.2, maxGood: 1.98,
+    lat: 40.02567, lon: 0.04526, facing: 107, swellWindow: [60, 190], abrigoBonus: 2.2, maxGood: 1.98,
     bottom: 'Arena', bestTide: 'Media', bestSwell: 'NE a E', bestWind: 'O y NO',
     desc: 'Sur de Benicàssim, bancos de arena con buenas derechas cuando entra mar del Este.',
     photo: {
@@ -185,7 +188,7 @@ export const SPOTS = [
   }),
   S({
     id: 'Palaciet', name: 'El Palaciet', zone: 'sur', zoneName: 'Burriana · El Coso',
-    lat: 39.90453, lon: -0.01584, facing: 143, swellWindow: [56, 210], abrigoBonus: 3.5, maxGood: 1.53,
+    lat: 39.90453, lon: -0.01584, facing: 148, swellWindow: [56, 210], abrigoBonus: 3.5, maxGood: 1.53,
     bottom: 'Arena fina', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO',
     desc: 'Playa tranquila de Burriana, junto a El Coso, con rompiente suave; buena opción de tablón con mar pequeño.',
     photo: {

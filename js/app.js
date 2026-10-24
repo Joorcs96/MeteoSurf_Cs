@@ -2,9 +2,8 @@
 import { SPOTS, ZONES } from './spots.js';
 import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes, compass, RATINGS, norm360, windState } from './forecast.js';
 import { compassSVG, dirArrow } from './compass.js';
-import { loadCams, camsForSpot, playCam, stopCam, playClip, recordClip, getCamPoster, camThumb } from './cams.js';
+import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordClip, estadoStream, iniciarVigiaOla, vigias } from './cams.js';
 import { aplicarNowcast } from './nowcast.js';
-import { initNotificaciones, openNotificacionesPanel } from './notificaciones.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -149,13 +148,6 @@ function toast(t) {
 // ---------- Rutas ----------
 function route() {
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  const searchSpot = new URLSearchParams(location.search).get('spot');
-  if (searchSpot && !location.hash.startsWith('#/spot/')) {
-    const found = SPOTS.find((s) => s.id === searchSpot || s.id.toLowerCase() === searchSpot.toLowerCase());
-    const targetId = found ? found.id : searchSpot;
-    history.replaceState(null, '', location.pathname + `#/spot/${encodeURIComponent(targetId)}`);
-    return renderSpot(targetId);
-  }
   const h = location.hash.replace(/^#\/?/, '');
   const [page, arg] = h.split('/');
   if (page !== 'spot') state.spotId = null;
@@ -164,7 +156,6 @@ function route() {
   const savedClip = $('#save-clip');
   if (savedClip?.dataset.url) URL.revokeObjectURL(savedClip.dataset.url);
   document.querySelectorAll('.cam').forEach(stopCam);
-  if (page === 'avisos') { openNotificacionesPanel(); return renderHome(); }
   if (page === 'spot' && arg) return renderSpot(decodeURIComponent(arg));
   if (page === 'mapa') return renderMap();
   if (page === 'camaras') return renderCams();
@@ -331,38 +322,6 @@ async function renderAssistant() {
   draw();
 }
 
-function spotMapStyle(lat, lon) {
-  const z = 14;
-  const n = 16384;
-  const xExact = ((lon + 180) / 360) * n;
-  const latRad = (lat * Math.PI) / 180;
-  const yExact = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
-  const tx = Math.floor(xExact);
-  const ty = Math.floor(yExact);
-  const posX = Math.round(32 - (xExact - tx) * 256);
-  const posY = Math.round(32 - (yExact - ty) * 256);
-
-  const tiles = [];
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dy = -1; dy <= 1; dy++) {
-      const tilePosX = posX + dx * 256;
-      const tilePosY = posY + dy * 256;
-      if (tilePosX < 64 && tilePosX + 256 > 0 && tilePosY < 64 && tilePosY + 256 > 0) {
-        // CARTO Voyager: https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx + dx}/${ty + dy}@2x.png
-        // CARTO impone marca de agua 'API KEY REQUIRED'; usamos OpenStreetMap para renderizar el mapa real y nítido
-        tiles.push({
-          url: `https://tile.openstreetmap.org/${z}/${tx + dx}/${ty + dy}.png`,
-          carto: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx + dx}/${ty + dy}@2x.png`,
-          pos: `${tilePosX}px ${tilePosY}px`
-        });
-      }
-    }
-  }
-  const bgImages = tiles.map((t) => `url('${t.url}')`).join(', ');
-  const bgPositions = tiles.map((t) => t.pos).join(', ');
-  return `background-image: ${bgImages}; background-position: ${bgPositions}; background-size: 256px 256px; background-repeat: no-repeat;`;
-}
-
 function spotCard(s) {
   const f = state.fc?.spots[s.id];
   const h = f ? f.hours[nowIndex(f.hours)] : null;
@@ -371,10 +330,7 @@ function spotCard(s) {
   return `<a class="card spot-card ${h ? ratingCls(h.rating) : ''}" href="#/spot/${encodeURIComponent(s.id)}">
     <div class="body">
       <div class="top">
-        <div class="spot-map-thumb" style="${spotMapStyle(s.lat, s.lon)}" aria-hidden="true">
-          <span class="spot-map-pin"></span>
-        </div>
-        <div class="spot-info" style="min-width:0;flex:1">
+        <div style="min-width:0;flex:1">
           <div class="name">${esc(s.name)}${cam ? ' <span class="cam-dot" title="Cámara en directo">' + ICON.cam + '</span>' : ''}</div>
           <div class="zone">${esc(s.zoneName)}</div>
           ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span></div><div class="human">${surfWords(h.surf.mid)}</div>` : '<div class="human">Previsión no disponible</div>'}
@@ -399,6 +355,11 @@ function bindFavs() {
   }));
 }
 
+// Vigía de ola activa, si la hay. Vive fuera de renderSpot porque el botón se
+// vuelve a pintar entero al cambiar de día o de sección.
+let vigiaActual = null;
+let relojVigia = null;
+
 function clipsForSpot(spot) {
   const ids = new Set(camsForSpot(spot).map((c) => c.id));
   const seen = new Set();
@@ -419,7 +380,9 @@ function renderRewinds(spot) {
     if (!groups.has(day)) groups.set(day, []);
     groups.get(day).push({ c, i });
   });
-  return `<div id="rewind-strip" class="rewind-strip" hidden>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot.</p>'}</div>`;
+  // Sin clips la tira nace desplegada: si no, el motivo se queda escondido detrás
+  // de un botón que no parece hacer nada.
+  return `<div id="rewind-strip" class="rewind-strip" ${clips.length ? 'hidden' : ''}>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot. El grabador solo deja clips los días con oleaje suficiente, así que esta lista se llena poco a poco.</p>'}</div>`;
 }
 function bindClips(spot, camEl, showCam) {
   const clips = clipsForSpot(spot);
@@ -442,7 +405,11 @@ function bindClips(spot, camEl, showCam) {
   view.querySelectorAll('[data-similar-id]').forEach((b) => b.addEventListener('click', () => {
     const clipId = b.dataset.similarId;
     const clip = (state.rewinds?.rewinds || []).find((c) => c.id === clipId);
-    if (!clip) return;
+    if (!clip) {
+      // Antes pulsaba y no pasaba nada: se salía en silencio.
+      status.textContent = `El clip ${clipId} ya no está en el archivo. Vuelve a cargar la página o prueba con otro día.`;
+      return;
+    }
     status.textContent = '';
     playClip(camEl, clip);
     view.querySelectorAll('[data-clip]').forEach((x) => x.classList.remove('on'));
@@ -540,8 +507,11 @@ function findSimilarConditions(spot, h) {
     return d > 180 ? 360 - d : d;
   };
 
-  const pool = clipsForSpot(spot);
-  const candidates = pool.length ? pool : (state.rewinds?.rewinds || []).slice(0, 100);
+  // Solo clips de las cámaras de ESTE spot. Antes, si no había ninguno, se
+  // caía a los 100 primeros del índice global y un spot sin cámara (Vinaròs,
+  // Burriana) acababa mostrando clips de Orihuela o de Oropesa: la fuga más
+  // grave de esta pantalla, porque el usuario los creería de su playa.
+  const candidates = clipsForSpot(spot);
   
   const results = [];
   for (const clip of candidates) {
@@ -567,14 +537,39 @@ function findSimilarConditions(spot, h) {
   return results.slice(0, 3);
 }
 
+// La evidencia de surf de un clip se lee de `deteccion`, que es la clave que
+// escribe scripts/rewind.py. Antes se leía `evidencia?.posibleOla`, una clave que
+// ningún índice ha tenido nunca, así que el distintivo "Posible ola" no se veía nunca.
+// Ahora se aceptan las dos y, sobre todo, solo se pinta cuando hay evidencia de
+// imagen de verdad: el muestreo por oleaje dice que la imagen no se ha analizado.
+function badgeEvidencia(clip) {
+  const d = (clip && (clip.deteccion || clip.evidencia)) || null;
+  if (!d) return '';
+  if (d.imagenAnalizada === false) return '';
+  if (d.es_posible_ola || d.esOla || d.posibleOla) {
+    return `<span class="similar-badge badge-ola">Ola en el clip · ${Math.round((d.confianza || 0) * 100)} %</span>`;
+  }
+  if (d.observaciones) return `<span class="similar-badge" title="${esc(d.observaciones)}">${esc(String(d.tipo || 'sin evidence de surf').replace(/_/g, ' '))}</span>`;
+  return '';
+}
+
 function renderSimilarConditions(spot, h) {
   if (!h) return '';
+  if (!state.rewinds) {
+    return `
+      <div class="similar-conditions-card">
+        <div class="similar-head">${ICON.search} Días históricos similares</div>
+        <p style="margin:0;font-size:12px;color:var(--text-2)">No se ha podido cargar el archivo de clips (data/rewinds.json). Puede ser la red; el histórico vuelve en un rato.</p>
+      </div>`;
+  }
   const matches = findSimilarConditions(spot, h);
   if (!matches || !matches.length) {
+    const cameras = clipsForSpot(spot);
+    const cuando = cameras.length ? ` con las cámaras de este spot hay ${cameras.length} clip(s) entre ${new Date(cameras[cameras.length - 1].hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short' })} y ${new Date(cameras[0].hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short' })}` : ' todavía no hay clips guardados de las cámaras de este spot';
     return `
       <div class="similar-conditions-card">
         <div class="similar-head">${ICON.search} Comparador de condiciones históricas</div>
-        <p style="margin:0;font-size:12px;color:var(--text-2)">Aún no hay grabaciones archivadas con condiciones similares a las de este momento (${m(h.surf?.mid ?? h.surfMin)} m · ${kmh(h.windSpeed)} de viento).</p>
+        <p style="margin:0;font-size:12px;color:var(--text-2)">No hay ningún clip grabado${cuando} con condiciones como las de ahora (${m(h.surf?.mid ?? h.surfMin)} m · ${kmh(h.windSpeed)} de viento). El archivo se va rellenando los días de baño.</p>
       </div>`;
   }
   const items = matches.slice(0, 2).map((item, idx) => {
@@ -588,7 +583,7 @@ function renderSimilarConditions(spot, h) {
           <span class="similar-badge ${idx === 0 ? 'best' : ''}">${idx === 0 ? 'Mayor similitud' : 'Parecido'}</span>
           <b>${esc(dStr)} ${esc(hStr)}</b>
           <span>${m(p.altura)} m · ${rnd(p.periodo)} s · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')}</span>
-          ${c.evidencia?.posibleOla ? '<span class="similar-badge" style="background:#e0f2fe;color:#0369a1">Posible ola</span>' : ''}
+          ${badgeEvidencia(c)}
         </div>
         <button class="similar-play-btn" data-similar-id="${esc(c.id)}">${ICON.rewind} Ver cómo rompía</button>
       </div>`;
@@ -654,8 +649,9 @@ function renderSpot(id) {
         <div class="cam" id="cam"></div>
         ${cams.length > 1 ? `<div class="cam-switch">${cams.map((c, i) => `<button data-cam="${i}" class="${i === state.camIdx ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
         <div class="cam-source" id="cam-source"></div>
-        <div class="cam-actions"><button id="rewind-toggle" aria-expanded="false" aria-controls="rewind-strip">Rewind</button><button id="record-clip" hidden>Grabar clip</button><button id="live-cam" hidden>Volver al directo</button></div>
+        <div class="cam-actions"><button id="rewind-toggle" aria-expanded="false" aria-controls="rewind-strip">Rewind</button><button id="record-clip" hidden>Grabar clip</button><button id="vigia-ola" hidden aria-pressed="false">Vigilar la ola</button><button id="live-cam" hidden>Volver al directo</button></div>
         ${renderRewinds(spot)}<div id="clip-info" class="clip-info" hidden></div><p id="record-status" class="record-status" role="status"></p><a id="save-clip" class="save-clip" hidden>Guardar clip</a>
+        <p id="vigia-note" class="vigia-note" hidden></p><a id="save-ola" class="save-clip" hidden>Guardar clip de la ola</a>
       </div>
       <div class="a-now" id="s-ahora">
         ${renderSpotPhoto(spot)}
@@ -732,25 +728,99 @@ function renderSpot(id) {
     $('#record-status').textContent = '';
     $('#live-cam').hidden = true;
     view.querySelectorAll('[data-clip]').forEach((b) => b.classList.remove('on'));
-    $('#record-clip').hidden = cams[state.camIdx]?.embedType !== 'hls' || !HTMLVideoElement.prototype.captureStream || !window.MediaRecorder;
+    pararVigia();
     const cam = cams[state.camIdx];
-    playCam(camEl, cam, {
-      autoplay: true,
-      spot,
-      onFallback: (nextCam, nextIdx) => {
-        state.camIdx = nextIdx;
-        view.querySelectorAll('[data-cam]').forEach((x, i) => x.classList.toggle('on', i === nextIdx));
-        $('#cam-source').innerHTML = nextCam
-          ? `${esc(nextCam.name)}${nextCam.credit ? ` · Imagen: <a href="${esc(nextCam.pageUrl)}" target="_blank" rel="noopener">${esc(nextCam.credit)}</a>` : ''}${nextCam.distanceKm ? ` · a ${nextCam.distanceKm} km del pico` : ''}`
-          : '';
-      }
-    });
+    const enDirecto = () => cam?.embedType === 'hls' && estadoStream(cam).ok;
+    // Grabar el directo clásico necesita `captureStream`, que Safari de iOS no
+    // tiene; la vigía no, porque codifica con WebCodecs. Por eso se(hidden)por
+    // separado: en un iPhone sin `captureStream` sigue habiendo botón de vigía.
+    $('#record-clip').hidden = !enDirecto()
+      || !HTMLVideoElement.prototype.captureStream || !window.MediaRecorder;
+    $('#vigia-ola').hidden = !enDirecto();
+    const nota = $('#vigia-note');
+    if (cam?.resolver === 'ipcamlive' && !estadoStream(cam).ok) {
+      nota.hidden = false;
+      nota.textContent = `${esc(estadoStream(cam).motivo)} El reproductor del club sigue disponible.`;
+    } else nota.hidden = true;
+    playCam(camEl, cam);
     $('#cam-source').innerHTML = cam
       ? `${esc(cam.name)}${cam.credit ? ` · Imagen: <a href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">${esc(cam.credit)}</a>` : ''}${cam.distanceKm ? ` · a ${cam.distanceKm} km del pico` : ''}`
       : '';
   };
   showCam();
   bindClips(spot, camEl, showCam);
+  bindVigia(spot, camEl);
+
+  // La vigía se para sola al cambiar de cámara o de spot, para no dejar grabbing
+  // en segundo plano ni dejar el vídeo bloqueado por el `captureStream`.
+  function pararVigia() {
+    if (relojVigia) { clearInterval(relojVigia); relojVigia = null; }
+    vigiaActual?.parar();
+    vigiaActual = null;
+    const b = document.getElementById('vigia-ola');
+    if (b) { b.setAttribute('aria-pressed', 'false'); b.textContent = 'Vigilar la ola'; }
+    const g = document.getElementById('save-ola');
+    if (g) g.hidden = true;
+  }
+
+  function bindVigia(spotActual, contEl) {
+    const btn = $('#vigia-ola');
+    if (!btn) return;
+    const status = $('#record-status');
+    const nota = $('#vigia-note');
+    const guardar = $('#save-ola');
+    btn.addEventListener('click', async () => {
+      if (vigiaActual) { pararVigia(); status.textContent = 'Vigía parada.'; return; }
+      const cam = camsForSpot(spotActual)[state.camIdx];
+      if (!estadoStream(cam).ok) {
+        status.textContent = estadoStream(cam).motivo;
+        return;
+      }
+      status.textContent = 'Preparando la grabación…';
+      const vigia = iniciarVigiaOla(contEl, cam, {
+        onOla: (clip) => {
+          status.textContent = `Ola guardada: ${clip.deteccion.motivos}`;
+          if (guardar.dataset.url) URL.revokeObjectURL(guardar.dataset.url);
+          const url = URL.createObjectURL(clip.blob);
+          guardar.dataset.url = url;
+          guardar.href = url;
+          guardar.download = `MeteoSurf_${spotActual.id}_ola_${clip.tMs}.${clip.extension}`;
+          guardar.hidden = false;
+          if (nota) {
+            nota.hidden = false;
+            const ia = clip.deteccion.evidenciaIA;
+            nota.textContent = `Clip de ${clip.segundos} s, con ${clip.segundosPrevio ?? 0} s grabados antes de la detección ` +
+              `(${clip.contenedorUnico ? 'un solo archivo' : 'fragmentos'}, ${Math.round((clip.bytes || 0) / 1024)} kB). ` +
+              (ia ? `El modelo reconoce persona (${ia.persona} %) y tabla (${ia.tabla} %).` : 'Sin confirmación del modelo.');
+          }
+        },
+        onError: (motivo) => { status.textContent = `No se pudo grabar: ${motivo}`; },
+      });
+      if (vigia.motivo) {
+        status.textContent = vigia.motivo;
+        return;
+      }
+      const listo = await vigia.preparar();
+      if (!listo) {
+        status.textContent = vigia.motivo || 'No se pudo preparar la grabación.';
+        return;
+      }
+      vigiaActual = vigia;
+      vigias.set(contEl, vigia);
+      btn.setAttribute('aria-pressed', 'true');
+      btn.textContent = 'Parar la vigía';
+      nota.hidden = false;
+      nota.textContent = (vigia.aviso ? `${vigia.aviso} ` : '')
+        + 'Mirando la rompiente. Los clips solo se guardan en este dispositivo, en cuanto el detector ve a alguien cogiendo una ola.';
+      relojVigia = setInterval(() => {
+        if (!vigiaActual) { clearInterval(relojVigia); relojVigia = null; return; }
+        const e = vigiaActual.estado();
+        const ia = e.evidenciaIA ? ` · modelo ve persona ${e.evidenciaIA.persona} % y tabla ${e.evidenciaIA.tabla} %` : '';
+        status.textContent = `Vigía activa (${e.modo}) · ${Math.round(e.segundos || 0)} s de búfer · ${e.eventos} clip(s)${ia}`;
+      }, 1000);
+    });
+  }
+
   view.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => {
     state.camIdx = +b.dataset.cam;
     view.querySelectorAll('[data-cam]').forEach((x) => x.classList.toggle('on', x === b));
@@ -1067,7 +1137,6 @@ function renderCams() {
     <div class="cam-grid">
       ${filtered.length ? filtered.map(({ s, cams }) => {
         const c = cams[0];
-        const poster = getCamPoster(c) || camThumb(c);
         const f = state.fc?.spots[s.id];
         const h = f ? f.hours[nowIndex(f.hours)] : null;
         return `<div class="cam-card">
@@ -1082,7 +1151,7 @@ function renderCams() {
             </div>` : ''}
           </div>
           <div class="cam cam-card-video" data-camspot="${esc(s.id)}">
-            <button class="cam-placeholder" ${poster ? `style="background-image:url('${esc(poster)}');background-size:cover;background-position:center"` : ''} aria-label="Reproducir cámara de ${esc(s.name)}">
+            <button class="cam-placeholder" aria-label="Reproducir cámara de ${esc(s.name)}">
               <div class="cam-placeholder-overlay">
                 <span class="cam-live-badge">EN DIRECTO</span>
                 ${PLAY_SVG}
@@ -1116,12 +1185,12 @@ function renderCams() {
     el.dataset.ph = el.innerHTML;
     placeholder.remove();
     const spot = SPOTS.find((s) => s.id === el.dataset.camspot);
-    playCam(el, camsForSpot(spot)[0], { autoplay: true, spot });
+    playCam(el, camsForSpot(spot)[0]);
   }));
 }
 
 function footer() {
-  return `<div class="footer">MeteoSurf_Cs · Datos: Open-Meteo (modelos ECMWF, DWD, Météo-France) · Cámaras de sus propietarios · Mapas: © OpenStreetMap, © CARTO
+  return `<div class="footer">MeteoSurf_Cs · Datos: Open-Meteo (modelos ECMWF, DWD, Météo-France) · Cámaras de sus propietarios
     <br><span id="version"></span></div>`;
 }
 
@@ -1152,15 +1221,15 @@ async function refresh(force = false) {
 async function init() {
   window.addEventListener('hashchange', route);
   $('#refresh')?.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); });
-  $('#btn-notif')?.addEventListener('click', openNotificacionesPanel);
   $('#theme')?.addEventListener('click', () => {
     const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     const next = cur === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next; store.set('theme', next);
   });
-  initNotificaciones();
   route(); // pinta esqueleto
-  await Promise.all([loadCams(), loadRewinds()]);
+  // Las emisiones resueltas en el servidor (data/streams.json) se cargan con el
+  // resto: sin ellas, la cámara del club no se puede ni ver ni grabar.
+  await Promise.all([loadCams(), loadStreams(), loadRewinds()]);
   route();
   await refresh();
   // Refresco automático cada 30 min si la pestaña está visible

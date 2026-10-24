@@ -39,7 +39,7 @@ class TestLeerSpots(unittest.TestCase):
         self.spots = rewind.leer_spots()
 
     def test_todos_los_spots_del_catalogo(self):
-        self.assertEqual(len(self.spots), 14)
+        self.assertEqual(len(self.spots), 13)
         for spot_id in ("Planetario", "Piramides", "Voramar", "MorroGos", "Renega"):
             self.assertIn(spot_id, self.spots)
 
@@ -77,9 +77,14 @@ class TestSeleccionCamaras(unittest.TestCase):
 
     def test_cobertura_de_spots(self):
         cams = {c["id"]: c for c in rewind.camaras_rewind(self.webcams)}
-        self.assertEqual(cams["cv_grao_castellon"]["spotsCubiertos"], ["Planetario", "Piramides"])
-        self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Heliopolis"])
-        self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Concha", "Renega"])
+        # Gurugu entra: su cámara lo cubre y estaba fuera de SPOTS_CON_CAMARA, así
+        # que el spot quedaba sin clips en el índice y "Ver cómo rompía" salía
+        # vacío justo en uno de los tres beaches del Grao.
+        self.assertEqual(
+            cams["cv_grao_castellon"]["spotsCubiertos"], ["Planetario", "Piramides", "Gurugu"]
+        )
+        self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Voramar", "Heliopolis"])
+        self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Renega"])
 
     def test_no_toma_camaras_deshabilitadas(self):
         cams = rewind.camaras_rewind(self.webcams)
@@ -686,7 +691,7 @@ class TestMain(unittest.TestCase):
             self.assertEqual(rewind.main(self._args(tmp)), 0)
             self.assertEqual(len(self.grabadas), 3)
             indice = json.loads(Path(tmp, "rewinds.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(indice["rewinds"]), 6)  # 2 spots por cámara
+            self.assertEqual(len(indice["rewinds"]), 7)  # Grao cubre 3 spots, los otros 2 y 2
             self.assertEqual(indice["timezone"], "Europe/Madrid")
             self.assertEqual(indice["updatedAt"], "2026-09-29T14:00:00+02:00")
             self.assertEqual(indice["dias"], 30)
@@ -888,6 +893,118 @@ class TestEsquemaHistoricoYEvidencia(unittest.TestCase):
             cargado = json.loads(ruta.read_text(encoding="utf-8"))
             self.assertEqual(len(cargado), 1)
             self.assertEqual(cargado[0]["spot"], "Planetario")
+
+
+class TestPrevisionYGrafoDeCamaras(unittest.TestCase):
+    """Regresiones del flujo que dejó vacío "Ver cómo rompía".
+
+    El `return salida` se coló dentro del bucle de `prevision_spots` al fusionar
+    la mejora de imágenes (0afa82a). Con eso solo se pedía previsión del primer
+    spot de la lista, o sea MorroGos, y solo cv-oropesa-hls podía grabarse:
+    Planetario, Pirámides, Gurugú, Voramar, Heliopolis y la webcam del club
+    quedaban con cero clips en el índice.
+    """
+
+    def setUp(self):
+        self.original = {
+            "prevision_mar": rewind.prevision_mar,
+            "prevision_viento": rewind.prevision_viento,
+            "resolver_stream_ipcamlive": rewind.resolver_stream_ipcamlive,
+        }
+
+    def tearDown(self):
+        rewind.prevision_mar = self.original["prevision_mar"]
+        rewind.prevision_viento = self.original["prevision_viento"]
+        rewind.resolver_stream_ipcamlive = self.original["resolver_stream_ipcamlive"]
+
+    def test_pide_prevision_de_todos_los_spots_no_solo_el_primero(self):
+        pedidos = []
+
+        def prevision_mar(lat, lon):
+            pedidos.append((lat, lon))
+            return {"altura": 0.8, "periodo": 5.0, "direccion": 90, "direccionTxt": "E"}
+
+        rewind.prevision_mar = prevision_mar
+        rewind.prevision_viento = lambda lat, lon: {"viento": 8.0, "vientoDireccionTxt": "O"}
+        spots = rewind.leer_spots()
+        ids = ["MorroGos", "Renega", "Planetario", "Piramides", "Gurugu"]
+
+        salida = rewind.prevision_spots(ids, spots)
+
+        self.assertEqual(sorted(salida), sorted(ids))
+        self.assertEqual(len(pedidos), len(ids))
+
+    def test_una_api_caida_no_tumba_el_resto(self):
+        def prevision_mar(lat, lon):
+            raise RuntimeError("500 de Open-Meteo")
+
+        rewind.prevision_mar = prevision_mar
+        rewind.prevision_viento = lambda lat, lon: {"viento": 8.0, "vientoDireccionTxt": "O"}
+        spots = rewind.leer_spots()
+
+        salida = rewind.prevision_spots(["Planetario", "Voramar"], spots)
+
+        # Si vuelve vacía, main() aborta con "no se pudo leer ninguna previsión".
+        # Se comprueba que la excepción sale del bucle y no se propaga.
+        self.assertEqual(salida, {})
+
+    def test_la_webcam_del_club_va_primera_en_el_grao(self):
+        cams = rewind.camaras_rewind(rewind.leer_webcams(), incluir_ipcamlive=True)
+        grao = [c["id"] for c in cams if "Planetario" in c["spotsCubiertos"]]
+        self.assertEqual(grao[0], "surfers_castellon")
+        self.assertIn("cv_grao_castellon", grao)
+
+    def test_sin_resolucion_de_ipcamlive_se_salta_en_vez_de_descargar_html(self):
+        rewind.resolver_stream_ipcamlive = lambda *a, **k: None
+        cam = {
+            "id": "surfers_castellon",
+            "embedUrl": "https://g0.ipcamlive.com/player/player.php?alias=609a27d8a9c83",
+        }
+        self.assertIsNone(rewind.url_grabable_camara(cam))
+
+    def test_con_resolucion_devuelve_el_hls_y_no_el_player(self):
+        rewind.resolver_stream_ipcamlive = lambda *a, **k: {
+            "hls": "https://s169.ipcamlive.com/streams/a9l/streams/x/stream.m3u8",
+        }
+        cam = {
+            "id": "surfers_castellon",
+            "embedUrl": "https://g0.ipcamlive.com/player/player.php?alias=609a27d8a9c83",
+        }
+        self.assertTrue(rewind.url_grabable_camara(cam).endswith(".m3u8"))
+
+
+class TestDeteccionHonestaDeArchivo(unittest.TestCase):
+    """El muestreo por oleaje no puede afirmar que haya un surfista."""
+
+    def test_por_oleaje_nunca_dice_posible_ola(self):
+        for altura in (0.0, 0.2, 0.35, 0.9, 2.0):
+            det = rewind.deteccion_por_oleaje("Planetario", {"altura": altura})
+            self.assertFalse(det["es_posible_ola"])
+            self.assertFalse(det["imagenAnalizada"])
+            self.assertEqual(det["origen"], "altura_oleaje")
+            self.assertIn("no se ha analizado la imagen", det["observaciones"])
+
+    def test_sin_datos_de_oleaje_no_falla(self):
+        det = rewind.deteccion_por_oleaje("Planetario", {})
+        self.assertFalse(det["es_posible_ola"])
+        self.assertIn("sin dato de oleaje", det["observaciones"])
+
+    def test_la_entrada_del_indice_no_inventa_evidencia_de_surf(self):
+        entrada = rewind.entrada_indice(
+            {"id": "Planetario", "name": "Planetario"},
+            {"id": "surfers_castellon", "name": "Surfers Castellón"},
+            {"altura": 1.2, "periodo": 6.0, "direccion": 90},
+            {"duracion": 20.0, "bytes": 1000, "ancho": 854, "alto": 480},
+            datetime(2026, 10, 17, 8, 0, tzinfo=timezone.utc),
+            "clip.mp4", "rewinds-2026-10", "https://example.com/clip.mp4",
+        )
+        self.assertFalse(entrada["deteccion"]["es_posible_ola"])
+        self.assertFalse(entrada["deteccion"]["imagenAnalizada"])
+
+
+class TestSesionesConfirmadas(unittest.TestCase):
+    def test_apunta_al_fichero_versionado(self):
+        self.assertEqual(rewind.SESIONES_PATH.name, "sesiones_confirmadas.json")
 
 
 if __name__ == "__main__":

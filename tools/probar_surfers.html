@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>MeteoSurf · Vigía de ola contra la emisión real del club</title>
+<!--
+  Prueba con navegador CON VENTENA de la vigía de ola sobre la emisión REAL del
+  Club Surfers Castellón (IPCamLive, alias público 609a27d8a9c83).
+
+  Comprueba, con la cámara de verdad:
+    1. que la emisión de data/streams.json sigue viva y la playlist responde,
+    2. que el vídeo se decodifica (ancho, alto, readyState),
+    3. que la vigía se arma con el grabador que corresponda en este navegador,
+    4. que se graba un búfer previo REAL de la cámara,
+    5. que el clip entregado se reproduce y tiene su duración completa.
+
+  El disparo es MANUAL (no lo hace el detector), y se dice con todas las letras:
+  no existe ningún clip del club con un surfista confirmado y etiquetado, así que
+  no se puede demostrar aquí que el detector acierte con imagen real. Lo que se
+  demuestra es que la grabación sobre la cámara de verdad produce un archivo
+  entero y reproducible.
+
+  Al terminar escribe el resultado en `#resultado`, que es lo que lee
+  `scripts/probar_vigia_e2e.py`. Nada se sube a ningún sitio.
+-->
+</head>
+<body>
+<p id="resultado">ejecutando…</p>
+<video id="v" muted playsinline controls style="width:480px"></video>
+<div id="cam" class="cam"></div>
+<pre id="detalle"></pre>
+<script type="module">
+import { iniciarVigiaOla, loadStreams, urlStream, estadoStream, playCam } from '../js/cams.js';
+
+const salida = document.getElementById('resultado');
+const detalle = document.getElementById('detalle');
+const lineas = [];
+const anotar = (k, v) => lineas.push(`${k}=${v}`);
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function cargarHls() {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js';
+    s.onload = () => resolve(window.Hls);
+    s.onerror = () => reject(new Error('no se pudo cargar hls.js'));
+    document.head.appendChild(s);
+  });
+}
+
+async function medirClip(clip) {
+  const v = document.createElement('video');
+  v.src = URL.createObjectURL(clip.blob);
+  v.muted = true;
+  try {
+    await new Promise((res, rej) => {
+      v.onloadedmetadata = res;
+      v.onerror = () => rej(new Error('el clip no se pudo leer'));
+      setTimeout(() => rej(new Error('tiempo agotado')), 20000);
+    });
+  } catch (e) {
+    return { error: e.message };
+  }
+  const duracion = Number.isFinite(v.duration) ? v.duration : 0;
+  let pintado = null;
+  try {
+    await v.play();
+    await esperar(900);
+    const c = document.createElement('canvas');
+    c.width = 160; c.height = 90;
+    const cx = c.getContext('2d');
+    cx.drawImage(v, 0, 0, 160, 90);
+    const d = cx.getImageData(0, 0, 160, 90).data;
+    let suma = 0, min = 255, max = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      suma += g; if (g < min) min = g; if (g > max) max = g;
+    }
+    pintado = { medio: Math.round(suma / (d.length / 4)), min: Math.round(min), max: Math.round(max) };
+  } catch (e) { pintado = { error: e.message }; }
+  v.pause();
+  URL.revokeObjectURL(v.src);
+  return { duracion, ancho: v.videoWidth, alto: v.videoHeight, pintado };
+}
+
+async function main() {
+  await loadStreams();
+  const streams = await fetch(new URL('../data/streams.json', import.meta.url), { cache: 'no-cache' }).then((r) => r.json());
+  const cam = { id: 'surfers_castellon_hls', resolver: 'ipcamlive', embedType: 'hls', short: 'Surfers' };
+  const est = estadoStream(cam);
+  anotar('estadoStream', est.ok ? 'ok' : 'ko');
+  if (!est.ok) { salida.textContent = 'FALLO ' + JSON.stringify([...lineas, 'motivo=' + est.motivo]); return; }
+  const fuente = urlStream(cam);
+  anotar('hls', fuente.includes('ipcamlive.com') ? 'ipcamlive' : 'otro');
+  anotar('alias', streams.streams['surfers_castellon_hls'].alias);
+
+  const r0 = await fetch(fuente);
+  const cuerpo = await r0.text();
+  anotar('playlist', r0.ok && cuerpo.includes('#EXTM3U') ? 'ok' : 'ko');
+
+  // Se usa el reproductor real de la web, no una copia.
+  const cont = document.getElementById('cam');
+  await playCam(cont, cam);
+  const video = cont.querySelector('video');
+  const Hls = await cargarHls();
+  if (!video) {
+    // Si el reproductor no llegó a crear el <video> (emisión sin resolver), se
+    // reproduce a mano aquí para poder medir.
+    cont.innerHTML = '';
+    const alt = document.createElement('video');
+    alt.muted = true; alt.playsInline = true; alt.controls = true; alt.crossOrigin = 'anonymous';
+    cont.appendChild(alt);
+    const hls = new Hls({ lowLatencyMode: true });
+    hls.loadSource(fuente); hls.attachMedia(alt);
+  }
+  const v = video || cont.querySelector('video');
+  await esperar(7000);
+  anotar('listo', v.readyState);
+  anotar('ancho', v.videoWidth);
+  anotar('alto', v.videoHeight);
+  v.muted = true;
+  await v.play().catch(() => {});
+
+  // Vigía sobre la cámara real. Buffer corto para que la prueba no tarde.
+  // Sin el modelo de persona y tabla: esta página mide la GRABACIÓN sobre la cámara
+  // real, y quien decide si hay surfista es la escena E2E, no el mar de hoy. Así
+  // esta prueba no depende de bajar 18 MB de pesos ni de que haya alguien en el agua.
+  const CFG = { prebufferS: 6, postS: 4, gopS: 1, ventanaMaxS: 25, cooldownS: 999, ancho: 640, fps: 10, bitrate: 1200000, usarIA: false };
+  const errores = [];
+  const vigia = iniciarVigiaOla(cont, cam, { ...CFG, onOla: () => {}, onError: (m) => errores.push(m) });
+  anotar('modo', vigia.modo);
+  anotar('motivo', vigia.motivo || '(ninguno)');
+  const listo = await vigia.preparar();
+  anotar('preparado', String(listo));
+  if (!listo) { salida.textContent = 'FALLO ' + JSON.stringify([...lineas, 'motivo=' + vigia.motivo]); return; }
+
+  // Se deja correr para que el búfer se llene de verdad.
+  await esperar((CFG.prebufferS + 3) * 1000);
+  const antes = vigia.estado();
+  anotar('bucleTrozos', antes.bucle || 0);
+  anotar('bucleSegundos', antes.segundos || 0);
+  anotar('codigo', antes.codec || '(ninguno)');
+
+  // Disparo manual: aquí no se demuestra que el detector acierte con un surfista
+  // real, sino que la grabación de la cámara real entrega un archivo entero.
+  anotar('disparo', 'manual');
+  const clip = await vigia.grabador.disparar();
+  vigia.parar();
+  anotar('errores', errores.length ? errores.join('|') : 'ninguno');
+  if (!clip || clip.error) { salida.textContent = 'FALLO ' + JSON.stringify([...lineas, 'clipError=' + (clip?.error || 'sin clip')]); return; }
+  anotar('clipBytes', clip.bytes);
+  anotar('clipContenedorUnico', String(clip.contenedorUnico));
+  anotar('clipSegundosPrevios', clip.segundosPrevio ?? 0);
+  anotar('clipCodec', clip.codec || '(ninguno)');
+  anotar('clipExtension', clip.extension);
+
+  const m = await medirClip(clip);
+  if (m.error) {
+    anotar('clipError', m.error);
+  } else {
+    anotar('clipDuracionReal', m.duracion.toFixed(2));
+    anotar('clipAncho', m.ancho || 0);
+    anotar('clipAlto', m.alto || 0);
+    anotar('clipGrisMedio', m.pintado?.medio ?? -1);
+    anotar('clipRangoGris', `${m.pintado?.min ?? 0}-${m.pintado?.max ?? 0}`);
+  }
+  salida.textContent = (clip.bytes > 1000 ? 'RESULTADO ' : 'FALLO ') + JSON.stringify(lineas);
+  detalle.textContent = lineas.join('\n');
+}
+
+main().catch((e) => {
+  salida.textContent = 'FALLO ' + JSON.stringify([...lineas, 'error=' + e.message]);
+  detalle.textContent = e.stack || e.message;
+});
+</script>
+</body>
+</html>

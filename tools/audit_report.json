@@ -1,0 +1,282 @@
+{
+  "timestamp": "2026-10-24T18:50:23.382Z",
+  "baseUrl": "http://127.0.0.1:8769",
+  "pages": {
+    "indexMobile": {
+      "url": "http://127.0.0.1:8769/index.html",
+      "mode": "mobile (390x844)",
+      "navigationSuccess": true,
+      "navError": null,
+      "loadDurationMs": 2048,
+      "domAudit": {
+        "title": "MeteoSurf_Cs · Previsión de surf en Castellón",
+        "metaViewport": "width=device-width, initial-scale=1, viewport-fit=cover",
+        "metaThemeColor": "#f5f7fa",
+        "h1Count": 1,
+        "h1Texts": [
+          "Costa de Castellón"
+        ],
+        "h2Count": 4,
+        "headingsHierarchyOk": true,
+        "hasHorizontalOverflow": false,
+        "docScrollWidth": 390,
+        "windowWidth": 390,
+        "totalButtons": 25,
+        "buttonsLackingAccessibleName": [],
+        "buttonsTooSmall": [],
+        "smallTextCount": 4,
+        "smallTextSamples": [
+          {
+            "fontSize": "11px",
+            "text": "Planetario",
+            "tag": "SPAN"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Voramar",
+            "tag": "SPAN"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Morro de Gos",
+            "tag": "SPAN"
+          },
+          {
+            "fontSize": "11px",
+            "text": "El Palaciet",
+            "tag": "SPAN"
+          }
+        ],
+        "emptyLinks": [],
+        "inputsLackingLabel": [],
+        "mediaTags": {
+          "images": 14,
+          "imagesWithoutAlt": 0,
+          "videos": 0,
+          "videosWithoutPlaysInline": 0,
+          "canvases": 0
+        },
+        "pwaCheck": {
+          "hasManifest": true,
+          "hasSwRegistered": true
+        },
+        "interactiveElementsSummary": []
+      },
+      "consoleMessages": [
+        {
+          "type": "warning",
+          "text": "Service Worker registration blocked by Playwright"
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    "indexDesktop": {
+      "url": "http://127.0.0.1:8769/index.html",
+      "mode": "desktop (1440x900)",
+      "navigationSuccess": true,
+      "navError": null,
+      "loadDurationMs": 1317,
+      "domAudit": {
+        "title": "MeteoSurf_Cs · Previsión de surf en Castellón",
+        "metaViewport": "width=device-width, initial-scale=1, viewport-fit=cover",
+        "metaThemeColor": "#f5f7fa",
+        "h1Count": 1,
+        "h1Texts": [
+          "Costa de Castellón"
+        ],
+        "h2Count": 4,
+        "headingsHierarchyOk": true,
+        "hasHorizontalOverflow": false,
+        "docScrollWidth": 1440,
+        "windowWidth": 1440,
+        "totalButtons": 25,
+        "buttonsLackingAccessibleName": [],
+        "buttonsTooSmall": [],
+        "smallTextCount": 4,
+        "smallTextSamples": [
+          {
+            "fontSize": "11px",
+            "text": "Planetario",
+            "tag": "SPAN"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Voramar",
+            "tag": "SPAN"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Morro de Gos",
+            "tag": "SPAN"
+          },
+          {
+            "fontSize": "11px",
+            "text": "El Palaciet",
+            "tag": "SPAN"
+          }
+        ],
+        "emptyLinks": [],
+        "inputsLackingLabel": [],
+        "mediaTags": {
+          "images": 14,
+          "imagesWithoutAlt": 0,
+          "videos": 0,
+          "videosWithoutPlaysInline": 0,
+          "canvases": 0
+        },
+        "pwaCheck": {
+          "hasManifest": true,
+          "hasSwRegistered": true
+        },
+        "interactiveElementsSummary": []
+      },
+      "consoleMessages": [
+        {
+          "type": "warning",
+          "text": "Service Worker registration blocked by Playwright"
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    "votarMobile": {
+      "url": "http://127.0.0.1:8769/votar.html",
+      "mode": "mobile (390x844)",
+      "navigationSuccess": true,
+      "navError": null,
+      "loadDurationMs": 944,
+      "domAudit": {
+        "title": "Reportar sesión · MeteoSurf_Cs",
+        "metaViewport": "width=device-width, initial-scale=1, viewport-fit=cover",
+        "metaThemeColor": "#f5f7fa",
+        "h1Count": 1,
+        "h1Texts": [
+          "Reporte de sesión"
+        ],
+        "h2Count": 0,
+        "headingsHierarchyOk": true,
+        "hasHorizontalOverflow": false,
+        "docScrollWidth": 390,
+        "windowWidth": 390,
+        "totalButtons": 2,
+        "buttonsLackingAccessibleName": [],
+        "buttonsTooSmall": [],
+        "smallTextCount": 5,
+        "smallTextSamples": [
+          {
+            "fontSize": "11px",
+            "text": "MeteoSurf_Cs · Reporte de sesión guardad",
+            "tag": "P"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Planetario",
+            "tag": "A"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Voramar",
+            "tag": "A"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Morro de Gos",
+            "tag": "A"
+          },
+          {
+            "fontSize": "11px",
+            "text": "El Palaciet",
+            "tag": "A"
+          }
+        ],
+        "emptyLinks": [],
+        "inputsLackingLabel": [],
+        "mediaTags": {
+          "images": 0,
+          "imagesWithoutAlt": 0,
+          "videos": 0,
+          "videosWithoutPlaysInline": 0,
+          "canvases": 0
+        },
+        "pwaCheck": {
+          "hasManifest": true,
+          "hasSwRegistered": true
+        },
+        "interactiveElementsSummary": []
+      },
+      "consoleMessages": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    "votarDesktop": {
+      "url": "http://127.0.0.1:8769/votar.html",
+      "mode": "desktop (1440x900)",
+      "navigationSuccess": true,
+      "navError": null,
+      "loadDurationMs": 962,
+      "domAudit": {
+        "title": "Reportar sesión · MeteoSurf_Cs",
+        "metaViewport": "width=device-width, initial-scale=1, viewport-fit=cover",
+        "metaThemeColor": "#f5f7fa",
+        "h1Count": 1,
+        "h1Texts": [
+          "Reporte de sesión"
+        ],
+        "h2Count": 0,
+        "headingsHierarchyOk": true,
+        "hasHorizontalOverflow": false,
+        "docScrollWidth": 1440,
+        "windowWidth": 1440,
+        "totalButtons": 2,
+        "buttonsLackingAccessibleName": [],
+        "buttonsTooSmall": [],
+        "smallTextCount": 5,
+        "smallTextSamples": [
+          {
+            "fontSize": "11px",
+            "text": "MeteoSurf_Cs · Reporte de sesión guardad",
+            "tag": "P"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Planetario",
+            "tag": "A"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Voramar",
+            "tag": "A"
+          },
+          {
+            "fontSize": "11px",
+            "text": "Morro de Gos",
+            "tag": "A"
+          },
+          {
+            "fontSize": "11px",
+            "text": "El Palaciet",
+            "tag": "A"
+          }
+        ],
+        "emptyLinks": [],
+        "inputsLackingLabel": [],
+        "mediaTags": {
+          "images": 0,
+          "imagesWithoutAlt": 0,
+          "videos": 0,
+          "videosWithoutPlaysInline": 0,
+          "canvases": 0
+        },
+        "pwaCheck": {
+          "hasManifest": true,
+          "hasSwRegistered": true
+        },
+        "interactiveElementsSummary": []
+      },
+      "consoleMessages": [],
+      "pageErrors": [],
+      "failedRequests": []
+    }
+  }
+}

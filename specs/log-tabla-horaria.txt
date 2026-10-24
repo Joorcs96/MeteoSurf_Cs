@@ -1,0 +1,15 @@
+﻿agy.exe : error: invalid model selection (--model "gemini-flash" --effort ""): model gemini-flash is not recognized as 
+a known model or custom model in settings
+En C:\Users\Jordi\AppData\Roaming\npm\antigravity.ps1: 34 Carácter: 1
++ & $agyExe @cleanArgs
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (error: invalid ...del in settings:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Available models:
+  Gemini 3.8 Flash (High)
+  Gemini 3.8 Flash (Medium)
+  Gemini 3.8 Flash (Low)
+  Claude Sonnet 4.6 (Thinking)
+  Claude Opus 4.6 (Thinking)
+  GPT-OSS 120B (Medium)

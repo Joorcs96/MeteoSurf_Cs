@@ -1,0 +1,30 @@
+﻿[██████████] 100 % · Tarea completada y verificada · 0 min restantes
+
+Se ha completado la ejecución de la especificación [spec-onboarding.md](file:///C:/Users/Jordi/orca/Surfline_CS/specs/spec-onboarding.md) en la rama `feature/mejoras-ux-auditoria`.
+
+### Cambios realizados
+
+1. **Estilos CSS**: En [css/app.css](file:///C:/Users/Jordi/orca/Surfline_CS/css/app.css), se añadieron las clases `.onboard-overlay` y `.onboard-card` con modal centrado, fondo semitransparente, ancho máximo de 380px, tarjeta adaptable a móviles sin desbordamiento horizontal y botón interactivo "Entendido".
+2. **Estructura HTML**: En [index.html](file:///C:/Users/Jordi/orca/Surfline_CS/index.html), antes del primer script, se insertó el panel accesible con los 3 conceptos clave:
+   - Icono de ola: **Hs** = altura de ola
+   - Icono de reloj: **Periodo** = segundos entre olas
+   - Icono de estrella: **Estrellas** = calidad 0-5
+   - Botón `Entendido` con id `#onboard-btn`
+3. **Lógica de visualización**: En [js/app.js](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js), se implementó la función [`showOnboarding()`](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js#L12-L26):
+   - Muestra el modal únicamente si `localStorage.getItem('ob_done')` no está establecido.
+   - Al pulsar "Entendido", guarda `localStorage.setItem('ob_done', '1')` y oculta el modal.
+   - Se invoca desde [`renderHome()`](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js#L240-L246) únicamente en la primera carga.
+
+### Verificación realizada
+
+Se ejecutó una prueba automatizada con Playwright comprobando todos los criterios de aceptación:
+- `[VERIFICADO]` Con `localStorage` limpio, el modal aparece centrado en portada.
+- `[VERIFICADO]` En viewport móvil de 390 px, la tarjeta mide 358 px (dentro del límite de 380 px) y no hay desbordamiento horizontal (`scrollWidth === clientWidth === 390px`).
+- `[VERIFICADO]` Al hacer clic en "Entendido", el modal desaparece inmediatamente y se guarda `ob_done = "1"`.
+- `[VERIFICADO]` Al recargar la página, el panel ya no vuelve a mostrarse.
+
+### Commit realizado
+
+- **Rama:** `feature/mejoras-ux-auditoria`
+- **Hash:** `b38ba4e`
+- **Mensaje exacto:** `ux: onboarding para principiantes con explicación de términos`

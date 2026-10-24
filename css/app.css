@@ -794,3 +794,193 @@ body.vista-camaras .quick-spots { display:none; }
   display: inline-block;
   flex-shrink: 0;
 }
+
+/* MEJ-01: Modal y Banner de Ventajas Pro */
+.pro-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.pro-modal-card {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius, 4px) * 2 + 4px);
+  max-width: 440px;
+  width: 100%;
+  padding: 28px 24px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  animation: proModalIn .2s ease-out;
+}
+@keyframes proModalIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.pro-badge-top {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #f59e0b;
+  color: #111827;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  letter-spacing: .8px;
+  margin-bottom: 12px;
+}
+.pro-modal-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+.pro-modal-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  margin: 8px 0 10px;
+}
+.pro-price-num {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--brand);
+}
+.pro-price-period {
+  font-size: 14px;
+  color: var(--text-2);
+}
+.pro-modal-sub {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+.pro-modal-features {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pro-modal-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+.pro-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.pro-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pro-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 12px 20px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: var(--radius, 4px);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.pro-btn-primary:hover {
+  opacity: 0.9;
+}
+.pro-btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text-2);
+  border: 0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pro-btn-secondary:hover {
+  color: var(--text);
+}
+
+/* Banner Pro en Asistente */
+.pro-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-left: 4px solid #f59e0b;
+  border-radius: var(--radius, 4px);
+  flex-wrap: wrap;
+}
+.pro-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 240px;
+}
+.pro-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #f59e0b;
+  color: #111827;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 4px;
+  letter-spacing: .5px;
+}
+.pro-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pro-banner-text strong {
+  font-size: 14px;
+  color: var(--text);
+}
+.pro-banner-text span {
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.pro-banner-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  min-height: 38px;
+  cursor: pointer;
+  white-space: nowrap;
+}

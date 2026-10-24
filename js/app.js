@@ -25,6 +25,19 @@ function showOnboarding() {
   }
 }
 
+// Modal y ventajas Pro
+export function showProModal(force = false) {
+  if (!force && sessionStorage.getItem('pro_shown')) return;
+  sessionStorage.setItem('pro_shown', '1');
+  const overlay = document.querySelector('#pro-modal');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+export function hideProModal() {
+  const overlay = document.querySelector('#pro-modal');
+  if (overlay) overlay.style.display = 'none';
+}
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
 const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null };
@@ -185,6 +198,7 @@ function route() {
   if (page === 'camaras') return renderCams();
   if (page === 'asistente') return renderAssistant();
   if (page === 'calendario') return renderCalendario();
+  if (page === 'pro') return renderPro();
   if (page === 'favoritos') { state.zone = 'fav'; return renderHome(); }
   if (state.zone === 'fav' && page !== 'favoritos') state.zone = 'all';
   return renderHome();
@@ -440,6 +454,16 @@ async function renderAssistant() {
   const ctx = { spotId: state.spotId };
   view.innerHTML = `<div class="region-head"><div><h1>Asistente de previsión</h1>
       <p>Pregunta cuándo y dónde surfear. Responde con la previsión actual de los ${SPOTS.length} spots.</p></div></div>
+    <div class="pro-banner" id="pro-banner" role="region" aria-label="MeteoSurf Pro">
+      <div class="pro-banner-content">
+        <span class="pro-badge">PRO</span>
+        <div class="pro-banner-text">
+          <strong>Acceso completo con Pro</strong>
+          <span>Previsión 16 días, rewind ilimitado y alertas personalizadas por 2,99 €/mes.</span>
+        </div>
+      </div>
+      <button type="button" class="btn pro-banner-btn" id="pro-banner-btn">Ver ventajas</button>
+    </div>
     <div class="chat card" id="chat"></div>
     <div class="chips" id="sugg" style="margin:12px 0"></div>
     <form class="ask" id="ask" autocomplete="off">
@@ -465,7 +489,38 @@ async function renderAssistant() {
   $('#sugg').innerHTML = ai.suggestions(ctx).map((q) => `<button class="chip btn" type="button">${esc(q)}</button>`).join('');
   $('#sugg').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => ask(b.textContent)));
   $('#ask').addEventListener('submit', (e) => { e.preventDefault(); const q = $('#q').value; $('#q').value = ''; ask(q); });
+  $('#pro-banner-btn')?.addEventListener('click', () => showProModal(true));
+  $('#pro-banner')?.addEventListener('click', (e) => {
+    if (e.target.id !== 'pro-banner-btn') showProModal(true);
+  });
+  showProModal(false);
   draw();
+}
+
+function renderPro() {
+  document.title = 'MeteoSurf Pro · MeteoSurf_Cs';
+  view.innerHTML = `
+    <div class="region-head">
+      <div>
+        <span class="pro-badge" style="margin-bottom:8px">PRO</span>
+        <h1>MeteoSurf Pro</h1>
+        <p>2,99 €/mes · Acceso completo a todas las funciones avanzadas</p>
+      </div>
+    </div>
+    <div class="card pad" style="max-width:540px;margin:24px auto;text-align:center">
+      <h2 style="margin-top:0">¡Gracias por tu interés en MeteoSurf Pro!</h2>
+      <p style="color:var(--text-2);margin-bottom:20px">La suscripción Pro estará disponible en la próxima actualización con pasarela directa.</p>
+      <ul class="pro-modal-features" style="max-width:320px;margin:0 auto 24px">
+        <li><span class="pro-check">✓</span> Previsión completa 16 días</li>
+        <li><span class="pro-check">✓</span> Rewind de cámaras ilimitado</li>
+        <li><span class="pro-check">✓</span> Alertas push de condiciones</li>
+        <li><span class="pro-check">✓</span> Soporte para más spots</li>
+        <li><span class="pro-check">✓</span> Sin publicidad</li>
+      </ul>
+      <a href="#/" class="btn pro-btn-primary" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;text-decoration:none">Volver a la previsión</a>
+    </div>
+    ${footer()}
+  `;
 }
 
 function miniatura(url, w = 250) {
@@ -1736,6 +1791,24 @@ async function init() {
       location.hash = '#/asistente';
     });
   }
+  const proModal = $('#pro-modal');
+  if (proModal) {
+    $('#pro-dismiss-btn')?.addEventListener('click', hideProModal);
+    $('#pro-subscribe-btn')?.addEventListener('click', hideProModal);
+    proModal.addEventListener('click', (e) => {
+      if (e.target === proModal) hideProModal();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && proModal.style.display !== 'none') hideProModal();
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest?.('[data-pro], .pro-feature');
+    if (trigger) {
+      e.preventDefault();
+      showProModal(true);
+    }
+  });
   $('#refresh')?.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); });
   $('#theme')?.addEventListener('click', () => {
     const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

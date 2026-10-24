@@ -329,26 +329,29 @@ function miniatura(url, w = 250) {
   return typeof url === 'string' ? url.replace(/\/\d+px-/, `/${w}px-`) : '';
 }
 
-// Fila compacta del listado: foto + nombre + altura + calidad + mar/viento + 7 días.
+// Tarjeta del listado: foto de fondo, nombre grande y condiciones actuales grandes.
 function spotCard(s) {
   const f = state.fc?.spots[s.id];
   const h = f ? f.hours[nowIndex(f.hours)] : null;
   const cam = camsForSpot(s)[0];
   const sw = h?.swells[0];
-  const foto = s.photo?.thumb ? miniatura(s.photo.thumb, 250) : '';
-  return `<a class="spot-row ${h ? ratingCls(h.rating) : ''}" href="#/spot/${encodeURIComponent(s.id)}">
-    <span class="sr-foto">${foto ? `<img src="${esc(foto)}" alt="" loading="lazy" decoding="async">` : ICON.wave}</span>
-    <span class="sr-main">
-      <span class="sr-name">${esc(s.name)}${cam ? ' <span class="cam-dot" title="Cámara en directo">' + ICON.cam + '</span>' : ''}</span>
-      <span class="sr-zone">${esc(s.zoneName)}</span>
-      ${h ? `<span class="sr-meta"><span title="Mar de fondo">${m(sw?.h)} m · ${sw?.t ? Math.round(sw.t) + ' s' : '–'} ${compass(sw?.dir)}</span><span title="Viento">${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : '–'} <span class="wind-tag wind-${h.wind?.key ?? 'na'}">${esc(h.wind?.label ?? '–')}</span></span></span>` : '<span class="sr-meta">Sin previsión</span>'}
-    </span>
-    <span class="sr-side">
-      ${h ? `<span class="sr-h num">${range(h.surf)}<small> m</small></span><span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>` : ''}
-    </span>
-    <button class="fav-btn fav ${favs.has(s.id) ? 'on' : ''}" data-fav="${esc(s.id)}" aria-label="Favorito">${ICON.star}</button>
-    ${f ? `<span class="sr-spark" title="Próximos 7 días">${f.days.slice(0, 7).map((d, i) => `<i class="${ratingCls(d.rating)}" title="${dayName(d.date, i)}"></i>`).join('')}</span>` : ''}
-  </a>`;
+  const foto = s.photo?.thumb ? miniatura(s.photo.thumb, 500) : '';
+  return `<div class="spot-card2 ${h ? ratingCls(h.rating) : ''}">
+    <a class="sc-link" href="#/spot/${encodeURIComponent(s.id)}" aria-label="${esc(s.name)}: ${h ? range(h.surf) + ' m, ' + ratingLabel(h.rating) : 'sin previsión'}">
+      ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="" loading="lazy" decoding="async">` : ''}
+      <span class="sc-shade"></span>
+      ${cam ? `<span class="sc-cam" title="Cámara en directo">${ICON.cam} Directo</span>` : ''}
+      <span class="sc-info">
+        <span class="sc-name">${esc(s.name)}</span>
+        <span class="sc-zone">${esc(s.zoneName)}</span>
+        ${h ? `<span class="sc-meta">${m(sw?.h)} m · ${sw?.t ? Math.round(sw.t) + ' s' : '–'} ${compass(sw?.dir)} · ${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : '–'} ${esc(h.wind?.label ?? '')}</span>` : ''}
+      </span>
+      <span class="sc-cond">
+        ${h ? `<span class="sc-h num">${range(h.surf)}<small> m</small></span><span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>` : '<span class="sc-meta">Sin previsión</span>'}
+      </span>
+    </a>
+    <button class="fav-btn fav sc-fav ${favs.has(s.id) ? 'on' : ''}" data-fav="${esc(s.id)}" aria-label="Favorito">${ICON.star}</button>
+  </div>`;
 }
 
 function bindFavs() {

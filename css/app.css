@@ -236,3 +236,31 @@ body.vista-mapa #view { position:fixed; z-index:1; top:0; left:0; right:0; botto
 .capas-canvas { position:absolute; inset:0; z-index:450; pointer-events:none; }
 .capas-pop { font-size:13px; line-height:1.5; }
 .capas-pop div span { display:inline-block; min-width:56px; color:#677680; }
+
+/* ---- Adaptación a móviles tipo app (iPhone con notch / isla y barra de inicio) ---- */
+:root { --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px); --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px); }
+html { background:var(--bg); -webkit-text-size-adjust:100%; text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
+body { min-height:100dvh; overscroll-behavior-y:none; -webkit-font-smoothing:antialiased; }
+a, button, input, select, textarea, label, summary, [role=button] { touch-action:manipulation; }
+input, select, textarea { font-size:max(16px,1em); }
+/* Franja oscura bajo la hora/batería: la barra de estado del iPhone es translúcida y con letras blancas. */
+body::before { content:''; position:fixed; z-index:3000; top:0; left:0; right:0; height:var(--safe-t); background:#090b0e; pointer-events:none; }
+.topbar { height:calc(64px + var(--safe-t)); padding-top:var(--safe-t); padding-left:max(20px,var(--safe-l)); padding-right:max(20px,var(--safe-r)); }
+#view { padding-left:max(20px,var(--safe-l)); padding-right:max(20px,var(--safe-r)); }
+.tabbar { padding-left:max(4px,var(--safe-l)); padding-right:max(4px,var(--safe-r)); padding-bottom:var(--safe-b); }
+.quick-spots { padding-left:max(8px,var(--safe-l)); padding-right:max(8px,var(--safe-r)); }
+.toast { left:max(20px,var(--safe-l)); right:max(20px,var(--safe-r)); bottom:calc(130px + var(--safe-b)); }
+body.vista-mapa { overflow:hidden; }
+body.vista-mapa #view { top:0; padding:0; bottom:calc(60px + var(--safe-b)); }
+.mapa-full { overflow:hidden; }
+.capas-barra { top:calc(var(--safe-t) + 10px); left:max(10px,var(--safe-l)); right:max(10px,var(--safe-r)); }
+.capas-abajo { left:max(10px,var(--safe-l)); right:max(10px,var(--safe-r)); bottom:12px; }
+.mapa-full .leaflet-top.leaflet-right { top:calc(var(--safe-t) + 58px); right:var(--safe-r); }
+.mapa-full .leaflet-bottom.leaflet-left { left:var(--safe-l); }
+.mapa-full .leaflet-control-attribution { font-size:10px; border-radius:8px 8px 0 0; }
+@media(min-width:800px) {
+  body.vista-mapa #view { top:calc(64px + var(--safe-t)); }
+  .tabbar { padding-left:max(calc((100% - 700px)/2),var(--safe-l)); padding-right:max(calc((100% - 700px)/2),var(--safe-r)); }
+  .topbar { padding-left:max(24px,calc((100% - 1180px)/2),var(--safe-l)); padding-right:max(24px,calc((100% - 1180px)/2),var(--safe-r)); }
+}
+@media(max-width:380px) { #view { padding-left:max(16px,var(--safe-l)); padding-right:max(16px,var(--safe-r)); } }

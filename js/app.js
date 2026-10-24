@@ -4,6 +4,7 @@ import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes,
 import { compassSVG, dirArrow } from './compass.js';
 import { loadCams, camsForSpot, playCam, stopCam, playClip, recordClip, getCamPoster, camThumb } from './cams.js';
 import { aplicarNowcast } from './nowcast.js';
+import { initNotificaciones, openNotificacionesPanel } from './notificaciones.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -148,6 +149,13 @@ function toast(t) {
 // ---------- Rutas ----------
 function route() {
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  const searchSpot = new URLSearchParams(location.search).get('spot');
+  if (searchSpot && !location.hash.startsWith('#/spot/')) {
+    const found = SPOTS.find((s) => s.id === searchSpot || s.id.toLowerCase() === searchSpot.toLowerCase());
+    const targetId = found ? found.id : searchSpot;
+    history.replaceState(null, '', location.pathname + `#/spot/${encodeURIComponent(targetId)}`);
+    return renderSpot(targetId);
+  }
   const h = location.hash.replace(/^#\/?/, '');
   const [page, arg] = h.split('/');
   if (page !== 'spot') state.spotId = null;
@@ -156,6 +164,7 @@ function route() {
   const savedClip = $('#save-clip');
   if (savedClip?.dataset.url) URL.revokeObjectURL(savedClip.dataset.url);
   document.querySelectorAll('.cam').forEach(stopCam);
+  if (page === 'avisos') { openNotificacionesPanel(); return renderHome(); }
   if (page === 'spot' && arg) return renderSpot(decodeURIComponent(arg));
   if (page === 'mapa') return renderMap();
   if (page === 'camaras') return renderCams();
@@ -1108,11 +1117,13 @@ async function refresh(force = false) {
 async function init() {
   window.addEventListener('hashchange', route);
   $('#refresh')?.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); });
+  $('#btn-notif')?.addEventListener('click', openNotificacionesPanel);
   $('#theme')?.addEventListener('click', () => {
     const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     const next = cur === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next; store.set('theme', next);
   });
+  initNotificaciones();
   route(); // pinta esqueleto
   await Promise.all([loadCams(), loadRewinds()]);
   route();

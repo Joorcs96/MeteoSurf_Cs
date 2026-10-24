@@ -22,6 +22,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts import rewind  # noqa: E402
 
+
+def _webcams_activas(*args, **kwargs):
+    """webcams.json con todas las cámaras activas.
+
+    El verificador automático de webcams apaga cámaras en `webcams.json` cuando
+    fallan; las pruebas no deben depender de ese estado cambiante.
+    """
+    return [dict(c, enabled=True) for c in _leer_webcams_real(*args, **kwargs)]
+
+
+_leer_webcams_real = rewind.leer_webcams
+
 # Valores reales sacados de `node` con el SPOTS de js/spots.js.
 SEA_LAT_LON_ESPERADO = {
     "Planetario": (39.976, 0.0419),
@@ -61,7 +73,7 @@ class TestLeerSpots(unittest.TestCase):
 
 class TestSeleccionCamaras(unittest.TestCase):
     def setUp(self):
-        self.webcams = rewind.leer_webcams()
+        self.webcams = _webcams_activas()
 
     def test_solo_las_tres_areas_pedidas(self):
         cams = rewind.camaras_rewind(self.webcams)
@@ -629,13 +641,16 @@ class TestMain(unittest.TestCase):
             "ahora_madrid": rewind.ahora_madrid,
             "prevision_spots": rewind.prevision_spots,
             "grabar_camara": rewind.grabar_camara,
+            "leer_webcams": rewind.leer_webcams,
         }
+        rewind.leer_webcams = _webcams_activas
         self.grabadas = []
 
     def tearDown(self):
         rewind.ahora_madrid = self.original["ahora_madrid"]
         rewind.prevision_spots = self.original["prevision_spots"]
         rewind.grabar_camara = self.original["grabar_camara"]
+        rewind.leer_webcams = self.original["leer_webcams"]
 
     def _prevision(self, altura):
         def prevision_spots(ids, spots):
@@ -730,7 +745,7 @@ class TestConsolaConTildes(unittest.TestCase):
 
 class TestPlanetarioSurfers(unittest.TestCase):
     def setUp(self):
-        self.webcams = rewind.leer_webcams()
+        self.webcams = _webcams_activas()
 
     def test_camaras_rewind_incluir_surfers(self):
         cams = rewind.camaras_rewind(self.webcams, incluir_ipcamlive=True)

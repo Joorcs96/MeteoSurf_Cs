@@ -16,7 +16,7 @@
       "horaUtc": "2026-10-24T11:06:08.519198Z",
       "modeloHistorico": "open-meteo",
       "procedencia": "open-meteo-marine+forecast",
-      "url": "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-10/rewind_Planetario_20261024-1306.mp4",
+      "url": "https://joorcs96.github.io/MeteoSurf_Cs/rewinds/rewind_Planetario_20261024-1306.mp4",
       "archivo": "rewind_Planetario_20261024-1306.mp4",
       "release": "rewinds-2026-10",
       "duracion": 20.0,
@@ -52,7 +52,7 @@
         "origen": "altura_oleaje",
         "imagenAnalizada": false
       },
-      "foto": "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-10/rewind_Planetario_20261024-1306.jpg",
+      "foto": "https://joorcs96.github.io/MeteoSurf_Cs/rewinds/rewind_Planetario_20261024-1306.jpg",
       "archivoFoto": "rewind_Planetario_20261024-1306.jpg"
     },
     {
@@ -68,7 +68,7 @@
       "horaUtc": "2026-10-24T11:06:08.519198Z",
       "modeloHistorico": "open-meteo",
       "procedencia": "open-meteo-marine+forecast",
-      "url": "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-10/rewind_Planetario_20261024-1306.mp4",
+      "url": "https://joorcs96.github.io/MeteoSurf_Cs/rewinds/rewind_Planetario_20261024-1306.mp4",
       "archivo": "rewind_Planetario_20261024-1306.mp4",
       "release": "rewinds-2026-10",
       "duracion": 20.0,
@@ -104,7 +104,7 @@
         "origen": "altura_oleaje",
         "imagenAnalizada": false
       },
-      "foto": "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-10/rewind_Planetario_20261024-1306.jpg",
+      "foto": "https://joorcs96.github.io/MeteoSurf_Cs/rewinds/rewind_Planetario_20261024-1306.jpg",
       "archivoFoto": "rewind_Planetario_20261024-1306.jpg"
     },
     {
@@ -120,7 +120,7 @@
       "horaUtc": "2026-10-24T11:06:08.519198Z",
       "modeloHistorico": "open-meteo",
       "procedencia": "open-meteo-marine+forecast",
-      "url": "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-10/rewind_Planetario_20261024-1306.mp4",
+      "url": "https://joorcs96.github.io/MeteoSurf_Cs/rewinds/rewind_Planetario_20261024-1306.mp4",
       "archivo": "rewind_Planetario_20261024-1306.mp4",
       "release": "rewinds-2026-10",
       "duracion": 20.0,
@@ -156,7 +156,7 @@
         "origen": "altura_oleaje",
         "imagenAnalizada": false
       },
-      "foto": "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-10/rewind_Planetario_20261024-1306.jpg",
+      "foto": "https://joorcs96.github.io/MeteoSurf_Cs/rewinds/rewind_Planetario_20261024-1306.jpg",
       "archivoFoto": "rewind_Planetario_20261024-1306.jpg"
     },
     {
@@ -172,7 +172,7 @@
       "horaUtc": "2026-10-24T11:06:08.519198Z",
       "modeloHistorico": "open-meteo",
       "procedencia": "open-meteo-marine+forecast",
-      "url": "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-10/rewind_Voramar_20261024-1306.mp4",
+      "url": "https://joorcs96.github.io/MeteoSurf_Cs/rewinds/rewind_Voramar_20261024-1306.mp4",
       "archivo": "rewind_Voramar_20261024-1306.mp4",
       "release": "rewinds-2026-10",
       "duracion": 20.0,
@@ -208,7 +208,7 @@
         "origen": "altura_oleaje",
         "imagenAnalizada": false
       },
-      "foto": "https://github.com/Joorcs96/MeteoSurf_Cs/releases/download/rewinds-2026-10/rewind_Voramar_20261024-1306.jpg",
+      "foto": "https://joorcs96.github.io/MeteoSurf_Cs/rewinds/rewind_Voramar_20261024-1306.jpg",
       "archivoFoto": "rewind_Voramar_20261024-1306.jpg"
     },
     {

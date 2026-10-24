@@ -1075,6 +1075,75 @@ function tideChart(day) {
 // ---------- Mapa ----------
 let leaflet = null;
 let capasMapa = null;
+let hojaSpot = null;
+
+// Ventana interactiva del mapa: previsión del spot (día, hora, mar, viento, marea) sin salir del mapa.
+function cerrarHojaSpot() {
+  hojaSpot?.remove(); hojaSpot = null;
+  $('.mapa-full')?.classList.remove('con-hoja');
+}
+const textoDia = (date, i) => `${dayName(date, i)} ${dayShort(date)}`;
+function abrirHojaSpot(spot) {
+  const f = state.fc?.spots[spot.id];
+  const caja = $('.mapa-full');
+  if (!caja) return;
+  cerrarHojaSpot();
+  const el = document.createElement('section');
+  el.className = 'hoja-spot';
+  el.setAttribute('aria-label', 'Previsión de ' + spot.name);
+  caja.appendChild(el); caja.classList.add('con-hoja');
+  hojaSpot = el;
+  L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el);
+  if (!f) {
+    el.innerHTML = `<header><div><h2>${esc(spot.name)}</h2><p>${esc(spot.zoneName)}</p></div><button type="button" class="hoja-x" aria-label="Cerrar">×</button></header><p class="muted">La previsión de este spot no está disponible ahora mismo.</p>`;
+    el.querySelector('.hoja-x').addEventListener('click', cerrarHojaSpot);
+    return;
+  }
+  const dias = f.days.slice(0, 7);
+  const ahora = nowIndex(f.hours);
+  let di = Math.max(0, dias.findIndex((d) => d.date === f.hours[ahora].date));
+  let hi = dias[di].hours.findIndex((h) => h.time === f.hours[ahora].time);
+  const pintar = () => {
+    const d = dias[di], hs = d.hours;
+    if (hi < 0 || hi >= hs.length) hi = Math.max(0, hs.findIndex((x) => x === d.best));
+    const h = hs[hi], sw = h.swells[0];
+    const tope = Math.max(0.6, ...hs.map((x) => x.surf.max));
+    const hora = String(h.hour).padStart(2, '0') + ':00';
+    el.innerHTML = `
+      <div class="hoja-asa" aria-hidden="true"></div>
+      <header>
+        <div><h2>${esc(spot.name)}</h2><p>${esc(spot.zoneName)}</p></div>
+        <a class="hoja-ficha" href="#/spot/${encodeURIComponent(spot.id)}">Ficha completa</a>
+        <button type="button" class="hoja-x" aria-label="Cerrar">×</button>
+      </header>
+      <nav class="hoja-dias" aria-label="Día">${dias.map((x, i) => `<button type="button" data-d="${i}" class="${i === di ? 'on' : ''} ${ratingCls(x.rating)}"><i></i>${dayName(x.date, i).slice(0, 3)}</button>`).join('')}</nav>
+      <div class="hoja-ahora ${ratingCls(h.rating)}">
+        <div class="hoja-altura num">${range(h.surf)}<small> m</small></div>
+        <div><span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span><div class="hoja-hora">${textoDia(d.date, di)} · ${hora}</div></div>
+      </div>
+      <div class="hoja-datos">
+        <span>${ICON.wave}${m(sw?.h)} m · ${sw?.t ? Math.round(sw.t) + ' s' : '–'} ${dirArrow(sw?.dir)} ${compass(sw?.dir)}</span>
+        <span>${ICON.wind}${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : '–'} ${dirArrow(h.windDir)} <span class="wind-tag wind-${h.wind?.key ?? 'na'}">${esc(h.wind?.label ?? '–')}</span></span>
+        ${h.tide != null ? `<span>Marea ${h.tide >= 0 ? '+' : ''}${h.tide.toFixed(2)} m</span>` : ''}
+        ${h.sst != null ? `<span>Agua ${Math.round(h.sst)} °C</span>` : ''}
+      </div>
+      <div class="hoja-horas" role="group" aria-label="Hora del día">
+        ${hs.map((x, i) => `<button type="button" data-h="${i}" class="${i === hi ? 'on' : ''} ${ratingCls(x.rating)}" aria-label="${String(x.hour).padStart(2, '0')}:00, ${range(x.surf)} m"><i style="height:${Math.max(6, Math.round((x.surf.mid / tope) * 100))}%"></i>${x.hour % 3 === 0 ? `<em>${x.hour}</em>` : ''}</button>`).join('')}
+      </div>`;
+    el.querySelector('.hoja-x').addEventListener('click', cerrarHojaSpot);
+    el.querySelectorAll('[data-d]').forEach((b) => b.addEventListener('click', () => {
+      di = Number(b.dataset.d);
+      const x = dias[di];
+      hi = di === 0 ? x.hours.findIndex((q) => q.time === f.hours[ahora].time) : x.hours.findIndex((q) => q === x.best);
+      pintar();
+    }));
+    el.querySelectorAll('[data-h]').forEach((b) => b.addEventListener('click', () => { hi = Number(b.dataset.h); pintar(); }));
+  };
+  pintar();
+  // Deja el spot a la vista por encima de la ventana.
+  leaflet?.panInside([spot.lat, spot.lon], { paddingTopLeft: [20, 70], paddingBottomRight: [20, Math.min(window.innerHeight * 0.55, 420)], animate: true });
+}
+
 async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
   view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map-capas" class="mapa-ui"></div></div>';
@@ -1084,6 +1153,7 @@ async function renderMap() {
       const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'; s.onload = res; document.head.appendChild(s);
     });
   }
+  cerrarHojaSpot();
   capasMapa?.destruir(); capasMapa = null;
   leaflet?.remove();
   leaflet = L.map('map', { zoomControl: false });
@@ -1101,7 +1171,7 @@ async function renderMap() {
     bounds.push([s.lat, s.lon]);
     const html = `<div class="map-pin ${h ? ratingCls(h.rating) : ''}"><span class="dot"></span><span class="lbl"><b>${esc(s.name)}</b>${h ? '<i>' + range(h.surf) + ' m</i>' : ''}</span></div>`;
     const mk = L.marker([s.lat, s.lon], { icon: L.divIcon({ html, className: '', iconSize: [44, 44], iconAnchor: [22, 22] }), title: s.name }).addTo(leaflet);
-    mk.on('click', () => { location.hash = `#/spot/${encodeURIComponent(s.id)}`; });
+    mk.on('click', () => abrirHojaSpot(s));
     // Cuña que indica hacia dónde mira la playa y su ventana de mar
     const cosLat = Math.cos(s.lat * Math.PI / 180);
     const wedge = (from, to, d) => {
@@ -1120,6 +1190,7 @@ async function renderMap() {
   const syncLabels = () => document.getElementById('map')?.classList.toggle('show-labels', leaflet.getZoom() >= 10);
   leaflet.on('zoomend', syncLabels); syncLabels();
   capasMapa = iniciarCapas(leaflet, $('#map-capas'), { L });
+  leaflet.on('click', cerrarHojaSpot);
   setTimeout(() => { leaflet.invalidateSize(); leaflet.fitBounds(bounds, { padding: [60, 60] }); }, 50);
 }
 

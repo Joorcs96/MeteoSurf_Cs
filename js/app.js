@@ -153,6 +153,7 @@ function route() {
   const [page, arg] = h.split('/');
   if (page !== 'spot') state.spotId = null;
   document.body.classList.toggle('vista-mapa', page === 'mapa');
+  document.body.classList.toggle('vista-home', !page || page === 'favoritos');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
   renderQuickSpots();
   const savedClip = $('#save-clip');
@@ -194,7 +195,7 @@ function renderHome() {
 
     ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
     <div class="chips" role="tablist">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
-    <div class="section-title">Ahora mismo<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">Próximos 7 días</span></div>
+    ${state.zone === 'fav' ? '<div class="section-title">Mis spots</div>' : ''}
     ${state.zone === 'fav' ? `<div data-realtime-list>${realtimeLine()}</div>` : ''}
     <div class="spot-grid">${spots.length ? [...new Set(spots.map((s) => s.zone))].map((zone) => `<h2 class="zone-heading">${esc(ZONES.find((z) => z.id === zone)?.name || zone)}</h2>${spots.filter((s) => s.zone === zone).map(spotCard).join('')}`).join('') : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa el marcador de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
     ${footer()}`;
@@ -324,27 +325,30 @@ async function renderAssistant() {
   draw();
 }
 
+function miniatura(url, w = 250) {
+  return typeof url === 'string' ? url.replace(/\/\d+px-/, `/${w}px-`) : '';
+}
+
+// Fila compacta del listado: foto + nombre + altura + calidad + mar/viento + 7 días.
 function spotCard(s) {
   const f = state.fc?.spots[s.id];
   const h = f ? f.hours[nowIndex(f.hours)] : null;
   const cam = camsForSpot(s)[0];
   const sw = h?.swells[0];
-  return `<a class="card spot-card ${h ? ratingCls(h.rating) : ''}" href="#/spot/${encodeURIComponent(s.id)}">
-    <div class="body">
-      <div class="top">
-        <div style="min-width:0;flex:1">
-          <div class="name">${esc(s.name)}${cam ? ' <span class="cam-dot" title="Cámara en directo">' + ICON.cam + '</span>' : ''}</div>
-          <div class="zone">${esc(s.zoneName)}</div>
-          ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span></div><div class="human">${surfWords(h.surf.mid)}</div>` : '<div class="human">Previsión no disponible</div>'}
-        </div>
-        <button class="fav-btn fav ${favs.has(s.id) ? 'on' : ''}" data-fav="${esc(s.id)}" aria-label="Favorito">${ICON.star}</button>
-      </div>
-      ${h ? `<div class="meta">
-          <span title="Mar de fondo">${ICON.wave}${m(sw?.h)} m · ${sw?.t ? Math.round(sw.t) + ' s' : '–'} ${dirArrow(sw?.dir)} ${compass(sw?.dir)}</span>
-          <span title="Viento">${ICON.wind}${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : '–'} ${dirArrow(h.windDir)} <span class="wind-tag wind-${h.wind?.key ?? 'na'}">${esc(h.wind?.label ?? '–')}</span></span>
-        </div>
-        <div class="spark" title="Próximos 7 días">${f.days.slice(0, 7).map((d, i) => `<div><i class="${ratingCls(d.rating)}"></i><span>${dayName(d.date, i).slice(0, 3)}</span></div>`).join('')}</div>` : ''}
-    </div></a>`;
+  const foto = s.photo?.thumb ? miniatura(s.photo.thumb, 250) : '';
+  return `<a class="spot-row ${h ? ratingCls(h.rating) : ''}" href="#/spot/${encodeURIComponent(s.id)}">
+    <span class="sr-foto">${foto ? `<img src="${esc(foto)}" alt="" loading="lazy" decoding="async">` : ICON.wave}</span>
+    <span class="sr-main">
+      <span class="sr-name">${esc(s.name)}${cam ? ' <span class="cam-dot" title="Cámara en directo">' + ICON.cam + '</span>' : ''}</span>
+      <span class="sr-zone">${esc(s.zoneName)}</span>
+      ${h ? `<span class="sr-meta"><span title="Mar de fondo">${m(sw?.h)} m · ${sw?.t ? Math.round(sw.t) + ' s' : '–'} ${compass(sw?.dir)}</span><span title="Viento">${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : '–'} <span class="wind-tag wind-${h.wind?.key ?? 'na'}">${esc(h.wind?.label ?? '–')}</span></span></span>` : '<span class="sr-meta">Sin previsión</span>'}
+    </span>
+    <span class="sr-side">
+      ${h ? `<span class="sr-h num">${range(h.surf)}<small> m</small></span><span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>` : ''}
+    </span>
+    <button class="fav-btn fav ${favs.has(s.id) ? 'on' : ''}" data-fav="${esc(s.id)}" aria-label="Favorito">${ICON.star}</button>
+    ${f ? `<span class="sr-spark" title="Próximos 7 días">${f.days.slice(0, 7).map((d, i) => `<i class="${ratingCls(d.rating)}" title="${dayName(d.date, i)}"></i>`).join('')}</span>` : ''}
+  </a>`;
 }
 
 function bindFavs() {
@@ -479,6 +483,54 @@ function windChart(day) {
   let path = '', open = false;
   hours.forEach((h) => { if (h.windSpeed == null) { open = false; return; } path += `${open ? 'L' : 'M'}${x(h.hour)} ${y(h.windSpeed)} `; open = true; });
   return `<svg class="chart" viewBox="0 0 360 105" role="img" aria-label="Viento por horas en kilómetros por hora"><path d="${path}" fill="none" stroke="var(--text-2)" stroke-width="1.8"/>${hours.filter((h) => h.hour % 3 === 0).map((h) => `<text x="${x(h.hour)}" y="${h.windSpeed == null ? 60 : y(h.windSpeed) - 7}" text-anchor="middle" font-size="10" fill="var(--text)">${rnd(h.windSpeed)}</text><text x="${x(h.hour)}" y="100" text-anchor="middle" font-size="10" fill="var(--text-2)">${h.hour}h</text>`).join('')}</svg>`;
+}
+
+// ---------- Fotos del spot: galería y visor ----------
+let fotosExtra = null;
+async function fotosDe(spot) {
+  if (!fotosExtra) {
+    try { fotosExtra = await (await fetch('data/fotos.json')).json(); } catch { fotosExtra = {}; }
+  }
+  const lista = [];
+  if (spot.photo?.thumb) lista.push(spot.photo);
+  (fotosExtra[spot.id] || []).forEach((p) => { if (p?.thumb && !lista.some((x) => x.thumb === p.thumb)) lista.push(p); });
+  return lista;
+}
+
+let visor = null;
+function cerrarVisor() { visor?.remove(); visor = null; document.removeEventListener('keydown', teclaVisor); }
+function teclaVisor(e) {
+  if (e.key === 'Escape') cerrarVisor();
+  if (e.key === 'ArrowRight') visor?.querySelector('[data-v=sig]')?.click();
+  if (e.key === 'ArrowLeft') visor?.querySelector('[data-v=ant]')?.click();
+}
+function abrirVisor(lista, i) {
+  cerrarVisor();
+  let k = i;
+  const el = document.createElement('div');
+  el.className = 'visor';
+  el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Fotos del spot');
+  const pintar = () => {
+    const p = lista[k];
+    el.innerHTML = `<button class="visor-x" aria-label="Cerrar">×</button>
+      <img src="${esc(miniatura(p.thumb, 960))}" alt="${esc(p.title || '')}">
+      ${lista.length > 1 ? '<button class="visor-nav ant" data-v="ant" aria-label="Anterior">‹</button><button class="visor-nav sig" data-v="sig" aria-label="Siguiente">›</button>' : ''}
+      <div class="visor-pie"><b>${esc(p.title || '')}</b><span>${k + 1}/${lista.length} · Foto: ${esc(p.author || 'Wikimedia Commons')} · <a href="${esc(p.licenseUrl || 'https://creativecommons.org/licenses/')}" target="_blank" rel="noopener">${esc(p.license || 'CC BY-SA')}</a> · <a href="${esc(p.url || '#')}" target="_blank" rel="noopener">Origen</a></span></div>`;
+    el.querySelector('.visor-x').addEventListener('click', cerrarVisor);
+    el.querySelector('[data-v=ant]')?.addEventListener('click', () => { k = (k - 1 + lista.length) % lista.length; pintar(); });
+    el.querySelector('[data-v=sig]')?.addEventListener('click', () => { k = (k + 1) % lista.length; pintar(); });
+  };
+  pintar();
+  let x0 = null;
+  el.addEventListener('touchstart', (e) => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) el.querySelector(dx < 0 ? '[data-v=sig]' : '[data-v=ant]')?.click();
+  }, { passive: true });
+  el.addEventListener('click', (e) => { if (e.target === el) cerrarVisor(); });
+  document.body.appendChild(el); visor = el;
+  document.addEventListener('keydown', teclaVisor);
 }
 
 function renderSpotPhoto(spot) {
@@ -617,7 +669,7 @@ function renderSessionEvidence(spot, h) {
 function renderSpot(id) {
   const spot = SPOTS.find((s) => s.id === id);
   if (!spot) { location.hash = '#/'; return; }
-  if (state.spotId !== id) { state.dayIdx = 0; state.camIdx = 0; state.spotId = id; }
+  if (state.spotId !== id) { state.dayIdx = 0; state.camIdx = 0; state.spotId = id; state.tab = 'ahora'; }
   renderQuickSpots();
   document.title = `${spot.name} · MeteoSurf_Cs`;
   const f = state.fc?.spots[id];
@@ -639,15 +691,16 @@ function renderSpot(id) {
   view.innerHTML = `
     <a class="back" href="#/">${ICON.back} Costa de Castellón</a>
     <div class="spot-head">
-      <div><h1>${esc(spot.name)}</h1><div class="sub">${esc(spot.zoneName)}</div></div>
+      ${spot.photo?.thumb ? `<button class="spot-thumb" data-tab="fotos" aria-label="Ver fotos de ${esc(spot.name)}"><img src="${esc(miniatura(spot.photo.thumb, 250))}" alt=""></button>` : ''}
+      <div class="sh-txt"><h1>${esc(spot.name)}</h1><div class="sub">${esc(spot.zoneName)}</div></div>
+      ${h ? `<span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>` : ''}
       <button class="fav-btn ${favs.has(id) ? 'on' : ''}" data-fav="${esc(id)}" style="background:var(--surface-2);color:var(--text-2)" aria-label="Favorito">${ICON.star}</button>
     </div>
-    <nav class="subnav" aria-label="Secciones del spot">
-      <a href="#s-ahora" data-jump="s-ahora">Ahora</a><a href="#s-prevision" data-jump="s-prevision">Previsión</a>
-      <a href="#s-tendencia" data-jump="s-tendencia">16 días</a><a href="#s-spot" data-jump="s-spot">Spot</a>
+    <nav class="subnav tabs" role="tablist" aria-label="Secciones del spot">
+      <button role="tab" data-tab="ahora">Ahora</button><button role="tab" data-tab="horas">Horas</button><button role="tab" data-tab="dias">16 días</button><button role="tab" data-tab="fotos">Fotos</button><button role="tab" data-tab="spot">Spot</button>
     </nav>
     <div class="spot-layout">
-      <div class="a-cam">
+      <div class="a-cam" data-panel="ahora">
         <div class="cam" id="cam"></div>
         ${cams.length > 1 ? `<div class="cam-switch">${cams.map((c, i) => `<button data-cam="${i}" class="${i === state.camIdx ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
         <div class="cam-source" id="cam-source"></div>
@@ -655,15 +708,11 @@ function renderSpot(id) {
         ${renderRewinds(spot)}<div id="clip-info" class="clip-info" hidden></div><p id="record-status" class="record-status" role="status"></p><a id="save-clip" class="save-clip" hidden>Guardar clip</a>
         <p id="vigia-note" class="vigia-note" hidden></p><a id="save-ola" class="save-clip" hidden>Guardar clip de la ola</a>
       </div>
-      <div class="a-now" id="s-ahora">
-        ${renderSpotPhoto(spot)}
+      <div class="a-now" id="s-ahora" data-panel="ahora">
         ${h ? nowPanel(spot, f, h) : loadingBlock()}
         <details><summary>Observaciones reales cercanas</summary><div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div></details>
-        ${renderSimilarConditions(spot, h)}
-        ${renderSessionEvidence(spot, h)}
-        <div id="spot-report" style="margin-top:12px"><div class="skeleton" style="height:56px"></div></div>
       </div>
-      <div class="a-fc">
+      <div class="a-fc" data-panel="horas">
         ${f ? `
         <div class="section-title" id="s-prevision">Previsión por horas</div>
         <div class="days">${f.days.map((d, i) => `<button class="day ${i === state.dayIdx ? 'on' : ''} ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}" data-day="${i}">
@@ -677,11 +726,31 @@ function renderSpot(id) {
           <div id="chart"></div>
         </div>
         <h3>Viento por horas · km/h</h3><div id="wind-chart"></div><h3>Marea · nivel del mar</h3><div class="tide" id="tide"></div><details><summary>Ver tabla horaria</summary><div class="ftable-wrap" id="ftable"></div></details>
-        <div class="section-title" id="s-tendencia">Tendencia · días 5 a 16<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">fiabilidad decreciente</span></div>
+` : loadingBlock()}
+      </div>
+      <div class="a-dias" data-panel="dias">
+        ${f ? `<div class="section-title" id="s-tendencia">Tendencia · días 5 a 16<span class="spacer"></span><span class="faint" style="text-transform:none;letter-spacing:0;font-weight:600">fiabilidad decreciente</span></div>
         <div class="card" id="longrange"></div>` : loadingBlock()}
       </div>
-      <div class="a-side" id="s-spot">
-        <h2>Spots cercanos</h2><div class="nearby">${nearbySpots(spot)}</div><details><summary>Ficha del spot y orientación</summary><div class="section-title">Orientación y condiciones ideales</div>
+      <div class="a-fotos" data-panel="fotos"><div id="galeria" class="galeria"><div class="skeleton" style="height:160px"></div></div></div>
+      <div class="a-side" id="s-spot" data-panel="spot">
+        <div class="section-title">Ficha del spot</div>
+        <div class="card pad">
+          <p style="margin:0 0 12px">${esc(spot.desc)}</p>
+          <div class="facts">
+            <div><div class="k">Fondo</div><div class="v">${esc(spot.bottom)}</div></div>
+            <div><div class="k">Nivel</div><div class="v">${esc(spot.level)}</div></div>
+            <div><div class="k">Mejor marea</div><div class="v">${esc(spot.bestTide)}</div></div>
+            <div><div class="k">Mejor mar</div><div class="v">${esc(spot.bestSwell)}</div></div>
+            <div><div class="k">Mejor viento</div><div class="v">${esc(spot.bestWind)}</div></div>
+            <div><div class="k">Peligros</div><div class="v">${esc(spot.hazards)}</div></div>
+          </div>
+          <div style="margin-top:12px;font-size:13px"><a href="https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lon}" target="_blank" rel="noopener">Cómo llegar</a></div>
+        </div>
+        ${renderSimilarConditions(spot, h)}
+        ${renderSessionEvidence(spot, h)}
+        <div id="spot-report" style="margin-top:12px"><div class="skeleton" style="height:56px"></div></div>
+        <h2>Spots cercanos</h2><div class="nearby">${nearbySpots(spot)}</div><div class="section-title">Orientación y condiciones ideales</div>
         <div class="card pad compass-card">
           ${compassSVG(spot, { swellDir: h?.swells[0]?.dir, windDir: h?.windDir })}
           <div class="legend">
@@ -697,27 +766,28 @@ function renderSpot(id) {
             <div><i style="background:#ff8a00"></i>Viento ahora</div>
           </div>
         </div>
-        <div class="section-title">Ficha del spot</div>
-        <div class="card pad">
-          <p style="margin:0 0 12px">${esc(spot.desc)}</p>
-          <div class="facts">
-            <div><div class="k">Fondo</div><div class="v">${esc(spot.bottom)}</div></div>
-            <div><div class="k">Nivel</div><div class="v">${esc(spot.level)}</div></div>
-            <div><div class="k">Mejor marea</div><div class="v">${esc(spot.bestTide)}</div></div>
-            <div><div class="k">Mejor mar</div><div class="v">${esc(spot.bestSwell)}</div></div>
-            <div><div class="k">Mejor viento</div><div class="v">${esc(spot.bestWind)}</div></div>
-            <div><div class="k">Peligros</div><div class="v">${esc(spot.hazards)}</div></div>
-          </div>
-          <div style="margin-top:12px;font-size:13px"><a href="https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lon}" target="_blank" rel="noopener">Cómo llegar</a></div>
-        </div>
-      </details></div>
+      </div>
     </div>
     ${footer()}`;
 
-  view.querySelectorAll('[data-jump]').forEach((a) => a.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById(a.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }));
+  // Pestañas: solo se ve una sección a la vez, así casi no hay que hacer scroll.
+  const irTab = (t) => {
+    state.tab = t;
+    view.querySelectorAll('[data-panel]').forEach((el) => el.classList.toggle('en-tab', el.dataset.panel === t));
+    view.querySelectorAll('.tabs [data-tab]').forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    if (t === 'horas' && f) drawDay(spot, f);
+    if (t !== 'ahora') { stopCam($('#cam')); pararVigia?.(); } else if (!$('#cam')?.dataset.cameraType) showCam();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+  view.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => irTab(b.dataset.tab)));
+  fotosDe(spot).then((lista) => {
+    const g = $('#galeria');
+    if (!g) return;
+    g.innerHTML = lista.length
+      ? lista.map((p, i) => `<button type="button" class="galeria-foto" data-foto="${i}"><img src="${esc(miniatura(p.thumb, 330))}" alt="${esc(p.title || spot.name)}" loading="lazy"><span>${esc(p.title || '')}</span></button>`).join('') + '<p class="galeria-nota">Fotos de Wikimedia Commons (licencias abiertas). Toca una para verla en grande.</p>'
+      : '<p class="muted">Aún no hay fotos de este spot.</p>';
+    g.querySelectorAll('[data-foto]').forEach((b) => b.addEventListener('click', () => abrirVisor(lista, +b.dataset.foto)));
+  });
   if (f) {
     $('#longrange').innerHTML = longRange(f);
     assistant().then((ai) => { const el = $('#spot-report'); if (el && ai) el.innerHTML = reportBox(ai, [spot], ai.spotReport(f)); })
@@ -856,6 +926,7 @@ function renderSpot(id) {
   }
   bindFavs();
   if (f) drawDay(spot, f);
+  irTab(state.tab || 'ahora');
 }
 
 function loadingBlock() { return '<div class="banner">La previsión todavía no está disponible. Puedes consultar las cámaras y los clips guardados.</div>'; }
@@ -864,9 +935,8 @@ function nowPanel(spot, f, h) {
   const today = f.days[0];
   const ex = tideExtremes(f.hours.slice(Math.max(0, nowIndex(f.hours) - 1), nowIndex(f.hours) + 26));
   const next = ex[0];
-  return `<h2>Condiciones actuales</h2><div class="now">
-    <div class="wide"><div class="k">Calidad · ${h.hour}:00</div><span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span></div>
-    <div><div class="k">Surf</div><div class="hero-wave num">${range(h.surf)}<small> m</small></div><div class="d">${surfWords(h.surf.mid)}</div>${h.nowcastRatio ? `<div class="d" style="color:var(--brand);font-weight:600;margin-top:4px">Ajustado con boya (x${h.nowcastRatio.toFixed(1)})</div>` : ''}</div>
+  return `<div class="now">
+    <div><div class="k">Surf · ${h.hour}:00</div><div class="hero-wave num">${range(h.surf)}<small> m</small></div><div class="d">${surfWords(h.surf.mid)}</div>${h.nowcastRatio ? `<div class="d" style="color:var(--brand);font-weight:600;margin-top:4px">Ajustado con boya (x${h.nowcastRatio.toFixed(1)})</div>` : ''}</div>
     <div><div class="k">Viento</div><div class="v-sec num">${kmh(h.windSpeed)}</div><div class="d">${compass(h.windDir)} · ${h.wind.label}</div><div class="d">Rachas ${kmh(h.windGust)}</div></div>
     <div class="wide"><div class="k">Mar de fondo</div>
       ${h.swells.slice(0, 3).map((s, i) => `<div class="swell-line num"><span class="dot s${i + 1}"></span>${m(s.h)} m · ${s.t ? s.t.toFixed(0) : '–'} s · ${compass(s.dir)} ${Math.round(s.dir)}° ${dirArrow(s.dir)} <span class="faint" style="font-weight:500">${s.kind}</span></div>`).join('') || '<div class="muted">Sin mar de fondo</div>'}

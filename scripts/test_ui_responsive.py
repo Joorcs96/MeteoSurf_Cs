@@ -77,10 +77,10 @@ class TestUIResponsive(unittest.TestCase):
         html = self._render_page_dom(url, 390, 844)
         
         # 1. Comprobar fotografía libre del spot y atribución
-        self.assertIn("spot-photo-wrap", html, "Debe existir el contenedor .spot-photo-wrap")
-        self.assertIn("Platja del Pinar", html, "Debe mostrar el título o descripción de la fotografía")
-        self.assertIn("Juan Emilio Prades Bel", html, "Debe atribuir al autor de Wikimedia Commons")
-        self.assertIn("CC BY-SA", html, "Debe indicar la licencia abierta")
+        # La foto va junto al nombre y la galería (con autor y licencia en el visor) en la pestaña Fotos.
+        self.assertIn("spot-thumb", html, "Debe existir la foto pequeña junto al nombre")
+        self.assertIn('id="galeria"', html, "Debe existir la galería de fotos")
+        self.assertIn('data-tab="fotos"', html, "Debe existir la pestaña Fotos")
         
         # 2. Comprobar comparador de condiciones históricas
         self.assertTrue(
@@ -109,8 +109,8 @@ class TestUIResponsive(unittest.TestCase):
         html = self._render_page_dom(url, 1366, 768)
         
         # Verificar presencia de layout de escritorio
-        self.assertIn("spot-photo-wrap", html)
-        self.assertIn("spot-photo-img", html)
+        self.assertIn("spot-thumb", html)
+        self.assertIn('id="galeria"', html)
         self.assertIn("similar-conditions-card", html)
         self.assertIn("session-evidence-card", html)
         self.assertIn("spot-layout", html)
@@ -121,9 +121,8 @@ class TestUIResponsive(unittest.TestCase):
         html = self._render_page_dom(url, 390, 844)
         
         # Verificar que otro spot distinto (Vinaròs) carga su foto propia
-        self.assertIn("spot-photo-wrap", html)
-        self.assertIn("Platja del Fortí", html)
-        self.assertIn("CC BY-SA", html)
+        self.assertIn("spot-thumb", html)
+        self.assertIn('data-tab="fotos"', html)
 
     def test_css_reglas_responsivas_sin_overflow(self):
         css_path = os.path.join(self.root_dir, "css", "app.css")

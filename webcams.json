@@ -113,8 +113,7 @@
       "name": "Comunitat Valenciana",
       "short": "Benicàssim Vela (club náutico)",
       "spots": [
-        "Heliopolis",
-        "Voramar"
+        "Heliopolis"
       ],
       "priority": 1,
       "embedType": "hls",
@@ -156,8 +155,7 @@
       "name": "Comunitat Valenciana",
       "short": "Oropesa del Mar / La Concha",
       "spots": [
-        "Renega",
-        "MorroGos"
+        "Concha"
       ],
       "priority": 1,
       "embedType": "hls",
@@ -165,10 +163,10 @@
       "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/orpesa-oropesa-del-mar/webcams/oropesa-del-mar-1",
       "credit": "Turisme Comunitat Valenciana",
       "refreshSeconds": 0,
-      "distanceKm": 1.34,
+      "distanceKm": 0.3,
       "tokenRefresh": null,
       "verified": true,
-      "notes": "Coordenadas de la cámara (40.0844/0.1415, zona del castillo/La Concha): 1,3 km de Morro de Gos, 3,0 km de la Renegà. Es la mejor cámara con vídeo real para ambos spots aunque no esté encima de ninguno de los dos. HLS con CORS * confirmado en toda la cadena (manifest + chunklist + .ts).",
+      "notes": "Coordenadas de la cámara (40.0844/0.1415): zona del castillo y La Concha de Oropesa, así que es la cámara de La Concha. Antes se compartía con Morro de Gos y la Renegà (1,3 y 3 km): ya no. HLS con CORS * confirmado.",
       "enabled": true,
       "lastChecked": "2026-10-24T12:08:14.872619+00:00",
       "failCount": 0
@@ -326,6 +324,27 @@
       "failCount": 0,
       "notes": "Misma cámara IPCamLive del club (alias 609a27d8a9c83) pero por la emisión HLS directa, que es la única forma de grabar en el navegador y la que usa scripts/rewind.py. embedUrl está vacío a propósito: la URL real la resuelve backend/actualizar_webcams.py --streams en data/streams.json, porque player.php no manda CORS y el navegador no puede sacar el streamid por su cuenta.",
       "soloGrabacion": true
+    },
+    {
+      "id": "skyline-jpg-morrogos",
+      "name": "SkylineWebcams",
+      "short": "Morro de Gos (Hotel Koral Beach)",
+      "spots": [
+        "MorroGos"
+      ],
+      "priority": 1,
+      "embedType": "jpg",
+      "embedUrl": "https://cdn.skylinewebcams.com/live2815.jpg",
+      "pageUrl": "https://www.skylinewebcams.com/en/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
+      "credit": "SkylineWebcams / Hotel Servigroup Koral Beach",
+      "refreshSeconds": 90,
+      "distanceKm": 0.2,
+      "tokenRefresh": null,
+      "verified": true,
+      "notes": "Hotel justo en la playa de Morro de Gos (más cerca que la cámara de CV) pero sólo foto fija cada ~18 min, sin vídeo, mismo bloqueo de iframe que el resto de Skyline. La imagen se carga sin referer (referrerPolicy no-referrer) porque con nuestra web como referencia Skyline la bloquea. Es la única cámara de Morro de Gos.",
+      "enabled": true,
+      "lastChecked": "2026-10-18T17:38:00.851727+00:00",
+      "failCount": 0
     }
   ]
 }

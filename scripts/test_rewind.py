@@ -36,13 +36,13 @@ _leer_webcams_real = rewind.leer_webcams
 
 # Valores reales sacados de `node` con el SPOTS de js/spots.js.
 SEA_LAT_LON_ESPERADO = {
-    "Planetario": (39.976, 0.0407),
-    "Piramides": (39.9432, 0.0181),
-    "Voramar": (40.0457, 0.0913),
-    "Heliopolis": (40.0206, 0.0586),
-    "MorroGos": (40.0928, 0.1629),
+    "Planetario": (39.976, 0.0419),
+    "Piramides": (39.9954, 0.0464),
+    "Voramar": (40.0452, 0.0921),
+    "Heliopolis": (40.0206, 0.0595),
+    "MorroGos": (40.0928, 0.1640),
     "Renega": (40.0518, 0.1289),
-    "Gurugu": (39.9954, 0.0459),
+    "Gurugu": (40.0039, 0.0498),
 }
 
 
@@ -51,7 +51,7 @@ class TestLeerSpots(unittest.TestCase):
         self.spots = rewind.leer_spots()
 
     def test_todos_los_spots_del_catalogo(self):
-        self.assertEqual(len(self.spots), 13)
+        self.assertEqual(len(self.spots), 14)
         for spot_id in ("Planetario", "Piramides", "Voramar", "MorroGos", "Renega"):
             self.assertIn(spot_id, self.spots)
 
@@ -98,8 +98,9 @@ class TestSeleccionCamaras(unittest.TestCase):
         self.assertEqual(
             cams["cv_grao_castellon"]["spotsCubiertos"], ["Piramides", "Gurugu"]
         )
-        self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Voramar", "Heliopolis"])
-        self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Renega"])
+        self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Heliopolis"])
+        # Una cámara por spot: la de Oropesa está en La Concha, no en Morro de Gos.
+        self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["Concha"])
 
     def test_no_toma_camaras_deshabilitadas(self):
         cams = rewind.camaras_rewind(self.webcams)
@@ -107,7 +108,7 @@ class TestSeleccionCamaras(unittest.TestCase):
             self.assertNotEqual(cam.get("enabled"), False)
 
     def test_filtro_por_spots(self):
-        cams = rewind.camaras_rewind(self.webcams, ["Renega"])
+        cams = rewind.camaras_rewind(self.webcams, ["Concha"])
         self.assertEqual([c["id"] for c in cams], ["cv-oropesa-hls"])
 
 
@@ -700,7 +701,7 @@ class TestMain(unittest.TestCase):
             rewind.grabar_camara = self._grabacion_falsa(tmp)
             self.assertEqual(rewind.main(self._args(tmp)), 0)
             # Sin oleaje solo se graban las cámaras principales de Voramar y Planetario.
-            self.assertEqual(sorted(self.grabadas), ["cv-benicassim-vela-hls", "voramar-axis-cam1"])
+            self.assertEqual(sorted(self.grabadas), ["voramar-axis-cam1"])
 
     def test_graba_las_tres_camaras_y_monta_el_indice(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -710,7 +711,7 @@ class TestMain(unittest.TestCase):
             self.assertEqual(rewind.main(self._args(tmp)), 0)
             self.assertEqual(len(self.grabadas), 4)
             indice = json.loads(Path(tmp, "rewinds.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(indice["rewinds"]), 6)  # Grao cubre 2 spots, los otros 2 y 2
+            self.assertEqual(len(indice["rewinds"]), 5)  # Grao cubre 2 spots, los otros 2 y 2
             self.assertEqual(indice["timezone"], "Europe/Madrid")
             self.assertEqual(indice["updatedAt"], "2026-09-29T14:00:00+02:00")
             self.assertEqual(indice["dias"], 30)

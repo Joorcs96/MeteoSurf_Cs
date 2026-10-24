@@ -8,6 +8,8 @@
 // 0.36 m de 5.6 s del ESE daba 1.44× en vez de ~1.0×. Los demás spots siguen con Komar,
 // que es lo único que se puede afirmar sin medir el fondo.
 //
+// Pirámides: su tabla se calculó en un punto equivocado (al sur del puerto); ver abajo.
+//
 // Generado con .estudio/gen_physics.mjs desde .estudio/calculos_v3/parametros.json.
 
 const PERIODOS = [4, 5, 6, 7, 8, 9, 10];
@@ -244,44 +246,6 @@ export const FACTOR = {
     [0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0]
   ],
-  Piramides: [
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0.352,0.166,0.715,0.661,0.628,0.607,0.592],
-    [0.402,0.551,0.271,0.749,0.656,0.6,0.563],
-    [0.625,0.545,0.785,0.749,0.726,0.712,0.702],
-    [0.124,0.817,0.805,0.799,0.795,0.792,0.791],
-    [0.505,0.509,0.511,0.513,0.514,0.515,0.515],
-    [0.736,0.806,0.884,0.947,1.036,1.037,1.037],
-    [0.621,0.686,0.756,0.811,0.85,0.862,0.859],
-    [0.555,0.594,0.641,0.686,0.717,0.74,0.754],
-    [0.505,0.539,0.58,0.616,0.642,0.661,0.676],
-    [0.443,0.469,0.504,0.533,0.556,0.572,0.588],
-    [0.362,0.39,0.352,0.411,0.368,0.465,0.469],
-    [0.295,0.322,0.353,0.376,0.379,0.406,0.399],
-    [0.116,0.125,0.138,0.146,0.153,0.154,0.156],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0]
-  ],
   Palaciet: [
     [0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0],
@@ -322,6 +286,21 @@ export const FACTOR = {
   ],
 };
 
+// La tabla 'Gurugu' se calculó en 39.99872, 0.03137, que es donde está Pirámides (Jordi, 05/10).
+// El Gurugú está 1 km al norte, en el Serradal, con la misma costa: comparte tabla hasta recalcularla.
+FACTOR.Piramides = FACTOR.Gurugu;
+
+// Suelo por difracción/refracción (Jordi, 18/10/2026, contrastado con la cámara de Voramar): con mar
+// grande del NNE-NE el trazado de rayos da 0 porque la punta tapa la costa, pero en la realidad el
+// tren entra rodeando la punta, ordenado y más pequeño. Factor mínimo por dirección (cada 10°).
+const PISO_DIFRACCION = {
+  Voramar: { 20: 0.25, 30: 0.35, 40: 0.45, 50: 0.55, 60: 0.55, 70: 0.55, 80: 0.55 },
+  MorroGos: { 20: 0.3, 30: 0.45, 40: 0.6, 50: 0.65, 60: 0.7, 70: 0.7 },
+  Renega: { 30: 0.3, 40: 0.45, 50: 0.55, 60: 0.6, 70: 0.6 },
+  Palaciet: { 30: 0.3, 40: 0.45, 50: 0.55, 60: 0.55 },
+  Heliopolis: { 40: 0.45, 50: 0.55, 60: 0.6 }
+};
+
 export const SPOTS_CON_FISICA = Object.keys(FACTOR);
 export const TIENE_FISICA = (id) => Object.prototype.hasOwnProperty.call(FACTOR, id);
 
@@ -349,5 +328,10 @@ export function factorOleaje(id, dir, periodo) {
   const w = (d - DIRS[i]) / paso;
   const v0 = enPeriodo(tabla[i], periodo);
   const v1 = enPeriodo(tabla[(i + 1) % DIRS.length], periodo);
-  return v0 + (v1 - v0) * w;
+  const v = v0 + (v1 - v0) * w;
+  const piso = PISO_DIFRACCION[id];
+  if (!piso) return v;
+  const f0 = piso[DIRS[i]] ?? 0;
+  const f1 = piso[DIRS[(i + 1) % DIRS.length]] ?? 0;
+  return Math.max(v, f0 + (f1 - f0) * w);
 }

@@ -188,6 +188,8 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     const img = document.createElement('img');
     img.alt = cam.name;
     img.decoding = 'async';
+    // Skyline y otros bloquean la imagen si llega con nuestra web como referencia.
+    img.referrerPolicy = 'no-referrer';
     const base = cam.embedUrl;
     const bust = () => base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
     img.src = t === 'jpg' ? bust() : base;

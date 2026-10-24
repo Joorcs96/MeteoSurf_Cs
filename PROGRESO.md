@@ -114,3 +114,5 @@ Sin merge a main. `js/` y `historico_olas.csv` intactos.
 =======
 | Rediseño | Hecha: adaptado a main (Outfit, motion, data preserved) | Joorcs96/redisenar-main | Revisar |
 >>>>>>> seguridad-csp
+? [2026-10-24] Rama Joorcs96/reparar-surfers integrada en main
+? [2026-10-24] Rama Joorcs96/redisenar-web integrada en main

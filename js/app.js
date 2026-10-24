@@ -283,6 +283,7 @@ function renderCalendario() {
     ['all', 'Todos los spots'],
     ...ZONES.map((z) => [z.id, z.name])
   ];
+  const isBeginner = sessionStorage.getItem('cal_beginner') === '1';
   const currentZone = state.calZone || (favoriteSpots().length ? 'fav' : 'all');
   let calSpots = [];
   if (currentZone === 'fav') {
@@ -304,7 +305,10 @@ function renderCalendario() {
         <h1>Calendario semanal</h1>
         <p>Mejor momento de cada día (6h–20h) para los próximos 7 días · semáforo de calidad</p>
       </div>
-      <a class="chip btn" href="#/" style="text-decoration:none;font-weight:600">${ICON.back} Previsión</a>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="chip btn ${isBeginner ? 'on cal-chip-beginner' : ''}" id="cal-beginner-toggle" aria-pressed="${isBeginner}">🤙 Principiantes</button>
+        <a class="chip btn" href="#/" style="text-decoration:none;font-weight:600">${ICON.back} Previsión</a>
+      </div>
     </div>
 
     <div class="chips" role="tablist">
@@ -346,8 +350,17 @@ function renderCalendario() {
                 const height = best?.surf?.mid != null ? `${best.surf.mid.toFixed(1)} m` : (range(best?.surf) !== '–' ? `${range(best.surf)} m` : '–');
                 const hora = best ? `${best.hour}:00` : '–';
                 const label = ratingLabel(r);
-                return `<td class="cal-cell ${cls}">
-                  <a href="#/spot/${encodeURIComponent(s.id)}" title="${esc(s.name)} · ${dName}: ${label} (${height} a las ${hora})">
+                const hs = best?.surf?.mid != null ? best.surf.mid : (best?.surf?.max ?? 0);
+                const windOk = best && (
+                  best.windSpeed == null || isNaN(best.windSpeed) ||
+                  best.windSpeed < 15 ||
+                  best.wind?.key === 'offshore' || best.wind?.key === 'glassy'
+                );
+                const ratingOk = best && (best.rating == null || isNaN(best.rating) || best.rating <= 2);
+                const isAptoPrincipiantes = isBeginner && best && hs < 0.6 && windOk && ratingOk;
+                const beginnerCls = isAptoPrincipiantes ? 'cal-beginner' : '';
+                return `<td class="cal-cell ${cls} ${beginnerCls}">
+                  <a href="#/spot/${encodeURIComponent(s.id)}" title="${esc(s.name)} · ${dName}: ${label} (${height} a las ${hora})${isAptoPrincipiantes ? ' · 🤙 Apto para principiantes' : ''}">
                     <span class="cal-hour">${hora}</span>
                     <span class="cal-height">${height}</span>
                     <span class="cal-rating">${label}</span>
@@ -360,6 +373,7 @@ function renderCalendario() {
       </table>
     </div>
 
+    ${isBeginner ? '<div class="cal-beginner-note" style="margin-top:10px;font-size:12px;color:#10b981;font-weight:600">🤙 Resaltados en verde los días con olas &lt; 0.6 m, viento suave o terral y condiciones fáciles para principiantes.</div>' : ''}
     <div class="cal-legend" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px;font-size:12px;color:var(--text-2)">
       <span style="font-weight:600">Semáforo:</span>
       <span class="rating-pill r0">Plato</span>
@@ -373,6 +387,14 @@ function renderCalendario() {
 
     ${footer()}`;
 
+  $('#cal-beginner-toggle')?.addEventListener('click', () => {
+    if (sessionStorage.getItem('cal_beginner') === '1') {
+      sessionStorage.removeItem('cal_beginner');
+    } else {
+      sessionStorage.setItem('cal_beginner', '1');
+    }
+    renderCalendario();
+  });
   view.querySelectorAll('[data-cal-zone]').forEach((b) => b.addEventListener('click', () => {
     state.calZone = b.dataset.calZone;
     renderCalendario();

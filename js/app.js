@@ -1331,7 +1331,7 @@ async function renderMap() {
 // ---------- Todas las camaras ----------
 let camZone = 'all';
 let camVista = 'rejilla';          // 'rejilla' | 'comparar'
-let camSel = [];                   // spots marcados para comparar (máx. 2)
+let camSel = ['Planetario', 'Voramar'];   // spots para comparar (máx. 2); por defecto Planetario y Voramar
 let camObs = null;                 // observador que para las cámaras que salen de pantalla
 const camsActivas = [];            // contenedores que están reproduciendo, de más antiguo a más nuevo
 const maxCamsA_la_vez = () => {

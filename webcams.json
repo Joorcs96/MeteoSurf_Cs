@@ -109,27 +109,6 @@
       "failCount": 0
     },
     {
-      "id": "windy-voramar",
-      "name": "Windy",
-      "short": "Voramar (vía Windy)",
-      "spots": [
-        "Voramar"
-      ],
-      "priority": 2,
-      "embedType": "iframe",
-      "embedUrl": "https://webcams.windy.com/webcams/public/embed/player/1626935971/day",
-      "pageUrl": "https://www.windy.com/webcams/1626935971",
-      "credit": "Windy.com (fuente original: Hotel Voramar)",
-      "refreshSeconds": 300,
-      "distanceKm": 0.1,
-      "tokenRefresh": null,
-      "verified": true,
-      "notes": "Reenvía la misma cámara del Hotel Voramar, pero como fotos sueltas que Windy va guardando (no vídeo continuo). Sin X-Frame-Options en la respuesta del embed -> incrustable. Usar sólo como respaldo si falla la cámara directa.",
-      "enabled": true,
-      "lastChecked": "2026-10-24T07:27:32.859464+00:00",
-      "failCount": 0
-    },
-    {
       "id": "cv-benicassim-vela-hls",
       "name": "Comunitat Valenciana",
       "short": "Benicàssim Vela (club náutico)",

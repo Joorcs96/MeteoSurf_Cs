@@ -36,13 +36,13 @@ _leer_webcams_real = rewind.leer_webcams
 
 # Valores reales sacados de `node` con el SPOTS de js/spots.js.
 SEA_LAT_LON_ESPERADO = {
-    "Planetario": (39.976, 0.0419),
-    "Piramides": (39.95304, 0.02498),
-    "Voramar": (40.0452, 0.0921),
-    "Heliopolis": (40.0206, 0.0595),
-    "MorroGos": (40.0928, 0.1640),
+    "Planetario": (39.976, 0.0407),
+    "Piramides": (39.9432, 0.0181),
+    "Voramar": (40.0457, 0.0913),
+    "Heliopolis": (40.0206, 0.0586),
+    "MorroGos": (40.0928, 0.1629),
     "Renega": (40.0518, 0.1289),
-    "Gurugu": (39.9954, 0.0464),
+    "Gurugu": (39.9954, 0.0459),
 }
 
 

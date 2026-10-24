@@ -495,6 +495,19 @@ async function fotosDe(spot) {
     try { fotosExtra = await (await fetch('data/fotos.json')).json(); } catch { fotosExtra = {}; }
   }
   const lista = [];
+  // Primero, las últimas fotos de las cámaras propias de este spot (con gente en el agua los días con olas;
+  // las caras salen desenfocadas).
+  const camaras = new Set(camsForSpot(spot).map((c) => c.id));
+  const vistas = new Set();
+  (state.rewinds?.rewinds || [])
+    .filter((c) => c.foto && /^https:\/\//.test(c.foto) && c.spot === spot.id && camaras.has(c.camara) && Number.isFinite(Date.parse(c.hora)))
+    .sort((a, b) => Date.parse(b.hora) - Date.parse(a.hora))
+    .forEach((c) => {
+      if (vistas.has(c.foto) || vistas.size >= 8) return;
+      vistas.add(c.foto);
+      const cuando = new Date(c.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      lista.push({ title: `Cámara en directo · ${cuando}`, thumb: c.foto, author: c.camaraNombre || 'Cámara del spot', license: 'Foto de cámara propia (caras desenfocadas)', licenseUrl: 'https://joorcs96.github.io/MeteoSurf_Cs/', url: c.foto });
+    });
   if (spot.photo?.thumb) lista.push(spot.photo);
   (fotosExtra[spot.id] || []).forEach((p) => { if (p?.thumb && !lista.some((x) => x.thumb === p.thumb)) lista.push(p); });
   return lista;

@@ -7,9 +7,27 @@ import { aplicarNowcast } from './nowcast.js';
 import { iniciarCapas, motorLeaflet } from './mapa-capas.js';
 import { puntosSector, puntoEnRumbo, LARGO_FLECHA } from './orientaciones-mapa.js';
 
+// Onboarding para principiantes
+let _obFirstRender = false;
+function showOnboarding() {
+  if (_obFirstRender) return;
+  _obFirstRender = true;
+  if (!localStorage.getItem('ob_done')) {
+    const overlay = document.querySelector('.onboard-overlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      const btn = overlay.querySelector('#onboard-btn') || overlay.querySelector('.onboard-btn') || overlay.querySelector('button');
+      btn?.addEventListener('click', () => {
+        localStorage.setItem('ob_done', '1');
+        overlay.style.display = 'none';
+      });
+    }
+  }
+}
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
-const state = { fc: null, realtime: null, rewinds: null, zone: 'all', dayIdx: 0, camIdx: 0, spotId: null };
+const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null };
 
 // Asistente de previsión (se carga aparte para no retrasar el primer pintado)
 let aiMod = null;
@@ -156,6 +174,7 @@ function route() {
   document.body.classList.toggle('vista-mapa', page === 'mapa');
   document.body.classList.toggle('vista-home', !page || page === 'favoritos');
   document.body.classList.toggle('vista-camaras', page === 'camaras');
+  document.body.classList.toggle('vista-calendario', page === 'calendario');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
   renderQuickSpots();
   const savedClip = $('#save-clip');
@@ -165,6 +184,7 @@ function route() {
   if (page === 'mapa') return renderMap();
   if (page === 'camaras') return renderCams();
   if (page === 'asistente') return renderAssistant();
+  if (page === 'calendario') return renderCalendario();
   if (page === 'favoritos') { state.zone = 'fav'; return renderHome(); }
   if (state.zone === 'fav' && page !== 'favoritos') state.zone = 'all';
   return renderHome();
@@ -188,11 +208,12 @@ function renderHome() {
 
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
-    <div class="region-head">
+    <div class="region-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
       <div>
         <h1>Costa de Castellón</h1>
         <p>${fc ? `Actualizado ${new Date(fc.fetchedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · ` : ''}${SPOTS.length} spots · previsión a 16 días</p>
       </div>
+      <a href="#/calendario" class="chip btn" style="text-decoration:none;font-weight:600">📅 Ver semana</a>
     </div>
 
     ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
@@ -222,6 +243,126 @@ function renderHome() {
   if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p><a href="#/asistente">Preguntar al asistente</a></p>'); })
     .catch(() => $('#region-report')?.remove());
   else $('#region-report')?.remove();
+  showOnboarding();
+}
+
+// ---------- Vista: Calendario semanal de previsión ----------
+function renderCalendario() {
+  document.title = 'Semana · MeteoSurf_Cs';
+  const fc = state.fc;
+  if (!fc) {
+    view.innerHTML = `
+      <div class="region-head">
+        <div>
+          <h1>Calendario semanal</h1>
+          <p>Previsión de los próximos 7 días</p>
+        </div>
+      </div>
+      <div class="skeleton" style="height:36px;width:60%;margin:8px 0 16px"></div>
+      <div class="skeleton" style="height:260px"></div>
+    `;
+    return;
+  }
+
+  const zones = [
+    ['fav', 'Mis favoritos'],
+    ['all', 'Todos los spots'],
+    ...ZONES.map((z) => [z.id, z.name])
+  ];
+  const currentZone = state.calZone || (favoriteSpots().length ? 'fav' : 'all');
+  let calSpots = [];
+  if (currentZone === 'fav') {
+    calSpots = favoriteSpots().length ? favoriteSpots() : ordered().slice(0, 5);
+  } else if (currentZone === 'all') {
+    calSpots = ordered();
+  } else {
+    calSpots = ordered().filter((s) => s.zone === currentZone);
+  }
+  if (!calSpots.length) calSpots = ordered().slice(0, 5);
+
+  const sampleSpotId = calSpots[0]?.id || DEFAULT_SPOT;
+  const sampleDays = fc.spots[sampleSpotId]?.days || [];
+  const days = sampleDays.slice(0, 7);
+
+  view.innerHTML = `
+    <div class="region-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1>Calendario semanal</h1>
+        <p>Mejor momento de cada día (6h–20h) para los próximos 7 días · semáforo de calidad</p>
+      </div>
+      <a class="chip btn" href="#/" style="text-decoration:none;font-weight:600">${ICON.back} Previsión</a>
+    </div>
+
+    <div class="chips" role="tablist">
+      ${zones.map(([id, n]) => `<button class="chip btn ${currentZone === id ? 'on' : ''}" data-cal-zone="${id}">${n}</button>`).join('')}
+    </div>
+    ${currentZone === 'fav' && !favoriteSpots().length ? '<p class="faint" style="margin:4px 0 12px;font-size:12px">Mostrando los 5 spots principales. Pulsa en el marcador de un spot para añadirlo a favoritos.</p>' : ''}
+
+    <div class="cal-grid-wrap">
+      <table class="cal-grid" aria-label="Cuadrícula semanal de previsión de surf">
+        <thead>
+          <tr>
+            <th class="cal-corner">Día</th>
+            ${calSpots.map((s) => `<th><a href="#/spot/${encodeURIComponent(s.id)}" title="Ver spot ${esc(s.name)}">${esc(s.name)}</a></th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${days.map((d, i) => {
+            const dName = dayName(d.date, i);
+            const dDate = dayShort(d.date);
+            return `<tr>
+              <th class="cal-day">
+                <span class="dn">${dName}</span>
+                <span class="dd">${dDate}</span>
+              </th>
+              ${calSpots.map((s) => {
+                const spotFc = fc.spots[s.id];
+                const dayObj = spotFc?.days?.find((x) => x.date === d.date) || spotFc?.days?.[i];
+                const dayHours = dayObj?.hours || spotFc?.hours?.filter((h) => h.date === d.date) || [];
+                const daylight = dayHours.filter((h) => h.hour >= 6 && h.hour <= 20 && h.rating != null && !isNaN(h.rating));
+                const pool = daylight.length ? daylight : dayHours.filter((h) => h.rating != null && !isNaN(h.rating));
+                let best = null;
+                if (pool.length) {
+                  best = pool.reduce((a, b) => (
+                    b.rating > a.rating || (b.rating === a.rating && (b.surf?.mid ?? 0) > (a.surf?.mid ?? 0)) ? b : a
+                  ));
+                }
+                const r = best?.rating;
+                const cls = ratingCls(r);
+                const height = best?.surf?.mid != null ? `${best.surf.mid.toFixed(1)} m` : (range(best?.surf) !== '–' ? `${range(best.surf)} m` : '–');
+                const hora = best ? `${best.hour}:00` : '–';
+                const label = ratingLabel(r);
+                return `<td class="cal-cell ${cls}">
+                  <a href="#/spot/${encodeURIComponent(s.id)}" title="${esc(s.name)} · ${dName}: ${label} (${height} a las ${hora})">
+                    <span class="cal-hour">${hora}</span>
+                    <span class="cal-height">${height}</span>
+                    <span class="cal-rating">${label}</span>
+                  </a>
+                </td>`;
+              }).join('')}
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cal-legend" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px;font-size:12px;color:var(--text-2)">
+      <span style="font-weight:600">Semáforo:</span>
+      <span class="rating-pill r0">Plato</span>
+      <span class="rating-pill r2">Malo</span>
+      <span class="rating-pill r3">Malo-Reg.</span>
+      <span class="rating-pill r4">Regular</span>
+      <span class="rating-pill r5">Reg-Bueno</span>
+      <span class="rating-pill r6">Bueno</span>
+      <span class="rating-pill r7">Épico</span>
+    </div>
+
+    ${footer()}`;
+
+  view.querySelectorAll('[data-cal-zone]').forEach((b) => b.addEventListener('click', () => {
+    state.calZone = b.dataset.calZone;
+    renderCalendario();
+  }));
 }
 
 // Parte plegable: titular de una línea con la mejor ventana y el texto completo al desplegar
@@ -745,7 +886,9 @@ function renderSpot(id) {
             <b id="chart-title"></b><span class="faint" style="font-size:12px">Altura en rompiente (m) · color = calidad · flechas = viento</span></div>
           <div id="chart"></div>
         </div>
-        <h3>Viento por horas · km/h</h3><div id="wind-chart"></div><h3>Marea · nivel del mar</h3><div class="tide" id="tide"></div><details><summary>Ver tabla horaria</summary><div class="ftable-wrap" id="ftable"></div></details>
+        <h3>Viento por horas · km/h</h3><div id="wind-chart"></div><h3>Marea · nivel del mar</h3><div class="tide" id="tide"></div>
+        <div class="section-title" style="margin-top:24px">Tabla horaria detallada</div>
+        <div class="ftable-wrap hourly-table hourly-scroll spot-hours" id="ftable"></div>
 ` : loadingBlock()}
       </div>
       <div class="a-dias" data-panel="dias">
@@ -795,10 +938,16 @@ function renderSpot(id) {
     state.tab = t;
     view.querySelectorAll('[data-panel]').forEach((el) => el.classList.toggle('en-tab', el.dataset.panel === t));
     view.querySelectorAll('.tabs [data-tab]').forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
-    if (t === 'horas' && f) drawDay(spot, f);
+    const curF = f || state.fc?.spots[id];
+    if (t === 'horas' && curF) drawDay(spot, curF);
     if (t !== 'ahora') { stopCam($('#cam')); pararVigia?.(); } else if (!$('#cam')?.dataset.cameraType) showCam();
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
+  const onForecastReady = () => {
+    const curF = state.fc?.spots[id];
+    if (curF && state.tab === 'horas') drawDay(spot, curF);
+  };
+  window.addEventListener('forecast:ready', onForecastReady, { once: true });
   view.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => irTab(b.dataset.tab)));
   view.querySelectorAll('[data-goto-tab]').forEach((b) => b.addEventListener('click', () => irTab(b.dataset.gotoTab)));
   fotosDe(spot).then((lista) => {
@@ -1036,7 +1185,7 @@ function miniHoursStrip(f, h) {
   const upcoming = f.hours.slice(ni, ni + 6);
   if (upcoming.length < 2) return '';
 
-  return `<div class="mini-hours-card">
+  return `<div class="mini-hours-card spot-hours">
     <div class="mini-hours-head">
       <span class="mini-hours-title">Próximas horas hoy</span>
       <button class="mini-hours-btn" type="button" data-goto-tab="horas">Ver 24h detalladas →</button>
@@ -1056,7 +1205,8 @@ function miniHoursStrip(f, h) {
 
 // Gráfica de barras del día + tabla + marea
 function drawDay(spot, f) {
-  const day = f.days[state.dayIdx];
+  const day = f?.days?.[state.dayIdx];
+  if (!day) return;
   $('#chart-title').textContent = `${dayName(day.date, state.dayIdx)} ${dayShort(day.date)} · ${ratingLabel(day.rating)}`;
   $('#chart').innerHTML = barChart($('#chart').clientWidth || 640, day.hours, f.days[0].date === day.date ? nowIndex(f.hours) % 24 : -1, day);
   $('#wind-chart').innerHTML = windChart(day);
@@ -1160,15 +1310,12 @@ function hourlyTable(f, dayIdx) {
   const td = (c, i, inner, cls = '') => `<td class="${cls}${c.first ? ' daysep' : ''}${i === nowCol && dayIdx === 0 ? ' nowc' : ''}">${inner}</td>`;
   const row = (label, fn, rowCls = '') => `<tr class="${rowCls}"><td class="lbl">${label}</td>${cols.map((c, i) => fn(c, i)).join('')}</tr>`;
   let s = '<table class="ftable num"><thead>';
-  s += `<tr><th class="lbl"></th>${days.map((d, i) => `<th colspan="${cols.filter((c) => c.d === d).length}" class="daysep ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}">${dayName(d.date, dayIdx + i)} ${dayShort(d.date)}</th>`).join('')}</tr>`;
+  s += `<tr class="ftable-summary-head"><th class="lbl" style="font-size:11px;color:var(--text-2);letter-spacing:0.02em;white-space:nowrap" title="Hora | Ola | Calidad | Viento | Dir">Hora | Ola | Calidad | Viento | Dir</th><th colspan="${cols.length}" style="text-align:left;font-size:11px;font-weight:600;color:var(--text-3);padding-left:12px">Previsión detallada cada 3 h</th></tr>`;
+  s += `<tr><th class="lbl">Día</th>${days.map((d, i) => `<th colspan="${cols.filter((c) => c.d === d).length}" class="daysep ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}">${dayName(d.date, dayIdx + i)} ${dayShort(d.date)}</th>`).join('')}</tr>`;
   s += `<tr><th class="lbl">Hora</th>${cols.map((c) => `<th class="${c.first ? 'daysep' : ''}">${c.h.hour}h</th>`).join('')}</tr></thead><tbody>`;
   const kjCls = (e) => e == null ? '' : e < 50 ? 'kj-0' : e < 150 ? 'kj-1' : e < 400 ? 'kj-2' : 'kj-3';
+  s += row('Ola (m)', (c, i) => td(c, i, range(c.h.surf), `big hcell ${hClass(c.h.surf.mid)}`));
   s += row('Calidad', (c, i) => td(c, i, `<div class="${ratingCls(c.h.rating)}" title="${ratingLabel(c.h.rating)}">${ratingLabel(c.h.rating)}</div>`, 'cell-r'));
-  s += row('Surf (m)', (c, i) => td(c, i, range(c.h.surf), `big hcell ${hClass(c.h.surf.mid)}`));
-  s += row('Mar total', (c, i) => td(c, i, `${m(c.h.waveHeight)}`));
-  s += row('Energía', (c, i) => td(c, i, c.h.energy || '–', kjCls(c.h.energy)));
-  s += row('Periodo', (c, i) => td(c, i, c.h.wavePeriod ? c.h.wavePeriod.toFixed(0) : '–'));
-  s += row('Dir. mar', (c, i) => td(c, i, `${dirArrow(c.h.swells[0]?.dir ?? c.h.waveDir)}<br>${compass(c.h.swells[0]?.dir ?? c.h.waveDir)}`));
   s += row('Viento', (c, i) => td(c, i,
     `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
 <span>${dirArrow(c.h.windDir)} <b>${kmh(c.h.windSpeed)}</b></span>
@@ -1176,6 +1323,10 @@ function hourlyTable(f, dayIdx) {
        <span class="wind-tag wind-${c.h.wind.key}" style="font-size:9px;padding:1px 4px">${WIND_SHORT[c.h.wind.key] || c.h.wind.label}</span>
      </div>`,
     `wcell-${c.h.wind.key}`));
+  s += row('Dir. mar', (c, i) => td(c, i, `${dirArrow(c.h.swells[0]?.dir ?? c.h.waveDir)}<br>${compass(c.h.swells[0]?.dir ?? c.h.waveDir)}`));
+  s += row('Mar total', (c, i) => td(c, i, `${m(c.h.waveHeight)}`));
+  s += row('Energía', (c, i) => td(c, i, c.h.energy || '–', kjCls(c.h.energy)));
+  s += row('Periodo', (c, i) => td(c, i, c.h.wavePeriod ? c.h.wavePeriod.toFixed(0) : '–'));
   s += row('Marea', (c, i) => td(c, i, c.h.tide != null ? c.h.tide.toFixed(2) : '–'));
   s += row('Aire °C', (c, i) => td(c, i, c.h.temp != null ? Math.round(c.h.temp) : '–'));
   return s + '</tbody></table>';
@@ -1568,6 +1719,7 @@ async function refresh(force = false) {
     await realtime;
   }
   aplicarNowcast(state.fc, state.realtime);
+  window.dispatchEvent(new CustomEvent('forecast:ready', { detail: state.fc }));
   route();
 }
 

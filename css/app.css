@@ -147,7 +147,8 @@ summary { min-height:48px; padding:14px 0; cursor:pointer; font-size:14px; font-
 .chart { width:100%; display:block; }
 .chart-tip { position:absolute; top:4px; transform:translateX(-50%); padding:8px; background:var(--text); color:var(--bg); font-size:11px; pointer-events:none; z-index:2; white-space:nowrap; }
 .chart-scrubber { stroke:var(--text); stroke-width:1; pointer-events:none; }
-.ftable-wrap { overflow:auto; max-width:100%; }
+.ftable-wrap { overflow:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
+.ftable-summary-head th.lbl { background:var(--surface-2); font-weight:700; }
 .ftable { border-collapse:collapse; font-size:12px; min-width:100%; }
 .ftable th,.ftable td { padding:10px; text-align:center; border-bottom:1px solid var(--line); min-width:80px; }
 .ftable .lbl { position:sticky; left:0; z-index:1; background:var(--surface); text-align:left; min-width:100px; }
@@ -336,7 +337,8 @@ body.vista-mapa #view { top:0; padding:0; bottom:calc(60px + var(--safe-b)); }
 @media(min-width:800px) { .spot-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:40px; } .zone-heading { grid-column:1/-1; } }
 
 /* Cabecera más baja en la portada */
-body.vista-home .quick-spots { display:none; }
+body.vista-home .quick-spots,
+body.vista-calendario .quick-spots { display:none; }
 body.vista-home .region-head { margin-bottom:8px; }
 body.vista-home .region-head h1 { font-size:24px; margin-bottom:2px; }
 body.vista-home #view { padding-top:14px; }
@@ -548,3 +550,247 @@ body.vista-camaras .quick-spots { display:none; }
   gap: 3px;
 }
 
+/* Onboarding principiantes */
+.onboard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.onboard-overlay.visible {
+  display: flex;
+}
+
+.onboard-card {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px 20px;
+  max-width: 380px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.onboard-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  text-align: center;
+}
+
+.onboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onboard-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-2);
+  background: var(--surface-2);
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.onboard-item strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.onboard-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.onboard-icon .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.onboard-text {
+  flex: 1;
+}
+
+.onboard-btn {
+  margin-top: 4px;
+  min-height: 44px;
+  padding: 10px 16px;
+  background: var(--text);
+  color: var(--bg);
+  border: 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+}
+
+.onboard-btn:hover {
+  opacity: 0.9;
+}
+
+/* ---- Vista de calendario semanal de previsión ---- */
+.cal-grid-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 16px 0 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(10,15,20,.06);
+}
+.cal-grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  min-width: 600px;
+}
+.cal-grid th, .cal-grid td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.cal-grid th:last-child, .cal-grid td:last-child {
+  border-right: none;
+}
+.cal-grid tr:last-child th, .cal-grid tr:last-child td {
+  border-bottom: none;
+}
+.cal-grid thead th {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 12px 10px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.cal-grid thead th a {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+.cal-grid thead th a:hover {
+  text-decoration: underline;
+}
+.cal-grid thead th.cal-corner {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  background: var(--surface-2);
+  min-width: 85px;
+  max-width: 110px;
+  text-align: left;
+}
+.cal-day {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--surface);
+  text-align: left;
+  min-width: 85px;
+  max-width: 110px;
+  font-weight: 600;
+}
+.cal-day .dn {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.cal-day .dd {
+  display: block;
+  font-size: 11px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+.cal-cell {
+  background: color-mix(in srgb, var(--rc, var(--r-flat)) 14%, var(--surface));
+  transition: background 0.15s ease;
+  vertical-align: middle;
+  padding: 0;
+}
+.cal-cell:hover {
+  background: color-mix(in srgb, var(--rc, var(--r-flat)) 26%, var(--surface));
+}
+.cal-cell a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--text);
+  text-decoration: none;
+  min-height: 58px;
+  padding: 6px 4px;
+}
+.cal-hour {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.cal-height {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  line-height: 1.15;
+}
+.cal-rating {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text);
+  opacity: 0.9;
+}
+.cal-rating::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rc, var(--r-flat));
+  display: inline-block;
+  flex-shrink: 0;
+}

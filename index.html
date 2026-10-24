@@ -28,6 +28,7 @@
     </a>
     <nav class="topnav" aria-label="Secciones">
       <a href="#/" data-nav="hoy">Previsión</a>
+      <a href="#/calendario" data-nav="calendario">Semana</a>
       <a href="#/mapa" data-nav="mapa">Mapa</a>
       <a href="#/camaras" data-nav="camaras">Cámaras</a>
       <a href="#/asistente" data-nav="asistente">Asistente</a>
@@ -59,6 +60,33 @@
   </nav>
 
   <button class="fab-assistant" id="fab-assistant" aria-label="Preguntar al asistente" title="Preguntar al asistente" onclick="location.hash='#/asistente'">🤙</button>
+
+  <div class="onboard-overlay" id="onboard-overlay" role="dialog" aria-modal="true" aria-labelledby="onboard-title" style="display:none">
+    <div class="onboard-card">
+      <h3 id="onboard-title" class="onboard-title">Guía rápida de previsión</h3>
+      <ul class="onboard-list">
+        <li class="onboard-item">
+          <span class="onboard-icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>
+          </span>
+          <span class="onboard-text"><strong>Hs</strong> = altura de ola</span>
+        </li>
+        <li class="onboard-item">
+          <span class="onboard-icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          <span class="onboard-text"><strong>Periodo</strong> = segundos entre olas</span>
+        </li>
+        <li class="onboard-item">
+          <span class="onboard-icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </span>
+          <span class="onboard-text"><strong>Estrellas</strong> = calidad 0-5</span>
+        </li>
+      </ul>
+      <button type="button" class="onboard-btn" id="onboard-btn">Entendido</button>
+    </div>
+  </div>
 
   <script type="module" src="js/config.js"></script>
   <script type="module" src="js/notificaciones.js"></script>

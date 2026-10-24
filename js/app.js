@@ -4,7 +4,7 @@ import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes,
 import { compassSVG, dirArrow } from './compass.js';
 import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordClip, estadoStream, iniciarVigiaOla, vigias } from './cams.js';
 import { aplicarNowcast } from './nowcast.js';
-import { iniciarCapas } from './mapa-capas.js';
+import { iniciarCapas, motorLeaflet } from './mapa-capas.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -1077,6 +1077,7 @@ let leaflet = null;
 let capasMapa = null;
 let hojaSpot = null;
 let mapa3d = null;
+let capas3d = null;
 
 const pinHtml = (s) => {
   const f = state.fc?.spots[s.id];
@@ -1085,18 +1086,21 @@ const pinHtml = (s) => {
 };
 
 // Alterna entre el mapa plano y el relieve en 3D.
-async function alternar3D(btn) {
+async function alternar3D(btn, { silencioso = false } = {}) {
   const caja = $('.mapa-full');
-  if (!caja) return;
+  if (!caja) return false;
   if (!mapa3d) {
     btn.disabled = true; btn.textContent = '…';
     try {
       const m = await import('./mapa-3d.js');
-      mapa3d = await m.crear3D($('#map3d'), SPOTS, { pinHtml, onSpot: abrirHojaSpot });
+      const nuevo = await m.crear3D($('#map3d'), SPOTS, { pinHtml, onSpot: abrirHojaSpot });
+      if (!$('.mapa-full')) { nuevo.destruir(); return false; }
+      mapa3d = nuevo;
+      capas3d = iniciarCapas(mapa3d.motor, $('#map-capas-3d'));
     } catch (e) {
       btn.disabled = false; btn.textContent = '3D';
-      toast('No se ha podido cargar el relieve 3D. Prueba en un rato.');
-      return;
+      if (!silencioso) toast('No se ha podido cargar el relieve 3D. Prueba en un rato.');
+      return false;
     }
     btn.disabled = false;
   }
@@ -1105,8 +1109,11 @@ async function alternar3D(btn) {
   btn.setAttribute('aria-pressed', String(on));
   btn.textContent = on ? '2D' : '3D';
   cerrarHojaSpot();
-  if (on) { capasMapa?.reiniciar(); mapa3d.mostrar(); } else { mapa3d.ocultar(); leaflet?.invalidateSize(); }
+  if (on) { capasMapa?.reiniciar(); mapa3d.mostrar(); } else { capas3d?.reiniciar(); mapa3d.ocultar(); leaflet?.invalidateSize(); }
+  return on;
 }
+
+const hayWebGL = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } };
 
 // Ventana interactiva del mapa: previsión del spot (día, hora, mar, viento, marea) sin salir del mapa.
 function cerrarHojaSpot() {
@@ -1177,7 +1184,7 @@ function abrirHojaSpot(spot) {
 
 async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
-  view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map3d" hidden></div><div id="map-capas" class="mapa-ui"></div><button type="button" id="btn-3d" class="mapa-3d" aria-pressed="false" aria-label="Cambiar entre mapa plano y relieve en 3D">3D</button></div>';
+  view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map3d" hidden></div><div id="map-capas" class="mapa-ui"></div><div id="map-capas-3d" class="mapa-ui"></div><button type="button" id="btn-3d" class="mapa-3d" aria-pressed="false" aria-label="Cambiar entre mapa plano y relieve en 3D">3D</button></div>';
   if (!window.L) {
     await new Promise((res) => {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l);
@@ -1185,6 +1192,7 @@ async function renderMap() {
     });
   }
   cerrarHojaSpot();
+  capas3d?.destruir(); capas3d = null;
   mapa3d?.destruir(); mapa3d = null;
   capasMapa?.destruir(); capasMapa = null;
   leaflet?.remove();
@@ -1221,9 +1229,11 @@ async function renderMap() {
   leaflet.fitBounds(bounds, { padding: [30, 30] });
   const syncLabels = () => document.getElementById('map')?.classList.toggle('show-labels', leaflet.getZoom() >= 10);
   leaflet.on('zoomend', syncLabels); syncLabels();
-  capasMapa = iniciarCapas(leaflet, $('#map-capas'), { L });
+  capasMapa = iniciarCapas(motorLeaflet(leaflet, L), $('#map-capas'));
   leaflet.on('click', cerrarHojaSpot);
   $('#btn-3d').addEventListener('click', (e) => alternar3D(e.currentTarget));
+  // Por defecto, relieve en 3D (si el móvil lo soporta); el botón 2D vuelve al mapa plano.
+  if (hayWebGL()) alternar3D($('#btn-3d'), { silencioso: true });
   setTimeout(() => { leaflet.invalidateSize(); leaflet.fitBounds(bounds, { padding: [60, 60] }); }, 50);
 }
 

@@ -96,14 +96,38 @@ function vientoEn(datos, h, lat, lon) {
   return [mezcla(0), mezcla(1)];
 }
 
-const FLECHA = (grados, col, tam) => `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" style="transform:rotate(${grados}deg)" aria-hidden="true"><path d="M12 2 L19 20 L12 16 L5 20 Z" fill="${col}" stroke="#0a0f14" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+export const FLECHA = (grados, col, tam) => `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" style="transform:rotate(${grados}deg)" aria-hidden="true"><path d="M12 2 L19 20 L12 16 L5 20 Z" fill="${col}" stroke="#0a0f14" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
 
-export function iniciarCapas(mapa, host, { L = window.L } = {}) {
+// Motor para el mapa plano (Leaflet).
+export function motorLeaflet(mapa, L = window.L) {
+  const grupo = L.layerGroup().addTo(mapa);
+  return {
+    contenedor: () => mapa.getContainer(),
+    limpiar: () => grupo.clearLayers(),
+    pintar(items) {
+      grupo.clearLayers();
+      items.forEach((it) => {
+        const flecha = it.dir == null ? '' : FLECHA(it.dir, it.col, it.tam);
+        const html = `<div class="capa-punto">${flecha}<b style="color:${it.col}">${it.texto}</b></div>`;
+        L.marker([it.lat, it.lon], { icon: L.divIcon({ html, className: '', iconSize: [40, 40], iconAnchor: [20, 20] }), interactive: false, keyboard: false, zIndexOffset: -1000 }).addTo(grupo);
+      });
+    },
+    aLatLng: (x, y) => { const ll = mapa.containerPointToLatLng([x, y]); return { lat: ll.lat, lng: ll.lng }; },
+    alCambiarVista(fn) { mapa.on('resize zoomend moveend', fn); return () => mapa.off('resize zoomend moveend', fn); },
+    alTocar(fn) { mapa.on('click', (e) => fn(e.latlng.lat, e.latlng.lng)); },
+    popup(lat, lng) {
+      const p = L.popup({ maxWidth: 240 }).setLatLng([lat, lng]).setContent('Cargando…').openOn(mapa);
+      return { poner: (html) => p.setContent(html) };
+    },
+    destruir: () => grupo.remove(),
+  };
+}
+
+export function iniciarCapas(motor, host) {
   let capa = null;               // null = solo los spots
   let datos = null;
   let hora = 0;                  // índice dentro de datos.tiempos
   let h0 = 0;                    // primera hora que no ha pasado
-  let grupo = L.layerGroup().addTo(mapa);
   let particulas = null;
   let reproduciendo = null;
   let vivo = true;
@@ -143,18 +167,19 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
   }
 
   function pintarPuntos() {
-    grupo.clearLayers();
+    motor.limpiar();
     if (!capa || !datos) return;
     const h = hora;
+    const items = [];
     datos.puntos.forEach((p) => {
       const val = valorPunto(capa, p, h);
       if (!val) return;
-      const col = color(capa, val.v);
-      const tam = capa === 'oleaje' ? 18 + Math.min(val.v, 4) * 5 : 22;
-      const flecha = val.dir == null ? '' : FLECHA(val.dir, col, tam);
-      const html = `<div class="capa-punto">${flecha}<b style="color:${col}">${formato(capa, val.v)}</b></div>`;
-      L.marker([p.lat, p.lon], { icon: L.divIcon({ html, className: '', iconSize: [40, 40], iconAnchor: [20, 20] }), interactive: false, keyboard: false, zIndexOffset: -1000 }).addTo(grupo);
+      items.push({
+        lat: p.lat, lon: p.lon, dir: val.dir, col: color(capa, val.v), texto: formato(capa, val.v),
+        tam: capa === 'oleaje' ? 18 + Math.min(val.v, 4) * 5 : 22,
+      });
     });
+    motor.pintar(items);
   }
 
   function actualizar() {
@@ -166,7 +191,7 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
   function arrancarParticulas() {
     pararParticulas();
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const cont = mapa.getContainer();
+    const cont = motor.contenedor();
     const cv = document.createElement('canvas');
     cv.className = 'capas-canvas';
     cont.appendChild(cv);
@@ -177,7 +202,7 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
     const nueva = () => ({ x: Math.random() * cv.width, y: Math.random() * cv.height, vida: 40 + Math.random() * 60 });
     const reiniciar = () => { tamano(); ps = Array.from({ length: N }, nueva); ctx.clearRect(0, 0, cv.width, cv.height); };
     reiniciar();
-    mapa.on('resize zoomend moveend', reiniciar);
+    const quitarVista = motor.alCambiarVista(reiniciar);
     const paso = () => {
       if (!vivo || !datos || capa !== 'viento') return;
       ctx.globalCompositeOperation = 'destination-out';
@@ -186,7 +211,8 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
       ctx.globalCompositeOperation = 'source-over';
       ctx.lineWidth = 1.4;
       ps.forEach((p, i) => {
-        const ll = mapa.containerPointToLatLng([p.x, p.y]);
+        const ll = motor.aLatLng(p.x, p.y);
+        if (!ll || !Number.isFinite(ll.lat) || !Number.isFinite(ll.lng)) { ps[i] = nueva(); return; }
         const [u, v] = vientoEn(datos, hora, ll.lat, ll.lng);
         const kt = Math.hypot(u, v);
         const k = 0.35;
@@ -199,7 +225,7 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
       anim = requestAnimationFrame(paso);
     };
     anim = requestAnimationFrame(paso);
-    particulas = () => { cancelAnimationFrame(anim); mapa.off('resize zoomend moveend', reiniciar); cv.remove(); };
+    particulas = () => { cancelAnimationFrame(anim); quitarVista(); cv.remove(); };
   }
   function pararParticulas() { particulas?.(); particulas = null; }
 
@@ -222,7 +248,7 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
     pintarLeyenda();
     parar();
     abajo.hidden = !capa;
-    if (!capa) { estado.hidden = true; grupo.clearLayers(); pararParticulas(); return; }
+    if (!capa) { estado.hidden = true; motor.limpiar(); pararParticulas(); return; }
     if (!datos) {
       estado.hidden = false; estado.textContent = 'Cargando la previsión de la malla…';
       try {
@@ -247,10 +273,9 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
   });
 
   // Pincho: toca el mapa y ves el tiempo de ese punto a la hora elegida.
-  mapa.on('click', async (e) => {
+  motor.alTocar(async (lat, lng) => {
     if (!capa) return;
-    const { lat, lng } = e.latlng;
-    const pop = L.popup({ maxWidth: 240 }).setLatLng(e.latlng).setContent('Cargando…').openOn(mapa);
+    const pop = motor.popup(lat, lng);
     try {
       const base = `latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&timezone=Europe%2FMadrid&forecast_days=4&hourly=`;
       const [met, mar] = await Promise.all([
@@ -267,14 +292,14 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
         filas.push(['Oleaje', `${w.wave_height[h].toFixed(1)} m · ${Math.round(w.wave_period[h])} s del ${rosa(w.wave_direction[h])}`]);
         if (w.sea_surface_temperature[h] != null) filas.push(['Agua', `${w.sea_surface_temperature[h].toFixed(1)} °C`]);
       }
-      pop.setContent(`<div class="capas-pop"><b>${esc(new Date(m.time[h]).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }))}</b>${filas.map(([k, v]) => `<div><span>${k}</span>${esc(v)}</div>`).join('')}</div>`);
+      pop.poner(`<div class="capas-pop"><b>${esc(new Date(m.time[h]).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }))}</b>${filas.map(([k, v]) => `<div><span>${k}</span>${esc(v)}</div>`).join('')}</div>`);
     } catch (err) {
-      pop.setContent(`No se ha podido leer el tiempo de este punto (${esc(err.message)}).`);
+      pop.poner(`No se ha podido leer el tiempo de este punto (${esc(err.message)}).`);
     }
   });
 
   return {
     reiniciar() { elegir(null); },
-    destruir() { vivo = false; parar(); pararParticulas(); grupo.remove(); host.innerHTML = ''; },
+    destruir() { vivo = false; parar(); pararParticulas(); motor.destruir(); host.innerHTML = ''; },
   };
 }

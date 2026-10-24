@@ -1,8 +1,10 @@
 // mapa-3d.js — Vista de relieve en 3D del mapa (MapLibre GL, sin claves).
 //
-// Satélite de Esri sobre un modelo de elevación gratuito (Terrarium, de Mapzen/AWS):
-// se ve la costa de Castellón con las sierras de detrás. Los spots son los mismos
+// Mapa de calles de OpenStreetMap sobre un modelo de elevación gratuito (Terrarium, de
+// Mapzen/AWS): se ve la costa de Castellón con las sierras de detrás, sin vista de satélite. Los spots son los mismos
 // puntos del mapa plano y al tocarlos se abre la misma ventana de previsión.
+
+import { FLECHA } from './mapa-capas.js';
 
 const VERSION = '4.7.1';
 const BASE = `https://cdn.jsdelivr.net/npm/maplibre-gl@${VERSION}/dist/`;
@@ -24,10 +26,10 @@ function cargarMapLibre() {
 const ESTILO = {
   version: 8,
   sources: {
-    satelite: {
-      type: 'raster', tileSize: 256, maxzoom: 18,
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-      attribution: 'Imagen © Esri · Relieve © Mapzen/AWS',
+    base: {
+      type: 'raster', tileSize: 256, maxzoom: 19,
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      attribution: '© OpenStreetMap · Relieve © Mapzen/AWS',
     },
     relieve: {
       type: 'raster-dem', encoding: 'terrarium', tileSize: 256, maxzoom: 14,
@@ -40,12 +42,12 @@ const ESTILO = {
     },
   },
   layers: [
-    { id: 'satelite', type: 'raster', source: 'satelite' },
-    { id: 'sombras', type: 'hillshade', source: 'sombreado', paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#0a0f14' } },
+    { id: 'base', type: 'raster', source: 'base' },
+    { id: 'sombras', type: 'hillshade', source: 'sombreado', paint: { 'hillshade-exaggeration': 0.55, 'hillshade-shadow-color': '#37424b', 'hillshade-highlight-color': '#ffffff', 'hillshade-accent-color': '#5b6770' } },
   ],
   terrain: { source: 'relieve', exaggeration: 1.7 },
   sky: {
-    'sky-color': '#7fb0e8', 'horizon-color': '#dbe8f5', 'fog-color': '#dbe8f5',
+    'sky-color': '#9cc3ee', 'horizon-color': '#e8f0f8', 'fog-color': '#e8f0f8',
     'sky-horizon-blend': 0.5, 'horizon-fog-blend': 0.6, 'fog-ground-blend': 0.4,
   },
 };
@@ -89,7 +91,38 @@ export async function crear3D(cont, spots, { pinHtml, onSpot }) {
     return new ml.Marker({ element: el, anchor: 'center' }).setLngLat([s.lon, s.lat]).addTo(mapa);
   });
 
+  // Motor para las capas tipo Windy (viento, oleaje…): flechas pegadas al terreno y etiquetas.
+  const pegadas = [];
+  const motor = {
+    contenedor: () => cont,
+    limpiar() { pegadas.splice(0).forEach((m) => m.remove()); },
+    pintar(items) {
+      motor.limpiar();
+      items.forEach((it) => {
+        if (it.dir != null) {
+          const f = document.createElement('div');
+          f.className = 'capa3d-flecha';
+          f.innerHTML = FLECHA(0, it.col, Math.round(it.tam * 1.7));
+          pegadas.push(new ml.Marker({ element: f, rotation: it.dir, rotationAlignment: 'map', pitchAlignment: 'map' }).setLngLat([it.lon, it.lat]).addTo(mapa));
+        }
+        const t = document.createElement('div');
+        t.className = 'capa-punto capa3d-texto';
+        t.innerHTML = `<b style="color:${it.col}">${it.texto}</b>`;
+        pegadas.push(new ml.Marker({ element: t, offset: [0, it.dir != null ? 26 : 0] }).setLngLat([it.lon, it.lat]).addTo(mapa));
+      });
+    },
+    aLatLng(x, y) { const p = mapa.unproject([x, y]); return { lat: p.lat, lng: p.lng }; },
+    alCambiarVista(fn) { mapa.on('resize', fn); mapa.on('moveend', fn); return () => { mapa.off('resize', fn); mapa.off('moveend', fn); }; },
+    alTocar(fn) { mapa.on('click', (e) => fn(e.lngLat.lat, e.lngLat.lng)); },
+    popup(lat, lng) {
+      const p = new ml.Popup({ maxWidth: '240px' }).setLngLat([lng, lat]).setHTML('Cargando…').addTo(mapa);
+      return { poner: (html) => p.setHTML(html) };
+    },
+    destruir() { motor.limpiar(); },
+  };
+
   return {
+    motor,
     mostrar() { cont.hidden = false; mapa.resize(); },
     ocultar() { cont.hidden = true; },
     destruir() { marcadores.forEach((m) => m.remove()); mapa.remove(); },

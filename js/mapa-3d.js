@@ -31,6 +31,11 @@ const ESTILO = {
       tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
       attribution: '© OpenStreetMap · Relieve © Mapzen/AWS',
     },
+    satelite: {
+      type: 'raster', tileSize: 256, maxzoom: 18,
+      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      attribution: 'Imagen © Esri · Relieve © Mapzen/AWS',
+    },
     relieve: {
       type: 'raster-dem', encoding: 'terrarium', tileSize: 256, maxzoom: 14,
       tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
@@ -43,6 +48,7 @@ const ESTILO = {
   },
   layers: [
     { id: 'base', type: 'raster', source: 'base' },
+    { id: 'satelite', type: 'raster', source: 'satelite', layout: { visibility: 'none' } },
     { id: 'sombras', type: 'hillshade', source: 'sombreado', paint: { 'hillshade-exaggeration': 0.55, 'hillshade-shadow-color': '#37424b', 'hillshade-highlight-color': '#ffffff', 'hillshade-accent-color': '#5b6770' } },
   ],
   terrain: { source: 'relieve', exaggeration: 1.7 },
@@ -53,7 +59,7 @@ const ESTILO = {
 };
 
 // `pinHtml(spot)` devuelve el HTML del punto (el mismo del mapa plano); `onSpot(spot)` abre la ventana.
-export async function crear3D(cont, spots, { pinHtml, onSpot }) {
+export async function crear3D(cont, spots, { pinHtml, onSpot, onBase }) {
   const ml = await cargarMapLibre();
   const mapa = new ml.Map({
     container: cont, style: ESTILO,
@@ -61,6 +67,17 @@ export async function crear3D(cont, spots, { pinHtml, onSpot }) {
     attributionControl: { compact: true },
   });
   mapa.addControl(new ml.NavigationControl({ visualizePitch: true }), 'top-right');
+  // Base elegible: mapa de calles o satélite (se recuerda la elección).
+  let satelite = false;
+  try { satelite = localStorage.getItem('ms_mapa3d_sat') === '1'; } catch { /* sin almacenamiento */ }
+  const aplicarBase = () => {
+    if (!mapa.getLayer('satelite')) return;
+    mapa.setLayoutProperty('satelite', 'visibility', satelite ? 'visible' : 'none');
+    mapa.setLayoutProperty('base', 'visibility', satelite ? 'none' : 'visible');
+    mapa.setPaintProperty('sombras', 'hillshade-exaggeration', satelite ? 0.3 : 0.55);
+    onBase?.(satelite);
+  };
+  mapa.on('load', aplicarBase);
   const etiquetas = () => cont.classList.toggle('show-labels', mapa.getZoom() >= 10);
   mapa.on('zoom', etiquetas); etiquetas();
 
@@ -123,6 +140,13 @@ export async function crear3D(cont, spots, { pinHtml, onSpot }) {
 
   return {
     motor,
+    alternarBase() {
+      satelite = !satelite;
+      try { localStorage.setItem('ms_mapa3d_sat', satelite ? '1' : '0'); } catch { /* sin almacenamiento */ }
+      aplicarBase();
+      return satelite;
+    },
+    esSatelite: () => satelite,
     mostrar() { cont.hidden = false; mapa.resize(); },
     ocultar() { cont.hidden = true; },
     destruir() { marcadores.forEach((m) => m.remove()); mapa.remove(); },

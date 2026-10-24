@@ -311,3 +311,5 @@ body.vista-mapa #view { top:0; padding:0; bottom:calc(60px + var(--safe-b)); }
 .mapa-full:not(.modo-3d) #map-capas-3d { display:none; }
 .mapa-full.modo-3d #map-capas { display:none; }
 .capas-canvas { z-index:5; }
+.mapa-full.modo-3d .mapa-base { top:calc(var(--safe-t) + 264px); font-size:12px; }
+.mapa-base[hidden] { display:none; }

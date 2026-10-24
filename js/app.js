@@ -1089,13 +1089,15 @@ const pinHtml = (s) => {
 async function alternar3D(btn, { silencioso = false } = {}) {
   const caja = $('.mapa-full');
   if (!caja) return false;
+  const btnBase = $('#btn-base');
   if (!mapa3d) {
     btn.disabled = true; btn.textContent = '…';
     try {
       const m = await import('./mapa-3d.js');
-      const nuevo = await m.crear3D($('#map3d'), SPOTS, { pinHtml, onSpot: abrirHojaSpot });
+      const nuevo = await m.crear3D($('#map3d'), SPOTS, { pinHtml, onSpot: abrirHojaSpot, onBase: (sat) => { const b = $('#btn-base'); if (b) { b.setAttribute('aria-pressed', String(sat)); b.textContent = sat ? 'Mapa' : 'Sat'; } } });
       if (!$('.mapa-full')) { nuevo.destruir(); return false; }
       mapa3d = nuevo;
+      btnBase.hidden = false;
       capas3d = iniciarCapas(mapa3d.motor, $('#map-capas-3d'));
     } catch (e) {
       btn.disabled = false; btn.textContent = '3D';
@@ -1107,6 +1109,7 @@ async function alternar3D(btn, { silencioso = false } = {}) {
   const on = !caja.classList.contains('modo-3d');
   caja.classList.toggle('modo-3d', on);
   btn.setAttribute('aria-pressed', String(on));
+  btnBase.hidden = !on;
   btn.textContent = on ? '2D' : '3D';
   cerrarHojaSpot();
   if (on) { capasMapa?.reiniciar(); mapa3d.mostrar(); } else { capas3d?.reiniciar(); mapa3d.ocultar(); leaflet?.invalidateSize(); }
@@ -1184,7 +1187,7 @@ function abrirHojaSpot(spot) {
 
 async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
-  view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map3d" hidden></div><div id="map-capas" class="mapa-ui"></div><div id="map-capas-3d" class="mapa-ui"></div><button type="button" id="btn-3d" class="mapa-3d" aria-pressed="false" aria-label="Cambiar entre mapa plano y relieve en 3D">3D</button></div>';
+  view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map3d" hidden></div><div id="map-capas" class="mapa-ui"></div><div id="map-capas-3d" class="mapa-ui"></div><button type="button" id="btn-3d" class="mapa-3d" aria-pressed="false" aria-label="Cambiar entre mapa plano y relieve en 3D">3D</button><button type="button" id="btn-base" class="mapa-3d mapa-base" aria-pressed="false" aria-label="Cambiar entre mapa de calles y satélite" hidden>Sat</button></div>';
   if (!window.L) {
     await new Promise((res) => {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l);
@@ -1232,6 +1235,7 @@ async function renderMap() {
   capasMapa = iniciarCapas(motorLeaflet(leaflet, L), $('#map-capas'));
   leaflet.on('click', cerrarHojaSpot);
   $('#btn-3d').addEventListener('click', (e) => alternar3D(e.currentTarget));
+  $('#btn-base').addEventListener('click', () => mapa3d?.alternarBase());
   // Por defecto, relieve en 3D (si el móvil lo soporta); el botón 2D vuelve al mapa plano.
   if (hayWebGL()) alternar3D($('#btn-3d'), { silencioso: true });
   setTimeout(() => { leaflet.invalidateSize(); leaflet.fitBounds(bounds, { padding: [60, 60] }); }, 50);

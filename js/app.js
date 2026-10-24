@@ -1464,20 +1464,20 @@ function renderCams() {
     renderCams();
   }));
 
-  // Varias cámaras a la vez (con tope), y se paran solas las que salen de la pantalla.
-  view.querySelectorAll('[data-camspot]').forEach((el) => el.addEventListener('click', () => reproducirCamCard(el)));
+  // Auto-play al entrar en pantalla, pausa al salir. Sin necesidad de tocar.
   if ('IntersectionObserver' in window) {
     const timers = new WeakMap();
     camObs = new IntersectionObserver((entradas) => {
       entradas.forEach(({ target, isIntersecting }) => {
         clearTimeout(timers.get(target));
         if (isIntersecting) {
-          if (target.dataset.pausada) { delete target.dataset.pausada; reproducirCamCard(target); }
+          delete target.dataset.pausada;
+          reproducirCamCard(target); // arranca sola si hay hueco (respeta el tope por dispositivo)
         } else if (!target.querySelector('.cam-placeholder')) {
           timers.set(target, setTimeout(() => { target.dataset.pausada = '1'; pararCamCard(target); }, 4000));
         }
       });
-    }, { rootMargin: '120px 0px' });
+    }, { threshold: 0.25 }); // arranca cuando al menos el 25 % de la tarjeta es visible
     view.querySelectorAll('[data-camspot]').forEach((el) => camObs.observe(el));
   }
 }

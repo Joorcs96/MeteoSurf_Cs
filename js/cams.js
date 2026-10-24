@@ -161,9 +161,40 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     Object.assign(v, { muted: true, autoplay, playsInline: true, controls: true, crossOrigin: 'anonymous' });
     v.setAttribute('playsinline', '');
     el.appendChild(v);
+
+    // MEJ-05: Badge de estado en directo / búfer / sin señal
+    const badge = document.createElement('span');
+    badge.className = 'cam-badge cam-badge-buffer';
+    badge.textContent = '● Búfer';
+    el.appendChild(badge);
+
+    const setBadge = (tipo, texto) => {
+      badge.className = `cam-badge cam-badge-${tipo} ${tipo}`;
+      badge.textContent = texto;
+    };
+
+    let haReproducido = false;
+    let signalTimer = setTimeout(() => {
+      if (!haReproducido && sessions.get(el) === session) {
+        setBadge('sin-senal', '● Sin señal');
+      }
+    }, 8000);
+
+    const onPlaying = () => {
+      haReproducido = true;
+      clearTimeout(signalTimer);
+      setBadge('directo', '● En directo');
+    };
+    const onWaiting = () => {
+      setBadge('buffer', '● Búfer');
+    };
+
+    v.addEventListener('playing', onPlaying);
+    v.addEventListener('waiting', onWaiting);
+    v.addEventListener('stalled', onWaiting);
     let hls = null;
-    const fail = () => { if (sessions.get(el) !== session) return; stopCam(el); msg(el, 'Cámara sin señal', 'La emisión no responde ahora mismo. Prueba otra cámara o vuelve en un rato.'); };
-    active.set(el, () => { hls?.destroy(); v.pause(); v.removeAttribute('src'); v.load(); });
+    const fail = () => { clearTimeout(signalTimer); setBadge('sin-senal', '● Sin señal'); if (sessions.get(el) !== session) return; stopCam(el); msg(el, 'Cámara sin señal', 'La emisión no responde ahora mismo. Prueba otra cámara o vuelve en un rato.'); };
+    active.set(el, () => { clearTimeout(signalTimer); v.removeEventListener('playing', onPlaying); v.removeEventListener('waiting', onWaiting); v.removeEventListener('stalled', onWaiting); hls?.destroy(); v.pause(); v.removeAttribute('src'); v.load(); });
     if (isApple() && v.canPlayType('application/vnd.apple.mpegurl')) {
       v.src = fuente;
       v.addEventListener('error', fail, { once: true });

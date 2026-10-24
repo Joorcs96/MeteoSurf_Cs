@@ -173,7 +173,8 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
         if (sessions.get(el) !== session || !el.isConnected) return;
         if (!Hls.isSupported()) { v.src = fuente; }
         else {
-          hls = new Hls({ lowLatencyMode: true, backBufferLength: 30 });
+          // Varias cámaras a la vez: poco búfer atrás y adelante, y nunca más resolución de la que cabe en el recuadro.
+          hls = new Hls({ lowLatencyMode: true, backBufferLength: 6, maxBufferLength: 10, maxMaxBufferLength: 20, capLevelToPlayerSize: true });
           hls.loadSource(fuente);
           hls.attachMedia(v);
           hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fail(); });

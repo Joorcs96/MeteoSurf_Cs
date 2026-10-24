@@ -154,6 +154,7 @@ function route() {
   if (page !== 'spot') state.spotId = null;
   document.body.classList.toggle('vista-mapa', page === 'mapa');
   document.body.classList.toggle('vista-home', !page || page === 'favoritos');
+  document.body.classList.toggle('vista-camaras', page === 'camaras');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
   renderQuickSpots();
   const savedClip = $('#save-clip');
@@ -1329,8 +1330,85 @@ async function renderMap() {
 
 // ---------- Todas las camaras ----------
 let camZone = 'all';
+let camVista = 'rejilla';          // 'rejilla' | 'comparar'
+let camSel = [];                   // spots marcados para comparar (máx. 2)
+let camObs = null;                 // observador que para las cámaras que salen de pantalla
+const camsActivas = [];            // contenedores que están reproduciendo, de más antiguo a más nuevo
+const maxCamsA_la_vez = () => {
+  const c = navigator.connection;
+  if (c?.saveData) return 1;
+  return window.matchMedia('(max-width: 800px)').matches ? 3 : 4;
+};
+
+function pararCamCard(el) {
+  stopCam(el);
+  if (el.dataset.ph) { el.innerHTML = el.dataset.ph; delete el.dataset.ph; }
+  const i = camsActivas.indexOf(el);
+  if (i >= 0) camsActivas.splice(i, 1);
+}
+function reproducirCamCard(el) {
+  const placeholder = el.querySelector('.cam-placeholder');
+  if (!placeholder) return; // ya reproduciendo
+  // Se pueden ver varias a la vez, pero con tope para no ahogar el móvil: sale la más antigua.
+  while (camsActivas.length >= maxCamsA_la_vez()) pararCamCard(camsActivas[0]);
+  el.dataset.ph = el.innerHTML;
+  placeholder.remove();
+  camsActivas.push(el);
+  const spot = SPOTS.find((s) => s.id === el.dataset.camspot);
+  playCam(el, camsForSpot(spot)[el.dataset.camidx ? +el.dataset.camidx : 0]);
+}
+
+function camInfo(s) {
+  const f = state.fc?.spots[s.id];
+  const h = f ? f.hours[nowIndex(f.hours)] : null;
+  return h ? `<span class="cam-card-height num">${range(h.surf)}<small> m</small></span><span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span><span class="cam-card-wind">${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h ' : ''}${esc(h.wind?.label ?? '')}</span>` : '';
+}
+
+// Comparar dos cámaras a la vez, cada una de un spot distinto.
+function renderCamsComparar() {
+  const conCam = ordered().filter((s) => camsForSpot(s).length > 0);
+  if (camSel.length < 2) camSel = [...camSel, ...conCam.map((s) => s.id).filter((id) => !camSel.includes(id))].slice(0, 2);
+  const opciones = (sel) => conCam.map((s) => `<option value="${esc(s.id)}" ${s.id === sel ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+  const hueco = (i) => {
+    const s = SPOTS.find((x) => x.id === camSel[i]);
+    const lista = camsForSpot(s);
+    return `<div class="cmp-slot" data-slot="${i}">
+      <div class="cmp-top">
+        <select class="cmp-sel" data-sel="${i}" aria-label="Spot ${i + 1}">${opciones(s.id)}</select>
+        <span class="cmp-info">${camInfo(s)}</span>
+      </div>
+      <div class="cam cmp-cam" data-cmpcam="${i}"></div>
+      ${lista.length > 1 ? `<div class="cam-switch">${lista.map((c, k) => `<button data-cmpsw="${i}:${k}" class="${k === 0 ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
+      <a class="cam-forecast-link" href="#/spot/${encodeURIComponent(s.id)}">Ver previsión de ${esc(s.name)}</a>
+    </div>`;
+  };
+  view.innerHTML = `
+    <div class="region-head"><div><h1>Comparar cámaras</h1><p>Elige dos spots y míralos a la vez</p></div></div>
+    <div class="cmp-barra"><button class="chip btn" data-camvista="rejilla">← Todas las cámaras</button><button class="chip btn" id="cmp-swap" aria-label="Intercambiar">⇄ Intercambiar</button></div>
+    <div class="cmp-grid">${hueco(0)}${hueco(1)}</div>${footer()}`;
+  const poner = (i, k = 0) => {
+    const el = view.querySelector(`[data-cmpcam="${i}"]`);
+    const s = SPOTS.find((x) => x.id === camSel[i]);
+    playCam(el, camsForSpot(s)[k]);
+  };
+  poner(0); poner(1);
+  view.querySelectorAll('[data-sel]').forEach((sel) => sel.addEventListener('change', () => {
+    camSel[+sel.dataset.sel] = sel.value; renderCamsComparar();
+  }));
+  view.querySelectorAll('[data-cmpsw]').forEach((b) => b.addEventListener('click', () => {
+    const [i, k] = b.dataset.cmpsw.split(':').map(Number);
+    b.parentElement.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    poner(i, k);
+  }));
+  view.querySelector('#cmp-swap').addEventListener('click', () => { camSel = [camSel[1], camSel[0]]; renderCamsComparar(); });
+  view.querySelector('[data-camvista]').addEventListener('click', () => { camVista = 'rejilla'; renderCams(); });
+}
+
 function renderCams() {
   document.title = 'Cámaras · MeteoSurf_Cs';
+  camObs?.disconnect(); camObs = null;
+  camsActivas.length = 0;
+  if (camVista === 'comparar') { renderCamsComparar(); return; }
   const zones = [['all', 'Todas'], ...ZONES.map((z) => [z.id, z.name])];
   const allWithCams = ordered()
     .map((s) => ({ s, cams: camsForSpot(s) }))
@@ -1340,26 +1418,22 @@ function renderCams() {
   const PLAY_SVG = '<svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m10 7 7 5-7 5z"/></svg>';
 
   view.innerHTML = `
-    <div class="region-head"><div><h1>Cámaras en directo</h1>
-      <p>${allWithCams.length} spots con cámara</p></div></div>
+    <div class="region-head cams-head"><div><h1>Cámaras en directo</h1>
+      <p>${allWithCams.length} spots con cámara · puedes ver varias a la vez</p></div>
+      <button class="chip btn on cmp-abrir" data-camvista="comparar">Comparar dos</button></div>
     <div class="chips" role="tablist" style="margin-bottom:14px">
       ${zones.map(([id, n]) => `<button class="chip btn ${camZone === id ? 'on' : ''}" data-camzone="${id}">${n}</button>`).join('')}
     </div>
     <div class="cam-grid">
       ${filtered.length ? filtered.map(({ s, cams }) => {
         const c = cams[0];
-        const f = state.fc?.spots[s.id];
-        const h = f ? f.hours[nowIndex(f.hours)] : null;
         return `<div class="cam-card">
           <div class="cam-card-head">
             <div class="cam-card-spot">
               <div class="cam-card-name">${esc(s.name)}</div>
               <div class="cam-card-zone">${esc(s.zoneName)}</div>
             </div>
-            ${h ? `<div class="cam-card-surf">
-              <span class="cam-card-height num">${range(h.surf)}<small> m</small></span>
-              <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span>
-            </div>` : ''}
+            <div class="cam-card-surf">${camInfo(s)}</div>
           </div>
           <div class="cam cam-card-video" data-camspot="${esc(s.id)}">
             <button class="cam-placeholder" aria-label="Reproducir cámara de ${esc(s.name)}">
@@ -1372,32 +1446,58 @@ function renderCams() {
           </div>
           <div class="cam-card-footer">
             <a href="#/spot/${encodeURIComponent(s.id)}" class="cam-forecast-link">Ver previsión</a>
-            <span class="faint" style="font-size:12px;font-weight:600">${esc(c.credit || '')}</span>
+            <button class="cmp-add ${camSel.includes(s.id) ? 'on' : ''}" data-cmpadd="${esc(s.id)}" aria-pressed="${camSel.includes(s.id)}">${camSel.includes(s.id) ? '✓ Para comparar' : '+ Comparar'}</button>
           </div>
         </div>`;
       }).join('') : `<div class="card pad muted">No hay cámaras en esta zona.</div>`}
-    </div>${footer()}`;
+    </div>
+    <div class="cmp-bandeja" hidden><span></span><button class="chip btn on" data-camvista="comparar">Comparar</button></div>${footer()}`;
+
+  const bandeja = view.querySelector('.cmp-bandeja');
+  const pintarBandeja = () => {
+    bandeja.hidden = camSel.length === 0;
+    const nombres = camSel.map((id) => SPOTS.find((s) => s.id === id)?.name).filter(Boolean);
+    bandeja.querySelector('span').textContent = camSel.length === 2 ? nombres.join(' + ') : `${nombres[0] || ''} · elige otra cámara`;
+    bandeja.querySelector('button').disabled = camSel.length < 2;
+  };
+  pintarBandeja();
+  view.querySelectorAll('[data-cmpadd]').forEach((b) => b.addEventListener('click', () => {
+    const id = b.dataset.cmpadd;
+    camSel = camSel.includes(id) ? camSel.filter((x) => x !== id) : [...camSel, id].slice(-2);
+    view.querySelectorAll('[data-cmpadd]').forEach((x) => {
+      const on = camSel.includes(x.dataset.cmpadd);
+      x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); x.textContent = on ? '✓ Para comparar' : '+ Comparar';
+    });
+    pintarBandeja();
+  }));
+  view.querySelectorAll('[data-camvista]').forEach((b) => b.addEventListener('click', () => {
+    view.querySelectorAll('[data-camspot]').forEach(pararCamCard);
+    camVista = b.dataset.camvista; renderCams();
+  }));
 
   // Chips de zona
   view.querySelectorAll('[data-camzone]').forEach((b) => b.addEventListener('click', () => {
-    view.querySelectorAll('[data-camspot]').forEach(stopCam);
+    view.querySelectorAll('[data-camspot]').forEach(pararCamCard);
     camZone = b.dataset.camzone;
     renderCams();
   }));
 
-  // Una sola camara activa a la vez
-  view.querySelectorAll('[data-camspot]').forEach((el) => el.addEventListener('click', () => {
-    const placeholder = el.querySelector('.cam-placeholder');
-    if (!placeholder) return; // ya reproduciendo
-    // Parar las demás y devolverles su portada para poder volver a reproducirlas
-    view.querySelectorAll('[data-camspot]').forEach((other) => {
-      if (other !== el && other.dataset.ph) { stopCam(other); other.innerHTML = other.dataset.ph; delete other.dataset.ph; }
-    });
-    el.dataset.ph = el.innerHTML;
-    placeholder.remove();
-    const spot = SPOTS.find((s) => s.id === el.dataset.camspot);
-    playCam(el, camsForSpot(spot)[0]);
-  }));
+  // Varias cámaras a la vez (con tope), y se paran solas las que salen de la pantalla.
+  view.querySelectorAll('[data-camspot]').forEach((el) => el.addEventListener('click', () => reproducirCamCard(el)));
+  if ('IntersectionObserver' in window) {
+    const timers = new WeakMap();
+    camObs = new IntersectionObserver((entradas) => {
+      entradas.forEach(({ target, isIntersecting }) => {
+        clearTimeout(timers.get(target));
+        if (isIntersecting) {
+          if (target.dataset.pausada) { delete target.dataset.pausada; reproducirCamCard(target); }
+        } else if (!target.querySelector('.cam-placeholder')) {
+          timers.set(target, setTimeout(() => { target.dataset.pausada = '1'; pararCamCard(target); }, 4000));
+        }
+      });
+    }, { rootMargin: '120px 0px' });
+    view.querySelectorAll('[data-camspot]').forEach((el) => camObs.observe(el));
+  }
 }
 
 function footer() {

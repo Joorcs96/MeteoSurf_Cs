@@ -4,7 +4,7 @@
 // tenían la PWA instalada borran la suya vieja en `activate` y se quedan con
 // esta. Va por encima de la v17 de `main` (que ya existe) para que, al integrar
 // las dos ramas, el número nunca baje y nadie se quede con un shell viejo.
-const CACHE = 'meteosurf-cs-v30-fotos-camara';
+const CACHE = 'meteosurf-cs-v31-camaras';
 // `deteccion.js` y `detector-ia.js` también entran: los importa `cams.js`, y si
 // no están en la lista, a quien ya tenía la PWA instalada le falla la vigía sin
 // red aunque el resto de la app esté en caché.

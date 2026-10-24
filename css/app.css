@@ -404,3 +404,26 @@ body.vista-home .section-title { margin:10px 0 0; }
 .sc-fav.on { color:#ffd23f; }
 @media(min-width:800px) { .spot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; } .sc-link { min-height:190px; } }
 @media(min-width:1100px) { .spot-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+
+/* ---- Cámaras: varias a la vez y comparar ---- */
+.cams-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.cmp-abrir { flex:none; }
+.cam-card-wind { font-size:11px; color:var(--text-2); }
+.cam-card-surf { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.cmp-add { min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--text); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+.cmp-add.on { background:var(--text); color:var(--bg); border-color:var(--text); }
+.cmp-bandeja { position:fixed; z-index:900; left:max(10px,var(--safe-l)); right:max(10px,var(--safe-r)); bottom:calc(60px + var(--safe-b) + 10px); max-width:520px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 8px 8px 16px; border:1px solid var(--line); border-radius:999px; background:color-mix(in srgb,var(--surface) 94%,transparent); backdrop-filter:blur(10px); box-shadow:0 4px 18px rgba(10,15,20,.3); font-size:13px; font-weight:700; }
+.cmp-bandeja[hidden] { display:none; }
+.cmp-bandeja button:disabled { opacity:.45; }
+.cmp-barra { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.cmp-grid { display:grid; grid-template-columns:1fr; gap:14px; }
+.cmp-slot { min-width:0; }
+.cmp-top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+.cmp-sel { flex:1; min-width:0; min-height:44px; padding:0 10px; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--text); font:inherit; font-size:16px; font-weight:700; }
+.cmp-info { display:flex; flex-direction:column; align-items:flex-end; gap:2px; flex:none; }
+.cmp-info .cam-card-height { font-size:22px; font-weight:800; letter-spacing:-.5px; }
+.cmp-cam { aspect-ratio:16/9; }
+.cmp-slot .cam-forecast-link { display:inline-block; margin-top:6px; font-size:13px; }
+@media(min-width:800px) { .cmp-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:799px) and (orientation:landscape) { .cmp-grid { grid-template-columns:1fr 1fr; } }
+body.vista-camaras .quick-spots { display:none; }

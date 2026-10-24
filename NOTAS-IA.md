@@ -138,3 +138,60 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - [VERIFICADO] Pruebas: python -m unittest scripts.test_historico_datos (5/5 tests OK: idempotencia dedup, esquemas, integridad historico_olas.csv original, apertura y escaneo de fórmulas de Excel, y calibración 09/10).
 - [VERIFICADO] Coste cero: scripts/archivar_historico.py --agregar-snapshot listo para ejecutarse en GitHub Actions tras realtime.py sin duplicar peticiones a Portus.
 
+
+## Ramas (auditoria 18/10/2026)
+
+[VERIFICADO] Inventario local mediante git for-each-ref, merge-base y rev-list; referencia origin/main = 
+907cc79e7e4fb502aa2a97cb822c0a5bd3f70652
+. Instantanea previa al commit de esta tabla.
+
+| Rama local | Integrada en origin/main | Commits sin integrar | Ultimo commit | Worktree |
+|---|---|---:|---|---|
+| Joorcs96/backend-avisos | si | 0 | 2026-10-18 17:23:08 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/backend-avisos |
+| Joorcs96/calibracion-prevision | si | 0 | 2026-10-05 00:53:34 +0200 |  |
+| Joorcs96/calibrar-sesion | si | 0 | 2026-10-10 04:08:43 +0200 |  |
+| Joorcs96/diseno-profesional | no | 4 | 2026-10-18 18:46:38 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/diseno-profesional |
+| Joorcs96/grabar-detectar | si | 0 | 2026-10-18 14:42:33 +0000 | C:/Users/Jordi/orca/workspaces/Surfline_CS/grabar-detectar |
+| Joorcs96/herramientas-diseno | no | 1 | 2026-10-16 00:06:16 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/herramientas-diseno |
+| Joorcs96/herramientas-pwa | no | 1 | 2026-10-18 17:45:36 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/herramientas-pwa |
+| Joorcs96/historico-datos | no | 3 | 2026-10-18 17:22:56 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/historico-datos |
+| Joorcs96/hud-terminator | no | 5 | 2026-09-30 06:23:15 +0000 | C:/Users/Jordi/orca/workspaces/Surfline_CS/hud-terminator |
+| Joorcs96/icono-pwa | si | 0 | 2026-10-18 17:23:08 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/icono-pwa |
+| Joorcs96/imagenes-clips | no | 5 | 2026-10-11 01:29:09 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/imagenes-clips |
+| Joorcs96/motor-alertas | si | 0 | 2026-10-18 17:23:08 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/motor-alertas |
+| Joorcs96/ms-audita-estrellas | no | 5 | 2026-10-05 09:40:47 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-audita-estrellas |
+| Joorcs96/ms-calibra | no | 5 | 2026-10-04 23:14:10 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-calibra |
+| Joorcs96/ms-corrige-estrellas | no | 1 | 2026-10-05 09:42:38 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-corrige-estrellas |
+| Joorcs96/ms-ficha | si | 0 | 2026-09-28 00:10:24 +0200 |  |
+| Joorcs96/ms-fisica | no | 4 | 2026-09-29 06:22:25 +0000 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-fisica |
+| Joorcs96/ms-investiga-datos | no | 1 | 2026-10-03 15:40:00 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-investiga-datos |
+| Joorcs96/ms-investiga-fisica | no | 1 | 2026-10-03 15:39:33 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-investiga-fisica |
+| Joorcs96/ms-realtime-reviewed | si | 0 | 2026-09-30 01:05:11 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-realtime-ui |
+| Joorcs96/ms-realtime-ui | no | 4 | 2026-09-29 06:22:25 +0000 |  |
+| Joorcs96/ms-rewinds | no | 4 | 2026-10-01 01:16:02 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-rewinds |
+| Joorcs96/ms-rewinds-ui | no | 5 | 2026-10-01 01:28:16 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-rewinds-ui |
+| Joorcs96/ms-tabla | si | 0 | 2026-09-28 00:04:36 +0200 |  |
+| Joorcs96/ms-verifica-fuentes | no | 3 | 2026-10-03 16:52:55 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-verifica-fuentes |
+| Joorcs96/nowcast-boya | no | 1 | 2026-10-18 17:02:37 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/calibracion-prevision |
+| Joorcs96/panel-avisos | si | 0 | 2026-10-18 17:23:08 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/panel-avisos |
+| Joorcs96/redisenar-main | si | 0 | 2026-10-04 23:53:20 +0200 |  |
+| Joorcs96/redisenar-web | no | 11 | 2026-10-04 23:22:20 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/redisenar-web |
+| Joorcs96/rediseno-surfline | si | 0 | 2026-10-06 09:10:32 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/rediseno-surfline |
+| Joorcs96/reparar-surfers | no | 9 | 2026-10-18 19:13:21 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/reparar-surfers |
+| Joorcs96/vigilante-camaras | si | 0 | 2026-10-18 18:45:34 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/vigilante-camaras |
+| Joorcs96/webcams-rapidas | no | 1 | 2026-10-18 17:54:37 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/webcams-rapidas |
+| actualizacion-v2 | no | 13 | 2026-09-25 01:15:33 +0200 |  |
+| anadir-oropesa-concha | si | 0 | 2026-10-18 19:56:47 +0200 | C:/Users/Jordi/orca/Surfline_CS |
+| backup-diseno-profesional-b63461b | no | 3 | 2026-10-16 00:21:39 +0200 |  |
+| backup-ms-corrige-estrellas-89c1d42 | no | 1 | 2026-10-03 16:04:32 +0200 |  |
+| backup-webcams-rapidas-20261018 | no | 5 | 2026-09-30 06:23:15 +0000 |  |
+| camara-surfers-castellon | si | 0 | 2026-10-10 14:29:09 +0200 |  |
+| corregir-prevision | si | 0 | 2026-10-06 09:10:32 +0200 |  |
+| desarrollo-web-surf | si | 0 | 2026-09-25 11:56:43 +0200 |  |
+| docs-auditoria-ramas | si | 0 | 2026-10-18 20:34:26 +0000 | C:/Users/Jordi/orca/workspaces/Surfline_CS/docs-auditoria-ramas |
+| fix-gaps | no | 1 | 2026-09-28 00:14:20 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-ficha |
+| fix-gaps-3-4-11-13-14 | no | 1 | 2026-09-28 00:12:09 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-tabla |
+| main | si | 0 | 2026-10-18 18:45:34 +0200 |  |
+| meteosurf-v2 | si | 0 | 2026-09-27 23:36:04 +0200 |  |
+| mralcachofino-base | no | 12 | 2026-08-28 19:25:05 +0200 |  |
+| seguridad-csp | si | 0 | 2026-10-04 23:53:20 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/redisenar-main |

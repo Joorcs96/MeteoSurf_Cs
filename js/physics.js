@@ -294,7 +294,11 @@ FACTOR.Piramides = FACTOR.Gurugu;
 // grande del NNE-NE el trazado de rayos da 0 porque la punta tapa la costa, pero en la realidad el
 // tren entra rodeando la punta, ordenado y más pequeño. Factor mínimo por dirección (cada 10°).
 const PISO_DIFRACCION = {
-  Voramar: { 20: 0.25, 30: 0.35, 40: 0.45, 50: 0.55, 60: 0.55, 70: 0.55, 80: 0.55 }
+  Voramar: { 20: 0.25, 30: 0.35, 40: 0.45, 50: 0.55, 60: 0.55, 70: 0.55, 80: 0.55 },
+  MorroGos: { 20: 0.3, 30: 0.45, 40: 0.6, 50: 0.65, 60: 0.7, 70: 0.7 },
+  Renega: { 30: 0.3, 40: 0.45, 50: 0.55, 60: 0.6, 70: 0.6 },
+  Palaciet: { 30: 0.3, 40: 0.45, 50: 0.55, 60: 0.55 },
+  Heliopolis: { 40: 0.45, 50: 0.55, 60: 0.6 }
 };
 
 export const SPOTS_CON_FISICA = Object.keys(FACTOR);

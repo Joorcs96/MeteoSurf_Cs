@@ -1096,7 +1096,7 @@ async function renderMap() {
     const f = state.fc?.spots[s.id];
     const h = f ? f.hours[nowIndex(f.hours)] : null;
     bounds.push([s.lat, s.lon]);
-    const html = `<div class="map-pin ${h ? ratingCls(h.rating) : ''}"><span class="dot"></span><span class="lbl"><b>${esc(s.name)}</b>${h ? ' ' + range(h.surf) + ' m' : ''}</span></div>`;
+    const html = `<div class="map-pin ${h ? ratingCls(h.rating) : ''}"><span class="dot"></span><span class="lbl"><b>${esc(s.name)}</b>${h ? '<i>' + range(h.surf) + ' m</i>' : ''}</span></div>`;
     const mk = L.marker([s.lat, s.lon], { icon: L.divIcon({ html, className: '', iconSize: [44, 44], iconAnchor: [22, 22] }), title: s.name }).addTo(leaflet);
     mk.on('click', () => { location.hash = `#/spot/${encodeURIComponent(s.id)}`; });
     // Cuña que indica hacia dónde mira la playa y su ventana de mar
@@ -1114,7 +1114,7 @@ async function renderMap() {
     L.polyline([[s.lat, s.lon], [s.lat + 0.016 * Math.cos(s.facing * Math.PI / 180), s.lon + 0.016 * Math.sin(s.facing * Math.PI / 180) / cosLat]], { color: '#fff', weight: 2, interactive: false }).addTo(leaflet);
   });
   leaflet.fitBounds(bounds, { padding: [30, 30] });
-  const syncLabels = () => document.getElementById('map')?.classList.toggle('show-labels', leaflet.getZoom() >= 11);
+  const syncLabels = () => document.getElementById('map')?.classList.toggle('show-labels', leaflet.getZoom() >= 10);
   leaflet.on('zoomend', syncLabels); syncLabels();
   capasMapa = iniciarCapas(leaflet, $('#map-capas'), { L });
   setTimeout(() => leaflet.invalidateSize(), 50);

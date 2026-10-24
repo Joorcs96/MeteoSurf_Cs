@@ -152,6 +152,7 @@ function route() {
   const h = location.hash.replace(/^#\/?/, '');
   const [page, arg] = h.split('/');
   if (page !== 'spot') state.spotId = null;
+  document.body.classList.toggle('vista-mapa', page === 'mapa');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
   renderQuickSpots();
   const savedClip = $('#save-clip');
@@ -1076,7 +1077,7 @@ let leaflet = null;
 let capasMapa = null;
 async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
-  view.innerHTML = '<div class="region-head"><h1>Mapa de spots</h1><p>Toca un punto para consultar su previsión. Con las capas ves viento, oleaje, periodo, temperatura del mar y presión, y al tocar el mar, el tiempo de ese punto.</p></div><div id="map-capas"></div><div id="map"></div>';
+  view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map-capas" class="mapa-ui"></div></div>';
   if (!window.L) {
     await new Promise((res) => {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l);
@@ -1085,12 +1086,14 @@ async function renderMap() {
   }
   capasMapa?.destruir(); capasMapa = null;
   leaflet?.remove();
-  leaflet = L.map('map', { zoomControl: true });
+  leaflet = L.map('map', { zoomControl: false });
+  L.control.zoom({ position: 'topright', zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(leaflet);
   const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
   const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagen © Esri', maxZoom: 19 });
   osm.addTo(leaflet);
   leaflet.attributionControl.setPrefix('Leaflet');
   L.control.layers({ 'Satélite': sat, 'Mapa': osm }, null, { position: 'topright' }).addTo(leaflet);
+  leaflet.attributionControl.setPosition('bottomleft');
   const bounds = [];
   SPOTS.forEach((s) => {
     const f = state.fc?.spots[s.id];
@@ -1117,7 +1120,7 @@ async function renderMap() {
   const syncLabels = () => document.getElementById('map')?.classList.toggle('show-labels', leaflet.getZoom() >= 10);
   leaflet.on('zoomend', syncLabels); syncLabels();
   capasMapa = iniciarCapas(leaflet, $('#map-capas'), { L });
-  setTimeout(() => leaflet.invalidateSize(), 50);
+  setTimeout(() => { leaflet.invalidateSize(); leaflet.fitBounds(bounds, { padding: [60, 60] }); }, 50);
 }
 
 // ---------- Todas las camaras ----------

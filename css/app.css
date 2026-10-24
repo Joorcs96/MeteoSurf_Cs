@@ -203,18 +203,34 @@ summary { min-height:48px; padding:14px 0; cursor:pointer; font-size:14px; font-
 .btn-evidence.on { border-color: #00a3c4; color: #00a3c4; }
 .evidence-status { font-size: 11px; color: var(--text-2); margin-top: 6px; min-height: 16px; }
 
-/* Capas del mapa (viento, oleaje…) */
-.capas-barra { display:flex; gap:6px; overflow-x:auto; padding:8px 0; }
-.capas-barra button { flex:none; min-height:44px; padding:0 14px; border:1px solid var(--line); background:var(--surface); color:var(--text); font:inherit; font-size:14px; cursor:pointer; }
+/* Mapa a pantalla completa */
+body.vista-mapa .quick-spots, body.vista-mapa .history-download { display:none; }
+body.vista-mapa .topbar { display:none; }
+body.vista-mapa #view { position:fixed; z-index:1; top:0; left:0; right:0; bottom:calc(60px + env(safe-area-inset-bottom)); max-width:none; margin:0; padding:0; min-height:0; }
+@media(min-width:800px) { body.vista-mapa .topbar { display:flex; } body.vista-mapa #view { top:64px; } }
+.mapa-full { position:relative; width:100%; height:100%; }
+.mapa-full #map { position:absolute; inset:0; height:100%; min-height:0; }
+.mapa-ui { position:absolute; inset:0; z-index:500; pointer-events:none; }
+.mapa-ui > * { pointer-events:auto; }
+.mapa-full .leaflet-top.leaflet-right { top:58px; }
+.mapa-full .leaflet-bar { border:0; box-shadow:0 2px 10px rgba(10,15,20,.3); border-radius:12px; overflow:hidden; }
+.mapa-full .leaflet-bar a, .mapa-full .leaflet-control-layers-toggle { width:44px; height:44px; line-height:44px; }
+.mapa-full .leaflet-control-layers { border:0; border-radius:12px; box-shadow:0 2px 10px rgba(10,15,20,.3); }
+.mapa-full .leaflet-bottom.leaflet-left { margin-bottom:0; }
+.capas-barra { position:absolute; top:max(10px,env(safe-area-inset-top)); left:10px; right:10px; display:flex; gap:6px; overflow-x:auto; padding:2px 2px 6px; scrollbar-width:none; }
+.capas-barra::-webkit-scrollbar { display:none; }
+.capas-barra button { flex:none; min-height:40px; padding:0 14px; border:1px solid color-mix(in srgb,var(--line) 70%,transparent); border-radius:999px; background:color-mix(in srgb,var(--surface) 90%,transparent); backdrop-filter:blur(8px); color:var(--text); font:inherit; font-size:13px; font-weight:600; box-shadow:0 2px 8px rgba(10,15,20,.25); cursor:pointer; }
 .capas-barra button.on { background:var(--text); color:var(--bg); border-color:var(--text); }
-.capas-hora { display:flex; align-items:center; gap:10px; padding:4px 0 8px; }
-.capas-hora input { flex:1; min-width:0; }
-.capas-hora output { min-width:92px; font-size:13px; text-align:right; font-variant-numeric:tabular-nums; }
-.capas-play { width:44px; height:44px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-size:16px; cursor:pointer; }
-.capas-leyenda { display:flex; align-items:center; font-size:11px; margin-bottom:6px; }
-.capas-leyenda span { padding:2px 8px; color:#0a0f14; min-width:34px; text-align:center; }
-.capas-leyenda span:first-child { color:var(--text-2); padding-left:0; }
-.capas-estado { margin:0 0 6px; font-size:13px; }
+.capas-abajo { position:absolute; left:10px; right:10px; bottom:12px; max-width:560px; margin:0 auto; padding:10px 12px 12px; border:1px solid color-mix(in srgb,var(--line) 70%,transparent); border-radius:16px; background:color-mix(in srgb,var(--surface) 92%,transparent); backdrop-filter:blur(10px); box-shadow:0 4px 18px rgba(10,15,20,.32); }
+.capas-abajo[hidden] { display:none; }
+.capas-hora { display:flex; align-items:center; gap:10px; }
+.capas-hora input { flex:1; min-width:0; accent-color:var(--text); }
+.capas-hora output { min-width:86px; font-size:13px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
+.capas-play { flex:none; width:40px; height:40px; border:0; border-radius:50%; background:var(--text); color:var(--bg); font-size:14px; cursor:pointer; }
+.capas-leyenda { display:flex; align-items:center; margin-top:8px; font-size:11px; font-weight:600; border-radius:6px; overflow:hidden; }
+.capas-leyenda span { flex:1; padding:3px 0; color:#0a0f14; text-align:center; }
+.capas-leyenda span:first-child { flex:none; padding:3px 8px; color:var(--text-2); background:transparent; }
+.capas-estado { margin:8px 0 0; font-size:13px; color:var(--text-2); }
 .capa-punto { display:flex; flex-direction:column; align-items:center; justify-content:center; width:40px; height:40px; pointer-events:none; }
 .capa-punto b { font-size:11px; line-height:1; text-shadow:0 0 3px #0a0f14, 0 0 3px #0a0f14; }
 .capas-canvas { position:absolute; inset:0; z-index:450; pointer-events:none; }

@@ -113,14 +113,17 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
       <button type="button" data-capa="" class="on">Spots</button>
       ${Object.entries(CAPAS).map(([k, c]) => `<button type="button" data-capa="${k}">${c.nombre}</button>`).join('')}
     </div>
-    <div class="capas-hora" hidden>
-      <button type="button" class="capas-play" aria-label="Reproducir">▶</button>
-      <input type="range" min="0" max="${HORAS - 1}" value="0" aria-label="Hora de la previsión">
-      <output></output>
-    </div>
-    <div class="capas-leyenda" hidden></div>
-    <p class="capas-estado muted" hidden></p>`;
+    <div class="capas-abajo" hidden>
+      <div class="capas-hora">
+        <button type="button" class="capas-play" aria-label="Reproducir">▶</button>
+        <input type="range" min="0" max="${HORAS - 1}" value="0" aria-label="Hora de la previsión">
+        <output></output>
+      </div>
+      <div class="capas-leyenda"></div>
+      <p class="capas-estado" hidden></p>
+    </div>`;
   const barra = host.querySelector('.capas-barra');
+  const abajo = host.querySelector('.capas-abajo');
   const bloqueHora = host.querySelector('.capas-hora');
   const slider = bloqueHora.querySelector('input');
   const salida = bloqueHora.querySelector('output');
@@ -134,9 +137,8 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
   };
 
   function pintarLeyenda() {
-    if (!capa) { leyenda.hidden = true; return; }
+    if (!capa) return;
     const c = CAPAS[capa];
-    leyenda.hidden = false;
     leyenda.innerHTML = `<span>${c.unidad}</span>` + c.paradas.map(([v, col]) => `<span style="background:${col}">${v}</span>`).join('');
   }
 
@@ -219,8 +221,8 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
     barra.querySelectorAll('button').forEach((b) => b.classList.toggle('on', (b.dataset.capa || null) === capa));
     pintarLeyenda();
     parar();
-    if (!capa) { bloqueHora.hidden = true; estado.hidden = true; grupo.clearLayers(); pararParticulas(); return; }
-    bloqueHora.hidden = false;
+    abajo.hidden = !capa;
+    if (!capa) { estado.hidden = true; grupo.clearLayers(); pararParticulas(); return; }
     if (!datos) {
       estado.hidden = false; estado.textContent = 'Cargando la previsión de la malla…';
       try {

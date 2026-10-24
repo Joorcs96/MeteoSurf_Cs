@@ -5,6 +5,7 @@ import { compassSVG, dirArrow } from './compass.js';
 import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordClip, estadoStream, iniciarVigiaOla, vigias } from './cams.js';
 import { aplicarNowcast } from './nowcast.js';
 import { iniciarCapas, motorLeaflet } from './mapa-capas.js';
+import { puntosSector, puntoEnRumbo, LARGO_FLECHA } from './orientaciones-mapa.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -1303,18 +1304,10 @@ async function renderMap() {
     const mk = L.marker([s.lat, s.lon], { icon: L.divIcon({ html, className: '', iconSize: [44, 44], iconAnchor: [22, 22] }), title: s.name }).addTo(leaflet);
     mk.on('click', () => abrirHojaSpot(s));
     // Cuña que indica hacia dónde mira la playa y su ventana de mar
-    const cosLat = Math.cos(s.lat * Math.PI / 180);
-    const wedge = (from, to, d) => {
-      const pts = [[s.lat, s.lon]];
-      const span = norm360(to - from) || 360;
-      for (let k = 0; k <= 12; k++) {
-        const r = (from + (span * k) / 12) * Math.PI / 180;
-        pts.push([s.lat + d * Math.cos(r), s.lon + (d * Math.sin(r)) / cosLat]);
-      }
-      return pts;
-    };
-    L.polygon(wedge(s.swellWindow[0], s.swellWindow[1], 0.012), { color: '#677680', weight: 1, fillOpacity: 0.12, interactive: false }).addTo(leaflet);
-    L.polyline([[s.lat, s.lon], [s.lat + 0.016 * Math.cos(s.facing * Math.PI / 180), s.lon + 0.016 * Math.sin(s.facing * Math.PI / 180) / cosLat]], { color: '#fff', weight: 2, interactive: false }).addTo(leaflet);
+    const sector = puntosSector(s).map((p) => [p.lat, p.lon]);
+    const finFlecha = puntoEnRumbo(s.lat, s.lon, s.facing, LARGO_FLECHA);
+    L.polygon(sector, { color: '#677680', weight: 1, fillOpacity: 0.12, interactive: false }).addTo(leaflet);
+    L.polyline([[s.lat, s.lon], [finFlecha.lat, finFlecha.lon]], { color: '#fff', weight: 2, interactive: false }).addTo(leaflet);
   });
   leaflet.fitBounds(bounds, { padding: [30, 30] });
   const syncLabels = () => document.getElementById('map')?.classList.toggle('show-labels', leaflet.getZoom() >= 10);

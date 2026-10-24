@@ -5,6 +5,7 @@
 // puntos del mapa plano y al tocarlos se abre la misma ventana de previsión.
 
 import { FLECHA } from './mapa-capas.js';
+import { geometriaOrientacion } from './orientaciones-mapa.js';
 
 const VERSION = '4.7.1';
 const BASE = `https://cdn.jsdelivr.net/npm/maplibre-gl@${VERSION}/dist/`;
@@ -81,19 +82,23 @@ export async function crear3D(cont, spots, { pinHtml, onSpot, onBase }) {
   const etiquetas = () => cont.classList.toggle('show-labels', mapa.getZoom() >= 10);
   mapa.on('zoom', etiquetas); etiquetas();
 
-  // Línea de orientación de cada playa (hacia dónde mira).
+  // Mismo sector de mar útil y misma flecha que el mapa 2D.
   mapa.on('load', () => {
-    mapa.addSource('orientaciones', {
+    const orientaciones = spots.map(geometriaOrientacion);
+    mapa.addSource('sectores-mar', {
       type: 'geojson',
       data: {
         type: 'FeatureCollection',
-        features: spots.map((s) => {
-          const r = (s.facing * Math.PI) / 180, k = 0.012;
-          return { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[s.lon, s.lat], [s.lon + (k * Math.sin(r)) / Math.cos((s.lat * Math.PI) / 180), s.lat + k * Math.cos(r)]] } };
-        }),
+        features: orientaciones.map((o) => o.sector),
       },
     });
-    mapa.addLayer({ id: 'orientaciones', type: 'line', source: 'orientaciones', paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': 0.85 } });
+    mapa.addLayer({ id: 'sectores-mar-relleno', type: 'fill', source: 'sectores-mar', paint: { 'fill-color': '#67c9e8', 'fill-opacity': 0.18 } });
+    mapa.addLayer({ id: 'sectores-mar-borde', type: 'line', source: 'sectores-mar', paint: { 'line-color': '#8bdcf2', 'line-width': 1, 'line-opacity': 0.7 } });
+    mapa.addSource('flechas-orientacion', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: orientaciones.map((o) => o.eje) },
+    });
+    mapa.addLayer({ id: 'flechas-orientacion', type: 'line', source: 'flechas-orientacion', paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': 0.9 } });
   });
 
   const marcadores = spots.map((s) => {

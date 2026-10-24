@@ -328,7 +328,7 @@ export function horaForecast(spot, m, w, k) {
   };
 }
 
-function processSpot(spot, m, w, daily) {
+export function processSpot(spot, m, w, daily) {
   const hours = m.time.map((time, k) => horaForecast(spot, m, w, k));
 
   const days = [];

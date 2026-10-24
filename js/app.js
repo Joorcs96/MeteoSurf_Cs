@@ -1446,30 +1446,12 @@ function renderCams() {
           </div>
           <div class="cam-card-footer">
             <a href="#/spot/${encodeURIComponent(s.id)}" class="cam-forecast-link">Ver previsión</a>
-            <button class="cmp-add ${camSel.includes(s.id) ? 'on' : ''}" data-cmpadd="${esc(s.id)}" aria-pressed="${camSel.includes(s.id)}">${camSel.includes(s.id) ? '✓ Para comparar' : '+ Comparar'}</button>
           </div>
         </div>`;
       }).join('') : `<div class="card pad muted">No hay cámaras en esta zona.</div>`}
     </div>
-    <div class="cmp-bandeja" hidden><span></span><button class="chip btn on" data-camvista="comparar">Comparar</button></div>${footer()}`;
+    ${footer()}`;
 
-  const bandeja = view.querySelector('.cmp-bandeja');
-  const pintarBandeja = () => {
-    bandeja.hidden = camSel.length === 0;
-    const nombres = camSel.map((id) => SPOTS.find((s) => s.id === id)?.name).filter(Boolean);
-    bandeja.querySelector('span').textContent = camSel.length === 2 ? nombres.join(' + ') : `${nombres[0] || ''} · elige otra cámara`;
-    bandeja.querySelector('button').disabled = camSel.length < 2;
-  };
-  pintarBandeja();
-  view.querySelectorAll('[data-cmpadd]').forEach((b) => b.addEventListener('click', () => {
-    const id = b.dataset.cmpadd;
-    camSel = camSel.includes(id) ? camSel.filter((x) => x !== id) : [...camSel, id].slice(-2);
-    view.querySelectorAll('[data-cmpadd]').forEach((x) => {
-      const on = camSel.includes(x.dataset.cmpadd);
-      x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); x.textContent = on ? '✓ Para comparar' : '+ Comparar';
-    });
-    pintarBandeja();
-  }));
   view.querySelectorAll('[data-camvista]').forEach((b) => b.addEventListener('click', () => {
     view.querySelectorAll('[data-camspot]').forEach(pararCamCard);
     camVista = b.dataset.camvista; renderCams();

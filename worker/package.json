@@ -1,0 +1,17 @@
+{
+  "name": "meteosurf-avisos-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker con KV que guarda suscripciones push y envia los avisos de MeteoSurf",
+  "scripts": {
+    "test": "node --test --test-timeout=90000 \"test/*.test.js\"",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "vapid": "node generar-vapid.mjs"
+  },
+  "devDependencies": {
+    "miniflare": "^4.20250109.1",
+    "wrangler": "^4.0.0"
+  }
+}

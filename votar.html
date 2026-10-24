@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Reportar sesión · MeteoSurf_Cs</title>
   <meta name="description" content="Reporta cómo estaban las olas en tu sesión de surf en la costa de Castellón para ayudar a calibrar la previsión de MeteoSurf_Cs.">
-  <meta name="theme-color" content="#0b1b2b">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f7fa">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#070b12">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -138,7 +139,7 @@
 
       <div class="field">
         <label class="field-label" for="f-comentario">Comentario (opcional)</label>
-        <textarea id="f-comentario" name="comentario" placeholder="Fondo, marea, viento en la orilla, dónde rompía mejor..."></textarea>
+        <textarea id="f-comentario" name="comentario" aria-label="Comentarios u observaciones de la sesión" placeholder="Fondo, marea, viento en la orilla, dónde rompía mejor..."></textarea>
       </div>
 
       <button type="submit" class="submit-btn">

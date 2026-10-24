@@ -340,7 +340,7 @@ function spotCard(s) {
   const foto = s.photo?.thumb ? miniatura(s.photo.thumb, 500) : '';
   return `<div class="spot-card2 ${h ? ratingCls(h.rating) : ''}">
     <a class="sc-link" href="#/spot/${encodeURIComponent(s.id)}" aria-label="${esc(s.name)}: ${h ? range(h.surf) + ' m, ' + ratingLabel(h.rating) : 'sin previsión'}">
-      ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="" loading="lazy" decoding="async">` : ''}
+      ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="Playa y rompiente de ${esc(s.name)}, ${esc(s.zoneName)}" loading="lazy" decoding="async">` : ''}
       <span class="sc-shade"></span>
       ${cam ? `<span class="sc-cam" title="Cámara en directo">${ICON.cam} Directo</span>` : ''}
       <span class="sc-info">
@@ -709,7 +709,7 @@ function renderSpot(id) {
   view.innerHTML = `
     <a class="back" href="#/">${ICON.back} Costa de Castellón</a>
     <div class="spot-head">
-      ${spot.photo?.thumb ? `<button class="spot-thumb" data-tab="fotos" aria-label="Ver fotos de ${esc(spot.name)}"><img src="${esc(miniatura(spot.photo.thumb, 250))}" alt=""></button>` : ''}
+      ${spot.photo?.thumb ? `<button class="spot-thumb" data-tab="fotos" aria-label="Ver fotos de ${esc(spot.name)}"><img src="${esc(miniatura(spot.photo.thumb, 250))}" alt="Fotografía del spot ${esc(spot.name)}"></button>` : ''}
       <div class="sh-txt"><h1>${esc(spot.name)}</h1><div class="sub">${esc(spot.zoneName)}</div></div>
       ${h ? `<span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>` : ''}
       <button class="fav-btn ${favs.has(id) ? 'on' : ''}" data-fav="${esc(id)}" style="background:var(--surface-2);color:var(--text-2)" aria-label="Favorito">${ICON.star}</button>
@@ -728,6 +728,8 @@ function renderSpot(id) {
       </div>
       <div class="a-now" id="s-ahora" data-panel="ahora">
         ${h ? nowPanel(spot, f, h) : loadingBlock()}
+        ${h ? humanSummary(spot, h) : ''}
+        ${f && h ? miniHoursStrip(f, h) : ''}
         <details><summary>Observaciones reales cercanas</summary><div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div></details>
       </div>
       <div class="a-fc" data-panel="horas">
@@ -798,6 +800,7 @@ function renderSpot(id) {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
   view.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => irTab(b.dataset.tab)));
+  view.querySelectorAll('[data-goto-tab]').forEach((b) => b.addEventListener('click', () => irTab(b.dataset.gotoTab)));
   fotosDe(spot).then((lista) => {
     const g = $('#galeria');
     if (!g) return;
@@ -985,6 +988,70 @@ function wetsuit(t) {
   if (t >= 18) return 'Neopreno 3/2 mm';
   if (t >= 15) return 'Neopreno 4/3 mm';
   return 'Neopreno 5/4 mm y escarpines';
+}
+
+function humanSummary(spot, h) {
+  if (!h) return '';
+  const r = h.rating ?? 0;
+  const windKey = h.wind?.key ?? '';
+  let icon = 'ℹ️';
+  let tag = 'Resumen para todos los públicos';
+  let text = '';
+
+  if (r >= 4) {
+    icon = '🔥';
+    tag = 'Sesión épica / Muy buenas condiciones';
+    text = `Oleaje consistente de ${range(h.surf)} m con viento favorable (${h.wind?.label || 'limpio'}). Condiciones ideales para surfistas de nivel intermedio y avanzado.`;
+  } else if (r >= 2) {
+    if (windKey === 'offshore' || windKey === 'crossoff' || windKey === 'glassy') {
+      icon = '🏄';
+      tag = 'Olas limpias y manejables';
+      text = `Olas suaves de ${range(h.surf)} m con mar ordenado. Muy disfrutable con tabla evolutiva, tablón (longboard) o twin-fin.`;
+    } else {
+      icon = '🌊';
+      tag = 'Mar chopi / revuelto';
+      text = `Viento de mar (${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : ''}) levantando ola revuelta de ${range(h.surf)} m. Mejor con tablas con buen volumen o para pillar espumas.`;
+    }
+  } else {
+    if (h.surf?.mid < 0.25) {
+      icon = '☀️';
+      tag = 'Mar plato';
+      text = 'Apenas hay oleaje surfeable en rompiente. Excelente para natación, paddle surf (SUP), kayak o bautismos en la orilla.';
+    } else {
+      icon = '💨';
+      tag = 'Condiciones duras o cruzadas';
+      text = `Oleaje de ${range(h.surf)} m desordenado por viento lateral/onshore. Recomendado esperar a la mejor franja horaria o buscar abrigo en espigón.`;
+    }
+  }
+
+  return `<div class="human-summary-card">
+    <div class="hs-tag"><span>${icon}</span> <span>${tag}</span></div>
+    <div>${text}</div>
+  </div>`;
+}
+
+function miniHoursStrip(f, h) {
+  if (!f?.hours?.length) return '';
+  const ni = nowIndex(f.hours);
+  const upcoming = f.hours.slice(ni, ni + 6);
+  if (upcoming.length < 2) return '';
+
+  return `<div class="mini-hours-card">
+    <div class="mini-hours-head">
+      <span class="mini-hours-title">Próximas horas hoy</span>
+      <button class="mini-hours-btn" type="button" data-goto-tab="horas">Ver 24h detalladas →</button>
+    </div>
+    <div class="mini-hours-grid">
+      ${upcoming.map((uh) => `
+        <div class="mini-hour-item">
+          <span class="mini-hour-time">${uh.hour}:00</span>
+          <span class="mini-hour-wave">${range(uh.surf)}<small>m</small></span>
+          <span class="rating-pill ${ratingCls(uh.rating)}" style="font-size:10px;padding:1px 5px">${ratingLabel(uh.rating)}</span>
+          <span class="mini-hour-wind" title="${uh.wind?.label || ''}">${dirArrow(uh.windDir || 0)} ${uh.windSpeed != null && !isNaN(uh.windSpeed) ? Math.round(uh.windSpeed) : ''}</span>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
 }
 
 // Gráfica de barras del día + tabla + marea

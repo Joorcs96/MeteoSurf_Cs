@@ -427,3 +427,121 @@ body.vista-home .section-title { margin:10px 0 0; }
 @media(min-width:800px) { .cmp-grid { grid-template-columns:1fr 1fr; } }
 @media(max-width:799px) and (orientation:landscape) { .cmp-grid { grid-template-columns:1fr 1fr; } }
 body.vista-camaras .quick-spots { display:none; }
+
+/* ---- Mejoras UX & Accesibilidad (Auditoría) ---- */
+.history-download {
+  padding: 14px 16px;
+  text-align: center;
+}
+.history-download a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+.history-download a:hover {
+  background: var(--surface-hover);
+  border-color: var(--brand);
+}
+
+/* Resumen accesible y comprensible para todos los públicos */
+.human-summary-card {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border-left: 4px solid var(--brand);
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.human-summary-card .hs-tag {
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+/* Tira horaria compacta de próximas horas en pestaña 'Ahora' */
+.mini-hours-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.mini-hours-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.mini-hours-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mini-hours-btn {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.mini-hours-btn:hover {
+  text-decoration: underline;
+}
+.mini-hours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 8px;
+}
+.mini-hour-item {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.mini-hour-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.mini-hour-wave {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.mini-hour-wind {
+  font-size: 11px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+

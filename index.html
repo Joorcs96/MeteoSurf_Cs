@@ -58,8 +58,20 @@
     <a href="#/favoritos" data-nav="favoritos"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Favoritos</a>
   </nav>
 
+  <button class="fab-assistant" id="fab-assistant" aria-label="Preguntar al asistente" title="Preguntar al asistente" onclick="location.hash='#/asistente'">🤙</button>
+
   <script type="module" src="js/config.js"></script>
   <script type="module" src="js/notificaciones.js"></script>
   <script type="module" src="js/app.js"></script>
+  <script>
+    // Ocultar FAB cuando ya estás en el asistente
+    const _fab = document.getElementById('fab-assistant');
+    const _hideFab = () => { if (_fab) _fab.style.display = location.hash.startsWith('#/asistente') ? 'none' : ''; };
+    window.addEventListener('hashchange', _hideFab);
+    _hideFab();
+    // Ocultar tras primera visita al asistente (no molestar a usuarios avanzados)
+    if (localStorage.getItem('visited_asistente')) _fab && (_fab.style.display = 'none');
+    _fab?.addEventListener('click', () => localStorage.setItem('visited_asistente', '1'));
+  </script>
 </body>
 </html>

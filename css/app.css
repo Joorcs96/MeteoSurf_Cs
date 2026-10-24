@@ -795,6 +795,33 @@ body.vista-camaras .quick-spots { display:none; }
   flex-shrink: 0;
 }
 
+/* MEJ-03: Ordenación de spots */
+.home-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+#spot-sort {
+  appearance: auto;
+  -webkit-appearance: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 4px);
+  cursor: pointer;
+}
+
 /* MEJ-02: Filtro principiantes en calendario */
 .cal-chip-beginner.on {
   background: #10b981;

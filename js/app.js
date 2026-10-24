@@ -65,6 +65,54 @@ const DEFAULT_SPOT = 'Planetario';
 const ordered = () => [...SPOTS].sort((a, b) => (b.id === DEFAULT_SPOT) - (a.id === DEFAULT_SPOT));
 const favoriteSpots = () => [...favs].map((id) => SPOTS.find((s) => s.id === id)).filter(Boolean);
 
+let userPos = null;
+function maxRatingWeek(s, fc) {
+  const spotFc = fc?.spots[s.id];
+  if (!spotFc?.days?.length) return { maxR: -1, maxSurf: 0 };
+  const days = spotFc.days.slice(0, 7);
+  let maxR = -1;
+  let maxSurf = 0;
+  for (const d of days) {
+    if (d.rating != null && !isNaN(d.rating) && d.rating > maxR) {
+      maxR = d.rating;
+    }
+    const pool = d.hours || [];
+    for (const h of pool) {
+      if (h.rating != null && !isNaN(h.rating) && h.rating > maxR) {
+        maxR = h.rating;
+      }
+      const surfVal = h.surf?.mid ?? h.surf?.max ?? 0;
+      if (surfVal > maxSurf) maxSurf = surfVal;
+    }
+  }
+  return { maxR, maxSurf };
+}
+
+function distanceTo(spot, pos) {
+  if (!pos || spot.lat == null || spot.lon == null) return Infinity;
+  const rad = Math.PI / 180;
+  const dLat = (spot.lat - pos.lat) * rad;
+  const dLon = (spot.lon - pos.lon) * rad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(pos.lat * rad) * Math.cos(spot.lat * rad) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function sortSpots(list, mode, fc, pos) {
+  if (mode === 'best_week' && fc) {
+    return [...list].sort((a, b) => {
+      const ra = maxRatingWeek(a, fc);
+      const rb = maxRatingWeek(b, fc);
+      if (rb.maxR !== ra.maxR) return rb.maxR - ra.maxR;
+      if (rb.maxSurf !== ra.maxSurf) return rb.maxSurf - ra.maxSurf;
+      return (b.id === DEFAULT_SPOT) - (a.id === DEFAULT_SPOT);
+    });
+  }
+  if (mode === 'nearest' && pos) {
+    return [...list].sort((a, b) => distanceTo(a, pos) - distanceTo(b, pos));
+  }
+  return list;
+}
+
 // ---------- Formato ----------
 const m = (x) => (x == null || isNaN(x) ? '–' : x.toFixed(1));
 const range = (s) => {
@@ -209,7 +257,10 @@ function renderHome() {
   document.title = 'MeteoSurf_Cs · Previsión de surf en Castellón';
   const fc = state.fc;
   const zones = [['all', 'Todos'], ['fav', 'Favoritos'], ['cams', 'Con cámara'], ['offshore', 'Terral ahora'], ...ZONES.map((z) => [z.id, z.name])];
-  const spots = (state.zone === 'fav' ? favoriteSpots() : ordered()).filter((s) => {
+  const sortMode = localStorage.getItem('sort_mode') || 'default';
+  const baseSpots = state.zone === 'fav' ? favoriteSpots() : ordered();
+  const sortedSpots = sortSpots(baseSpots, sortMode, fc, userPos);
+  const spots = sortedSpots.filter((s) => {
     if (state.zone === 'all') return true;
     if (state.zone === 'fav') return favs.has(s.id);
     if (state.zone === 'cams') return camsForSpot(s).length > 0;
@@ -231,10 +282,20 @@ function renderHome() {
     </div>
 
     ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
-    <div class="chips" role="tablist">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
+    <div class="home-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="chips" role="tablist" style="margin:0">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
+      <div class="sort-control" style="display:inline-flex;align-items:center;gap:6px">
+        <label for="spot-sort" style="font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap">Ordenar:</label>
+        <select id="spot-sort" class="chip btn" style="font-size:12px;font-weight:600;padding:6px 10px;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:var(--radius, 4px);cursor:pointer">
+          <option value="default" ${sortMode === 'default' ? 'selected' : ''}>Por defecto</option>
+          <option value="best_week" ${sortMode === 'best_week' ? 'selected' : ''}>Mejor día esta semana</option>
+          <option value="nearest" ${sortMode === 'nearest' ? 'selected' : ''}>Más cerca</option>
+        </select>
+      </div>
+    </div>
     ${state.zone === 'fav' ? '<div class="section-title">Mis spots</div>' : ''}
     ${state.zone === 'fav' ? `<div data-realtime-list>${realtimeLine()}</div>` : ''}
-    <div class="spot-grid">${spots.length ? [...new Set(spots.map((s) => s.zone))].map((zone) => `<h2 class="zone-heading">${esc(ZONES.find((z) => z.id === zone)?.name || zone)}</h2>${spots.filter((s) => s.zone === zone).map(spotCard).join('')}`).join('') : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa el marcador de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
+    <div class="spot-grid">${spots.length ? ((sortMode === 'default' && state.zone === 'all') ? [...new Set(spots.map((s) => s.zone))].map((zone) => `<h2 class="zone-heading">${esc(ZONES.find((z) => z.id === zone)?.name || zone)}</h2>${spots.filter((s) => s.zone === zone).map(spotCard).join('')}`).join('') : spots.map(spotCard).join('')) : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa el marcador de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
     ${footer()}`;
 
   if (state.zone === 'fav') {
@@ -247,6 +308,30 @@ function renderHome() {
     const grid = view.querySelector('.spot-grid');
     if (grid) grid.outerHTML = favoriteComparison(spots);
   }
+
+  $('#spot-sort')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    localStorage.setItem('sort_mode', val);
+    if (val === 'nearest' && !userPos) {
+      if (navigator.geolocation) {
+        toast('Obteniendo tu ubicación…');
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+            renderHome();
+          },
+          () => {
+            toast('No se pudo acceder a la ubicación.');
+            renderHome();
+          },
+          { timeout: 7000, maximumAge: 60000 }
+        );
+      } else {
+        toast('Geolocalización no disponible.');
+      }
+    }
+    renderHome();
+  });
 
   view.querySelectorAll('[data-zone]').forEach((b) => b.addEventListener('click', () => {
     state.zone = b.dataset.zone;
@@ -1829,6 +1914,12 @@ async function init() {
     if (trigger) {
       e.preventDefault();
       showProModal(true);
+    }
+  });
+  window.addEventListener('forecast:ready', () => {
+    const sortMode = localStorage.getItem('sort_mode') || 'default';
+    if (sortMode === 'best_week' && (!location.hash || location.hash === '#/' || location.hash.startsWith('#/favoritos'))) {
+      renderHome();
     }
   });
   $('#refresh')?.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); });

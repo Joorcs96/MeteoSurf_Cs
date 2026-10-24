@@ -5,11 +5,17 @@
 - **Autor:** Lucide Contributors
 - **URL:** https://lucide.dev/
 - **Licencia:** MIT License
-- **Archivos:** ssets/icons/waves.svg, ssets/icons/map.svg, ssets/icons/video.svg, ssets/icons/bot.svg, ssets/icons/bookmark.svg
+- **Archivos:** assets/icons/waves.svg, assets/icons/map.svg, assets/icons/video.svg, assets/icons/bot.svg, assets/icons/bookmark.svg
 
 ## Tipografía
 - **Fuente:** Outfit
 - **Autor:** Rodrigo Fuenzalida
 - **URL:** https://fonts.google.com/specimen/Outfit
 - **Licencia:** SIL Open Font License (OFL)
-- **Archivos:** ssets/fonts/Outfit-Regular.woff2, ssets/fonts/Outfit-Bold.woff2 (Descargados localmente para mayor seguridad y velocidad)
+- **Archivos:** assets/fonts/Outfit-Regular.woff2, assets/fonts/Outfit-Bold.woff2 (Descargados localmente para mayor seguridad y velocidad)
+
+## Cartografía y Teselas
+- **Base:** CARTO Voyager
+- **Teselas:** © CARTO (https://carto.com/basemaps/)
+- **Datos cartográficos:** © OpenStreetMap contributors
+- **Licencia:** CC BY 4.0 / ODbL

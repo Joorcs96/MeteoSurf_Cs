@@ -331,6 +331,38 @@ async function renderAssistant() {
   draw();
 }
 
+function spotMapStyle(lat, lon) {
+  const z = 14;
+  const n = 16384;
+  const xExact = ((lon + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const yExact = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+  const tx = Math.floor(xExact);
+  const ty = Math.floor(yExact);
+  const posX = Math.round(32 - (xExact - tx) * 256);
+  const posY = Math.round(32 - (yExact - ty) * 256);
+
+  const tiles = [];
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const tilePosX = posX + dx * 256;
+      const tilePosY = posY + dy * 256;
+      if (tilePosX < 64 && tilePosX + 256 > 0 && tilePosY < 64 && tilePosY + 256 > 0) {
+        // CARTO Voyager: https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx + dx}/${ty + dy}@2x.png
+        // CARTO impone marca de agua 'API KEY REQUIRED'; usamos OpenStreetMap para renderizar el mapa real y nítido
+        tiles.push({
+          url: `https://tile.openstreetmap.org/${z}/${tx + dx}/${ty + dy}.png`,
+          carto: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${tx + dx}/${ty + dy}@2x.png`,
+          pos: `${tilePosX}px ${tilePosY}px`
+        });
+      }
+    }
+  }
+  const bgImages = tiles.map((t) => `url('${t.url}')`).join(', ');
+  const bgPositions = tiles.map((t) => t.pos).join(', ');
+  return `background-image: ${bgImages}; background-position: ${bgPositions}; background-size: 256px 256px; background-repeat: no-repeat;`;
+}
+
 function spotCard(s) {
   const f = state.fc?.spots[s.id];
   const h = f ? f.hours[nowIndex(f.hours)] : null;
@@ -339,7 +371,10 @@ function spotCard(s) {
   return `<a class="card spot-card ${h ? ratingCls(h.rating) : ''}" href="#/spot/${encodeURIComponent(s.id)}">
     <div class="body">
       <div class="top">
-        <div style="min-width:0;flex:1">
+        <div class="spot-map-thumb" style="${spotMapStyle(s.lat, s.lon)}" aria-hidden="true">
+          <span class="spot-map-pin"></span>
+        </div>
+        <div class="spot-info" style="min-width:0;flex:1">
           <div class="name">${esc(s.name)}${cam ? ' <span class="cam-dot" title="Cámara en directo">' + ICON.cam + '</span>' : ''}</div>
           <div class="zone">${esc(s.zoneName)}</div>
           ${h ? `<div class="height num">${range(h.surf)}<small> m</small> <span class="rating-pill ${ratingCls(h.rating)}" style="font-size:10px">${ratingLabel(h.rating)}</span></div><div class="human">${surfWords(h.surf.mid)}</div>` : '<div class="human">Previsión no disponible</div>'}
@@ -1086,7 +1121,7 @@ function renderCams() {
 }
 
 function footer() {
-  return `<div class="footer">MeteoSurf_Cs · Datos: Open-Meteo (modelos ECMWF, DWD, Météo-France) · Cámaras de sus propietarios
+  return `<div class="footer">MeteoSurf_Cs · Datos: Open-Meteo (modelos ECMWF, DWD, Météo-France) · Cámaras de sus propietarios · Mapas: © OpenStreetMap, © CARTO
     <br><span id="version"></span></div>`;
 }
 

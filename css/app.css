@@ -293,3 +293,17 @@ body.vista-mapa #view { top:0; padding:0; bottom:calc(60px + var(--safe-b)); }
 .hoja-horas button i { display:block; width:100%; border-radius:3px 3px 0 0; background:var(--rc,var(--r-flat)); opacity:.55; }
 .hoja-horas button.on i { opacity:1; outline:2px solid var(--text); outline-offset:1px; }
 .hoja-horas button em { position:absolute; left:50%; bottom:-16px; transform:translateX(-50%); font-style:normal; font-size:10px; color:var(--text-2); }
+
+/* Relieve en 3D */
+.mapa-full #map3d { position:absolute; inset:0; }
+.mapa-full #map3d[hidden] { display:none; }
+.mapa-full.modo-3d #map { visibility:hidden; }
+.mapa-full.modo-3d .capas-barra, .mapa-full.modo-3d .capas-abajo { display:none; }
+.mapa-3d { position:absolute; z-index:700; right:max(10px,var(--safe-r)); top:calc(var(--safe-t) + 220px); width:44px; height:44px; border:0; border-radius:12px; background:var(--surface); color:var(--text); font:inherit; font-size:14px; font-weight:800; box-shadow:0 2px 10px rgba(10,15,20,.3); cursor:pointer; }
+.mapa-3d[aria-pressed=true] { background:var(--text); color:var(--bg); }
+.mapa-full.modo-3d .mapa-3d { top:calc(var(--safe-t) + 148px); }
+.mapa-full .maplibregl-ctrl-top-right { top:calc(var(--safe-t) + 10px); right:max(0px,var(--safe-r)); }
+.mapa-full .maplibregl-ctrl-group { border-radius:12px; box-shadow:0 2px 10px rgba(10,15,20,.3); overflow:hidden; }
+.mapa-full .maplibregl-ctrl-group button { width:44px; height:44px; }
+.mapa-full .maplibregl-ctrl-attrib { font-size:10px; }
+.pin3d { cursor:pointer; }

@@ -274,6 +274,7 @@ export function iniciarCapas(mapa, host, { L = window.L } = {}) {
   });
 
   return {
+    reiniciar() { elegir(null); },
     destruir() { vivo = false; parar(); pararParticulas(); grupo.remove(); host.innerHTML = ''; },
   };
 }

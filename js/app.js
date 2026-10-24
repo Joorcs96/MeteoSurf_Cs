@@ -1076,6 +1076,37 @@ function tideChart(day) {
 let leaflet = null;
 let capasMapa = null;
 let hojaSpot = null;
+let mapa3d = null;
+
+const pinHtml = (s) => {
+  const f = state.fc?.spots[s.id];
+  const h = f ? f.hours[nowIndex(f.hours)] : null;
+  return `<div class="map-pin ${h ? ratingCls(h.rating) : ''}"><span class="dot"></span><span class="lbl"><b>${esc(s.name)}</b>${h ? '<i>' + range(h.surf) + ' m</i>' : ''}</span></div>`;
+};
+
+// Alterna entre el mapa plano y el relieve en 3D.
+async function alternar3D(btn) {
+  const caja = $('.mapa-full');
+  if (!caja) return;
+  if (!mapa3d) {
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const m = await import('./mapa-3d.js');
+      mapa3d = await m.crear3D($('#map3d'), SPOTS, { pinHtml, onSpot: abrirHojaSpot });
+    } catch (e) {
+      btn.disabled = false; btn.textContent = '3D';
+      toast('No se ha podido cargar el relieve 3D. Prueba en un rato.');
+      return;
+    }
+    btn.disabled = false;
+  }
+  const on = !caja.classList.contains('modo-3d');
+  caja.classList.toggle('modo-3d', on);
+  btn.setAttribute('aria-pressed', String(on));
+  btn.textContent = on ? '2D' : '3D';
+  cerrarHojaSpot();
+  if (on) { capasMapa?.reiniciar(); mapa3d.mostrar(); } else { mapa3d.ocultar(); leaflet?.invalidateSize(); }
+}
 
 // Ventana interactiva del mapa: previsión del spot (día, hora, mar, viento, marea) sin salir del mapa.
 function cerrarHojaSpot() {
@@ -1146,7 +1177,7 @@ function abrirHojaSpot(spot) {
 
 async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
-  view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map-capas" class="mapa-ui"></div></div>';
+  view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map3d" hidden></div><div id="map-capas" class="mapa-ui"></div><button type="button" id="btn-3d" class="mapa-3d" aria-pressed="false" aria-label="Cambiar entre mapa plano y relieve en 3D">3D</button></div>';
   if (!window.L) {
     await new Promise((res) => {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l);
@@ -1154,6 +1185,7 @@ async function renderMap() {
     });
   }
   cerrarHojaSpot();
+  mapa3d?.destruir(); mapa3d = null;
   capasMapa?.destruir(); capasMapa = null;
   leaflet?.remove();
   leaflet = L.map('map', { zoomControl: false });
@@ -1169,7 +1201,7 @@ async function renderMap() {
     const f = state.fc?.spots[s.id];
     const h = f ? f.hours[nowIndex(f.hours)] : null;
     bounds.push([s.lat, s.lon]);
-    const html = `<div class="map-pin ${h ? ratingCls(h.rating) : ''}"><span class="dot"></span><span class="lbl"><b>${esc(s.name)}</b>${h ? '<i>' + range(h.surf) + ' m</i>' : ''}</span></div>`;
+    const html = pinHtml(s);
     const mk = L.marker([s.lat, s.lon], { icon: L.divIcon({ html, className: '', iconSize: [44, 44], iconAnchor: [22, 22] }), title: s.name }).addTo(leaflet);
     mk.on('click', () => abrirHojaSpot(s));
     // Cuña que indica hacia dónde mira la playa y su ventana de mar
@@ -1191,6 +1223,7 @@ async function renderMap() {
   leaflet.on('zoomend', syncLabels); syncLabels();
   capasMapa = iniciarCapas(leaflet, $('#map-capas'), { L });
   leaflet.on('click', cerrarHojaSpot);
+  $('#btn-3d').addEventListener('click', (e) => alternar3D(e.currentTarget));
   setTimeout(() => { leaflet.invalidateSize(); leaflet.fitBounds(bounds, { padding: [60, 60] }); }, 50);
 }
 

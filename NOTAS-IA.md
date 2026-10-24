@@ -1,38 +1,306 @@
-# NOTAS-IA — SURFLINE CASTELLÓN
+# NOTAS-IA · MeteoSurf_Cs
 
-## Arquitectura del proyecto
-- **Sin** archivos CSS separados — los estilos estaban TODO en `<style>` dentro de `index.html` (Tailwind CDN)
-- Estructura: `index.html` (812 líneas), `app.js` (2071 líneas, lógica y renderizado de spots), `sw.js`, `votar.html`, `manifest.json`
-- Se ha creado `css/app.css` nuevo (tokens + componentes) y se enlaza desde `index.html`
-- `app.js` usa `className` y `classList` para asignar clases Tailwind dinámicamente → NO tocar
+Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar cada tarea.
 
-## Clases críticas usadas por app.js (NO renombrar)
-- `.spot-card` — tarjetas de spot (click handler)
-- `.spot-filter-btn` — filtros de zona (se reasigna className completo)
-- `.day-tab-btn` — tabs de día (se reasigna className completo)
-- `.dark-tiles` — capa del mapa Leaflet invertida
-- `.spot-tooltip` — tooltip de Leaflet
-- `.hidden`, `.flex` — toggle de visibilidad en modales y players
-- `.animate-spin` — spinner de icono de refresh
-- `.opacity-50` — señal de cámara inactiva
+## Datos básicos
+- Web: https://joorcs96.github.io/MeteoSurf_Cs/ (GitHub Pages, rama main, raíz). Repo Joorcs96/MeteoSurf_Cs (antes Surfline_CS; Netlify ya no se usa).
+- Carpeta local sigue llamándose C:/Users/Jordi/orca/Surfline_CS. Investigación e informes: C:/Users/Jordi/orca/meteosurf_research.
+- Frontend sin build: index.html, css/app.css, js/{app,forecast,spots,cams,compass,assistant}.js, sw.js, webcams.json.
+- Probar en local: `python -m http.server 8765` y abrir http://127.0.0.1:8765/. Capturas móvil: Chrome headless por CDP (script shot.mjs en el scratchpad de Claude; ancho 400).
+- Datos reales: `python scripts/realtime.py` escribe data/realtime.json (cron horario en .github/workflows/realtime.yml, igual que webcams.yml pero con `--comprobar`). Python en este equipo: `C:\Users\Jordi\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe`.
 
-## Diseño aplicado
-- Fuente: Inter 400/500/600/700 (Google Fonts)
-- Acento único: ocean blue `#0ea5e9` (--clr-primary)
-- Modo oscuro: base `#070b12`, superficies `#0c1322` / `#111b30` / `#182442`
-- Tokens en `:root` con modo claro en `@media (prefers-color-scheme: light)`
-- `prefers-reduced-motion: reduce` aplicado en todas las animaciones
-- Animaciones: fade-up en secciones, hover lift en cards, scale en imágenes
+## Preferencias de Jordi
+- Como Surfline y Surf-Forecast pero con los spots de Castellón; móvil primero, profesional, directo, poco texto (partes plegables).
+- Nada de emojis ni símbolos tipo check en la web.
+- Planetario es el spot por defecto (primero en listas).
+- Escala mediterránea: 0.5–0.7 m con poco viento ya es buen baño; periodo 4–6 s es normal.
+- Publicar directo en main (tras verificar en móvil); trabajo en rama o worktree y fusión rápida.
+- **Publicar siempre:** cada cambio verificado se despliega en el momento (push a main y comprobar la web online). Lo que no esté listo permanece en su rama y se avisa. Cada norma nueva de Jordi se apunta aquí y en las globales.
 
-## Trampas encontradas
-- Las clases de Tailwind asignadas dinámicamente en app.js (ej. `bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20`) no pueden moverse a CSS custom porque el JS las reasigna completas
-- El mapa Leaflet tiene `z-index: 10` forzado en el inline style de `#map` — no conflictar
-- `animate-in fade-in zoom-in-95 duration-200` es de Tailwind animate-in plugin, NO es animación nativa — el modal ya tiene animation en CSS custom
+## Decisiones y trampas
+- Previsión: Open-Meteo marine por spot (punto seaLat/seaLon) + GFS-Wave (ncep_gfswave016) para rellenar días 11–16; forecast con viento/sol.
+- Datos reales (scripts/realtime.py + data/realtime.json, todo de Puertos del Estado, sin claves):
+  - No hay boya ni mareógrafo en Castellón. Oleaje = Boya de Valencia (REDEXT, id 2630), a 55 km; nivel del mar = Mareógrafo de Sagunto (id 3655), a 44 km, y el JSON lo avisa. Viento = estación REMPOR del puerto, la de Castellón Mistral (id 4660) está a 1 km y hay seis a menos de 5 km; cada una es con su nombre de viento (Mistral, Gregal, Levante, Poniente, Siroco, Tamontana), así que si una cae el script prueba la siguiente.
+  - La API no tiene documentación pública: las rutas salen del JavaScript de portus.puertos.es. Base `https://portus.puertos.es/portussvr/api`:
+    - `GET /estaciones/rt/{WAVE,SEA_LEVEL,WIND}?locale=es` → catálogo (nombre, coordenadas, `disponible`, `estado`, `cadencia`). Sin `locale` da 400.
+    - `POST /parametros/<id>?locale=es` con `["WAVE","WIND"]` → los ids numéricos de los parámetros.
+    - `POST /RTData/station/<id>?locale=es` con esos ids → las últimas observaciones. Ojo: los valores son enteros y hay que dividirlos por `factor`; `averia: true` y los centinelas (9999) son basura, scripts/realtime.py los descarta con límites por parámetro.
+  - `estaciones/rt/WAVE` incluye también puntos de "Propagación de Oleaje" que son un modelo matemático, no medidas. El script se queda sólo con los que son boya de verdad.
+  - TLS: en este host falla la confianza en la cadena de Portus. Excepción limitada a `https://portus.puertos.es:443/portussvr/api/`, sin redirecciones, sólo para errores de cadena (no caducidad/hostname). El JSON avisa del riesgo de datos manipulados; `REALTIME_CA_BUNDLE` obliga a verificar. No se envían secretos.
+  - `data/realtime.json` no lleva la edad en minutos a propósito: cambia en cada ejecución y el cron commitearía cada hora aunque las medidas fueran idénticas. `js/forecast.js` la calcula con `antiguedadRealtime()`.
+  - Retirado el adaptador experimental AEMET: ruta/esquema incorrectos y sin prueba real. Workflow y script usan sólo las tres fuentes públicas de Portus, sin claves.
+  - UI integrada: tarjeta en cada ficha y línea de boya en Mis spots. Edad por `fecha` de cada observación (no `generado`), gris tras 3 h o fecha inválida; se recalcula cada minuto y al volver a la pestaña. Distancias por coordenadas del spot. Comparación con `waveHeight` mar adentro de la misma hora de Madrid, nunca con la rompiente; señala que son lugares distintos.
+  - Validación: `python -m unittest scripts.test_realtime`; capturas reales 390×844 claro/oscuro y pruebas de estados en `.capturas/` (sin commit). Caché SW `meteosurf-cs-v7-realtime`.
+- Modelo de contraste `ecmwf_wam025` (loadEcmwfWam() en js/forecast.js): sólo publica altura, periodo y dirección totales; si se le pide el desglose por trenes de ola o el nivel del mar responde todo a null. Su malla no pasa de 40.3°N, así que **Vinaros y Peñíscola no tienen dato** de este modelo. Horizonte útil hasta 12 días. Va aparte de loadForecast() a propósito: un tercer array horario de 13 puntos en la caché de localStorage es arriesgado.
+- Cámaras: Turisme CV HLS (streaming.comunitatvalenciana.com/webcam/<Nombre>/playlist.m3u8, CORS *, sin token), Hotel Voramar MJPEG, IPCamLive Peñíscola, Windy como respaldo. Skyline no se puede iframear y sus JPG no cargan fuera de su web.
+- Surfers Castellón: cámara IPCamLive del club (alias 609a27d8a9c83, embedType 'iframe'). No requiere credenciales ni login (domain lock desactivado en IPCamLive). Enfoca la rompiente de Playa del Pinar; asociada con prioridad 1 a Planetario, Pirámides y Gurugú.
+- El cron de webcams (.github/workflows/webcams.yml, cada 30 min) solo reescribe webcams.json si cambia algo real.
+- CARTO pide API key: el mapa usa OSM + Esri satélite.
+- Orca: workers gemini en worktree distinto fallan en agent_readiness; usar `--agent antigravity --model gemini-3.1-pro-high`. Worktrees nuevos de Orca parten de un commit viejo: resetear a main antes.
+- Si un worker Antigravity queda quieto, leer su terminal: puede ser 'Individual quota reached' (Gemini 3.1 Pro, reset ~2 h) o el prompt sin enviar (mandar Intro con `orca terminal send --enter`). Relevo: `--agent antigravity --model claude-sonnet-4-6`.
+- Los workers a veces escriben sin tildes: revisar textos visibles antes de publicar.
 
-## Rama y commits
-- Rama: `Joorcs96/redisenar-web`
-- Commit 1: `4d8a968` — sistema CSS, Inter, accesibilidad
+## Rewinds (clips de las cámaras)
+- `scripts/rewind.py` graba 20 s de las cámaras HLS de Turisme CV que cubren Planetario/Gurugu
+  (Grao, cv_grao_castellon), Voramar/Heliopolis (Benicàssim, cv-benicassim-vela-hls) y
+  MorroGos/Renega (Oropesa, cv-oropesa-hls); 854x480, H.264 sin audio, boxblur 2 para que no se
+  reconozcan caras, objetivo <= 3 MB (medido y reintentado con ffmpeg). Una clip por cámara y una
+  entrada de índice por cada spot que cubre (apuntan al mismo clip).
+- Índice `data/rewinds.json`: `{updatedAt, timezone, dias, rewinds: [...]}`. Cada entrada:
+  `id, spot, spotNombre, camara, camaraNombre, camaraCorta, credito, hora` (ISO con desfase de
+  Madrid), `horaLocal` ("2026-10-01 14:00"), `url`, `archivo`, `release, duracion, bytes, ancho,
+  alto, desenfoque` y `prevision` con `altura, periodo, direccion, direccionTxt, swellAltura,
+  swellPeriodo, marDeVientoAltura, temperaturaAgua, viento, vientoRacha, vientoDireccion,
+  vientoDireccionTxt, temperatura, horaApi`. La web puede pintarlo tal cual.
+- El parser de `js/spots.js` replica la fórmula de `S()` para el punto de mar; contrastado con Node.
+- `gh release upload` a la release mensual `rewinds-AAAA-MM`; los assets de más de 30 días se
+  borran con `gh release delete-asset` y la release, si queda vacía, con `gh release delete`.
+- `.github/workflows/rewinds.yml`: cada 2 h de 05:00 a 19:00 UTC; el script solo graba de 8 a 20 h
+  de Madrid (así el cambio de hora no obliga a tocar el cron) y solo si algún spot llega a 0,5 m.
+- ffmpeg no está en el PATH de este portátil. Para probar en local: `npm i ffmpeg-static
+  ffprobe-static` en una carpeta temporal y usar las variables FFMPEG y FFPROBE. En GitHub
+  Actions los runners ya los traen.
+- El canal de Benicàssim Vela da 404 durante minutos cuando el servidor de Turisme CV
+  re-publica: el grabador reintenta dos veces (5 s y 12 s) antes de seguir con el resto.
+- En local NO subir nada a la release; eso lo hace el workflow.
+## Modelo de persona y tabla en la vigía (17/10/2026)
 
-## Pendiente
-- Capturas con Playwright (instalando Chromium)
-- Revisión de `votar.html` para misma fuente Inter
+- `js/detector-ia.js` (otro worker, commit `5c3482e`) carga `coco-ssd` bajo demanda. La vigía lo usa
+  como **contrapeso**, no como sustituto: el detector de píxeles sigue diciendo quién coge una ola y el
+  modelo tiene que **ver persona y tabla a la vez**, con confianza ≥ `iaConfianzaMin` y evidencia **fresca**
+  (`iaValidezMs`). Si no hay evidencia del modelo, **no se dispara**.
+- [VERIFICADO] **Un fallo del modelo no cuenta como "no hay surfista".** Si `cargar()` falla, la vigía no
+  se arma y enseña el motivo; si una inferencia da error, se limpia la evidencia y deja de disparar.
+- [VERIFICADO] El modelo se pide **al armar la vigía**, nunca al abrir la página: son ~18 MB.
+- [VERIFICADO] La inferencia va a **~1 Hz** (`iaFrecuenciaHz`), no a 10 fps: una inferencia real tarda
+  ~100 ms a 940 ms según el ancho de la fuente, y llamar más rápido devuelve `omitido`, que no es un fallo.
+  Se cuentan las omisiones sin darlas por error.
+- [VERIFICADO] Los resultados obsoletos se descartan con `ia.esFresco(r)`: si al terminar ya se pidió otro
+  fotograma, ese resultado no se pinta.
+- Al parar la vigía se llama `ia.liberar()`: son 18 MB de pesos y memoria de GPU.
+- **Trampa**: WebCodecs y WebGL solo existen en **contexto seguro**. En `about:blank` no hay WebCodecs; en
+  `http://127.0.0.1` sí. Cualquier prueba de esto necesita servirse por localhost, no por `file://`.
+- [VERIFICADO, MENOR] `estado().inferencias` del módulo devuelve **0** aunque el modelo infiere de verdad
+  (la llamada directa trae `ms` y `marcoId` correctos). Se reporta sin afirmar nada sobre ese contador; lo
+  que se comprueba es lo documentado en el contrato (`estado`, `error`, `marcoId`, `roi`, `ms`).
+
+## Vigía de ola,(clip real y contenedor único · 17/10/2026, segunda vuelta)
+
+- [VERIFICADO] **El defecto crítico era concatenar grabaciones.** `new Blob([grabacion1, grabacion2])`
+  con dos `MediaRecorder` independientes produce un archivo roto: medido en navegador con ventana,
+  1 402 305 B que **solo duraban 3,0 s** de los ~5 s grabados. Dos contenedores WebM (o dos fragmentos
+  MP4) pegados no forman un clip válido. Ya no se concatena nada.
+- [VERIFICADO] **Grabador `codificado` (el bueno).** WebCodecs `VideoEncoder` + `webm-muxer` de jsdelivr.
+  Se codifica siempre a `keyFrame` cada `gopS`; el búfer guarda los trozos; al disparar se elige la
+  marca de inicio **más antigua que cabe en `prebufferS`** (no la más reciente: esa daba el búfer más
+  corto) y se escriben **solo esos trozos** en un `Muxer` **nuevo**. Una cabecera sola → archivo que
+  arranca y con la duración correcta. Medido: búfer previo de 7-8 s y **clip de 11,5 s reales** en
+  escena sintética, y **9,44 s** sobre la cámara real del club.
+- [VERIFICADO] **Sin `captureStream`.** El grabador codificado no lo usa, así que en principio funciona
+  en Safari de iOS 16.4+. No probado en un iPhone real: lo pendiente.
+- [VERIFICADO] **WebCodecs exige contexto seguro.** En `about:blank` no existe; en `http://127.0.0.1` sí.
+  Comprobado con `tools/pw-capacidades.cjs`: vp8, vp09.00.10.08, avc1 y av01 dan soporte.
+- **Trampa de unidades**: WebCodecs devuelve los trozos en MICROsegundos y `performance.now()` va en
+  milisegundos. Compararlos tal cual dio un búfer previo de **-28 139 s**. Siempre `* 1000` y `/ 1e6`.
+- `elegirGrabador(caps)` recibe las capacidades del navegador, así que el caso de iOS se prueba sin
+  tener un iPhone: sin WebCodecs ni `captureStream` devuelve `modo: 'ninguno'` con motivo explícito
+  (menciona iOS 16.4) y la interfaz lo enseña. El respaldo `continuo` usa un único `MediaRecorder` que
+  no se para, así que también entrega un contenedor único, y avisa de que el clip será la grabación
+  entera.
+- [VERIFICADO] **Los clips del histórico no se reproducían en móvil.** GitHub manda los adjuntos de las
+  releases como descarga y con `application/octet-stream`; en iOS y Android eso no arranca un `<video>`.
+  Ahora `reproducirClip()` los trae con `fetch` y usa un `Blob`; si el fetch falla avisa y deja el
+  enlace de descarga.
+- [VERIFICADO] **`crossOrigin: 'anonymous'`** en el `<video>` HLS: sin eso el lienzo queda tainted y
+  `getImageData` lanza `SecurityError`.
+- [VERIFICADO] **Fuga de clips a otros spots** (`js/app.js`, `findSimilarConditions`): si el spot no
+  tenía clips, la búsqueda caía a los 100 primeros del índice global, así que Vinaròs enseñaba
+  clips de Orihuela. Eliminado: la búsqueda solo mira las cámaras de ese spot.
+- [VERIFICADO] **Caducidad del `streamid` sin refresco.** `resolver_streams()` solo reescribía
+  `data/streams.json` si cambiaba la URL; con un `streamid` estable la fecha se quedaba vieja y la
+  webava a dejar de mostrar una emisión que funcionaba. Ahora reescribe también cuando lo anterior ya
+  ha pasado de la mitad de su `ttlMin`.
+- Pruebas E2E con navegador **con ventana**: `python scripts/probar_vigia_e2e.py` (detector→clip y
+  cámara real). No correr en CI: sin ventana `MediaRecorder` no codifica y la prueba no sería real.
+  Playwright ya está en el perfil de usuario (`%APPDATA%\npm\node_modules\playwright`); `NODE_PATH`
+  debe apuntar al `node_modules` **padre**, no al paquete.
+- Se retira `scripts/probar_surfers.py`: solo comprobaba la emisión y se saltaba la grabación con un
+  aviso, y ahora hay una prueba que sí la comprueba. La limitación headless queda en `DUDAS.md` 4.
+
+## Vigía de ola y reparación del histórico (17/10/2026, rama Joorcs96/reparar-surfers)
+- [VERIFICADO] La causa de que "Ver cómo rompía" saliera vacío era `prevision_spots()` en `scripts/rewind.py`
+  con el `return salida` dentro del bucle: lo coló el merge `0afa82a`. Solo se pedía previsión del primer spot
+  (MorroGos), así que en cada pasada solo `cv-oropesa-hls` podía grabarse y Planetario, Pirámides, Gurugú,
+  Voramar, Heliopolis y la webcam del club se quedaban sin clips. Trampa para el futuro: al revisar tests que
+  pasan, comprobar que no estén **afirmando el bug** (dos tests afirmaban que Gurugu quedaba fuera).
+- [VERIFICADO] `SPOTS_CON_CAMARA` no tenía `Gurugu`, cuya cámara sí lo cubre. Añadido.
+- [VERIFICADO] `SESIONES_PATH` apuntaba a `data/sesiones_surf.json` y el fichero versionado es
+  `data/sesiones_confirmadas.json`. Corregido.
+- [VERIFICADO] **IPCamLive no manda CORS en `player.php`**: el navegador no puede sacar el `streamid` por su cuenta.
+  Sí manda `Access-Control-Allow-Origin: *` en el `.m3u8` y en los `.ts`. Por eso la resolución va en el servidor:
+  `backend/actualizar_webcams.py --streams` publica `data/streams.json` con `{alias, hls, snapshot, ok, motivo,
+  resolvedAt, ttlMin}`. El `streamid` rota solo (la de Peñíscola lleva `enabled:false` desde que caducó), así que
+  la URL lleva fecha y la web avisa en vez de intentar en balde cuando pasa de `ttlMin`.
+- [VERIFICADO] `fetch` resuelve contra la URL del **documento**, no del módulo. `js/cams.js` usa
+  `new URL('../data/streams.json', import.meta.url)` para que aguante subdirectorios y rutas distintas. Los
+  `fetch` antiguos (`webcams.json`, `rewinds.json`) funcionan solo porque la app vive en la raíz; no tocar sin
+  revisar.
+- [VERIFICADO] El muestreo por oleaje escribía `deteccion.es_possible_ola: true` solo por la altura, y el
+  frontend leía `evidencia?.posibleOla`, clave que ningún índice ha tenido. Ahora `deteccion_por_oleaje()`
+  escribe `imagenAnalizada: false` y `es_posible_ola: false`, y `badgeEvidencia()` solo pinta el distintivo con
+  evidencia de imagen.
+- [VERIFICADO] El detector NO usa el ángulo entre la tabla y el avance como condición: en una cámara de playa el
+  que coge la ola avanza con la tabla casi paralela, así que exigir perpendicularidad habría descartado lo que se
+  busca. Ese ángulo se mide y se publica como dato informativo. Los umbrales van en **píxeles por segundo de la
+  rejilla**, no en metros: la escala real de cada cámara es distinta y no está medida. `pxPorMetro` es opcional y
+  por defecto `null`, para no publicar metros inventados.
+- La espuma se separa por **polaridad** (más clara que el fondo) y el surfista por la contraria (más oscuro), no
+  bajando el contraste. Es la diferencia entre un detector y un detector con el listón bajo.
+- La persona y la tabla salen casi siempre como **un solo blob** (las piernas apoyan en la tabla). Por eso
+  `descomponerSilueta()` parte el blob en la banda ancha y fina de la tabla y en lo que sobresale por encima.
+  Con la prueba de que `esPersona()` sobre el blob entero falla (alto 10 px contra ancho 14 px).
+- Vigía (`iniciarVigiaOla` en `js/cams.js`): búfer de trozos WebM de 2 s con `MediaRecorder` sobre
+  `video.captureStream()`; al disparar, el clip = búfer previo + cola posterior (`ensamblarClip`, función pura y
+  probada). Es lo que hace que el clip incluya el inicio de la ola. Los clips se quedan en el dispositivo: no se
+  sube nada a ningún sitio, que es también lo que corresponde con una cámara de club.
+- Pruebas nuevas: `node tools/test_deteccion_ola.js` (52), `node tools/test_rewind_flujo.js` (81),
+  `python scripts/probar_surfers.py` (real contra la emisión del club).
+- Trampa de pruebas: `tools/test_rewind_flujo.js` extrae las funciones reales de `js/app.js` y `js/cams.js` del
+  fuente y las evalúa, porque una réplica daría verde mientras la web se rompe. Al extraer, cuidado con
+  `new Function`: el código va con CRLF y hay que quitar `export `.
+- [VERIFICADO] En este host **no** hay `cv2`, `av` ni `ffmpeg`, y `MediaRecorder` en Edge sin ventana devuelve
+  0 bytes aunque el vídeo se reproduzca. Por eso el detector es de navegador y sin dependencias, y la grabación
+  queda pendiente de comprobar con ventana (ver `DUDAS.md` 4).
+
+## Imágenes libres, clips Planetario y evidencia de surf (11/10/2026)
+- Fotografías de spots (`js/spots.js`): 13 spots equipados con objeto `photo: { title, thumb, file, author, license, licenseUrl, url }`. Todas las fuentes provienen de Wikimedia Commons (CC BY-SA 4.0, CC BY-SA 3.0, CC BY 4.0), verificadas en vivo y accesibles bajo CSP `img-src 'self' data: blob: https:;`.
+- Iconos SVG sin emojis: Se añadieron iconos SVG limpios (viewBox="0 0 24 24") para rewind, search, pin, wave, wind, cam, star. Cumplen la regla estricta de Jordi: 0 emojis y 0 símbolos tipo check.
+- Surfers Castellón IPCamLive en Rewind (`scripts/rewind.py`):
+  - Resolución dinámica: parsea `player.php?alias=609a27d8a9c83` para extraer edge dinámico y `streamid` (`sXXX.ipcamlive.com/streams/<streamid>/stream.m3u8` y `snapshot.jpg`), sin eludir seguridad y con CORS abierto.
+  - Olas pequeñas mediterráneas: ventana de captura activada con Hs >= 0.35 m cuando el viento es terral o calma, permitiendo no perder baños reales pequeños.
+  - Metadatos enriquecidos: hora UTC y local Madrid, altura, periodo, dirección swell, viento medio, racha, dirección viento, modelo histórico de procedencia (`open-meteo-marine-v1`, `puertos-del-estado-redext-2630`), razón de captura y evidencia de surf.
+- Detector cinemático experimental (`scripts/rewind.py`):
+  - Rechazo explícito de falsos positivos: boyas fijas oscilantes (desplazamiento neto ~ 0), bañistas lentos en orilla (< 5 km/h), nadadores/surfistas a la espera, espuma y reflejos de luz.
+  - Marcado honesto como "posible ola" para candidatos con trayectoria continua > 15 km/h en ROI rompiente.
+- Comparador y evidencia de sesiones en UI (`js/app.js`, `css/app.css`):
+  - Comparador por distancia normalizada multidimensional para escala mediterránea.
+  - Registro de evidencia con botones "He surfeado hoy" y "Mar plano / Inviable", persistido en localStorage para evitar falsos negativos sin alterar precipitadamente los modelos de previsión.
+
+## Calidad y estrellas (03/10/2026)
+- Techos estrictos por altura en rompiente (h < 0.35m: máx r1/0★, < 0.48m: máx r2/1★, < 0.65m: máx r3/2★, < 0.75m: máx r4/3★, < 1.05m: máx r5/4★, < 1.40m: máx r6/5★). Evita que periodo o terral inflen sesiones sin tamaño surfeable.
+- Viento y rachas: `windState()` no asigna 'glassy' con viento de mar; velocidad efectiva `max(v, g * 0.65)` y penalización acumulativa por rachas fuertes (g >= 26 km/h) y rachas desproporcionadas respecto al viento medio (g >= 1.8 * v).
+- Mar de viento corto/desordenado: si domina mar de viento con periodo < 5.2 s se aplica penalización de calidad (-0.6).
+- Distinción estricta de datos: mar plato real = `rating: 0` (Plato, 0★, `0–0.2 m`), previsiones ausentes/NaN = `rating: null` (Sin datos, 0★, `– m`, clase `.r-na`).
+- Swell limpio aprovechable: mantiene calificaciones altas (0.9m+ a 8s con terral alcanza r6 Bueno, 5★).
+- Banco de pruebas: ejecutable con `node tools/test_rating_conservador.js` (16 pruebas unitarias y comparativas sintéticas).
+
+## Auditoría independiente de las estrellas (05/10/2026)
+- Regresión grave que quedaba viva tras 89c1d42: `range()` de `app.js` decidía la validez por `s.mid`, pero tres vistas la llaman con `{min, max}` sin `mid` (franja de 7 días, cabecera de mejor ventana y panel de 5-16 días). Mostraban siempre `– m` en vez del rango de altura. Ahora `range()` guarda por `min`/`max`. Comprobado revirtiendo el arreglo: `node tools/test_formato_null.js` pasa a 3 fallos.
+- Trampa de pruebas: `tools/test_rating_conservador.js` replicaba `range()` con el mismo bug, así que daba verde mientras la app rompía. Las réplicas de formato no sirven como prueba; `tools/test_formato_null.js` extrae el código real de `js/app.js` y `js/assistant.js` y lo evalúa.
+- Nulo que se vestía de 0: `Math.round(null)` = 0, así que sin viento se veía `0 km/h`, rachas `0` y `NaN–NaN km/h`. Ahora hay `kmh()` y `rnd()` en `app.js` y `kmh()` en `assistant.js`. El 0 medido sigue mostrándose como 0.
+- El asistente calculaba `Math.min(...horas.map(h => h.surf.min))`; con todos los nulos eso da 0 y pintaba `0–0 m`, que lee como mar plano en vez de sin datos. Ahora filtra nulos y delega en `fmtRange(null, null)` = `–`.
+- Comprobado que 5★ solo con buenas condiciones: por debajo de 1.05 m en rompiente ninguna combinación de periodo, viento y rachas llega a 5★ (barrido en `test_formato_null.js`), y 1.2 m a 7 s con calma sí las alcanza.
+- Suite nueva: `node tools/test_formato_null.js` (15 pruebas). Suite completa: `node tools/test_rating_conservador.js` (16) + `python -m unittest scripts.test_realtime backend.test_motor_fisica scripts.test_rewind` (84).
+
+## Normas de trabajo (incluir en specs)
+- Parar bucles: 3 fallos seguidos de la misma prueba = parar, causa en 3 líneas, volver al último commit bueno y preguntar.
+- Logs de más de 50 líneas: solo 20 primeras + 20 últimas.
+- Antes de integrar en main: rebase sobre el main actual y repetir la prueba.
+
+- GitHub: la rama por defecto es main desde 01/10/2026 (antes desarrollo-web-surf, y por eso los cron de main no corrían). Los cron solo corren en la rama por defecto.
+- Planetario: Jordi surfea exactamente en 39.9784738, 0.0265750 (junto al dique norte del puerto).
+- Calibración real (Jordi, 30/09 18:40-19 h, Planetario): casi sin olas y el viento de mar lo estropeaba, con 0.36-0.38 m y 5.6 s mar adentro y un viento de 6-8 km/h del ESE con rachas de 18. La web daba 0.4-0.6 m, demasiado optimista: el factor de Komar multiplica x1.44 y el estudio v3 da x0.85 a 5 s. Las rachas cuentan.
+- Nowcast con boya: si hay dato reciente (≤ 3h) de boya, se calcula un ratio de corrección frente al modelo mar adentro, limitado a [0.7, 1.6].
+- Este ratio se aplica a las alturas futuras en un radio de 60 km, decayendo linealmente a 1 a las 12 horas.
+- Estudio físico v3 (rayos OSM + EMODnet, verificado con check.py) en meteosurf_research/calculos_v3/.
+- **Hay dos motores, no uno.** La web (`js/forecast.js`) usa el v3 (Komar por trenes, `exposureFactor`, `maxGood`, `swellWindow`) y puntúa 1-7; el backend (`backend/motor_fisica.py`) usa el heredado (sigmoide, sin trenes) y puntúa 0-5, y es el que llena `historico_olas.csv`. El histórico no registra lo que ve el usuario. Decidir en `DUDAS.md` 1; no lo cambies por tu cuenta.
+- Trenes de oleaje: Open-Meteo publica `swell_*`, `secondary_swell_*` y `wind_wave_*`; el total `wave_height` es la suma energética de los tres (medido: la suma es del 0.93 al 1.03 del total). Pedir solo dos pierde hasta un 18% de altura. El prefijo del viento es `wind`, no `wind_wave`: las variables son `wind_wave_height`. `desglose_oleaje()` en `backend/actualizar_prevision.py` es puro y sin red, y devuelve además `fraccion_viento`, que todavía no usa nadie.
+- `dir_swell_deg` del histórico guarda la dirección del **tren dominante**, no la del total; si manda el mar de viento, esa es la que se registra.
+- Periodo 4-6 s en el Mediterráneo: no penaliza (estudio v3 y escala de Jordi). Por debajo de 4 s sí, -0.5. El estado heredado del worker arrived a castigar hasta 5 s, en contra del estudio.
+- Viento de mar: un solo tramo, -0.5 desde 12 km/h; por encima de 20 entra el tramo global (-1) y por encima de 30 otro (-1). No añadas un segundo tramo de viento de mar, que es como se restaba dos veces.
+- Pruebas del backend: `python -m unittest backend.test_motor_fisica backend.test_actualizar_prevision` (44). `unittest discover -s backend` falla: `backend` no es paquete importable.
+- El worker que inicia `orden/relevo-cuota.ps1` puede morir dejando el worktree con cambios a medias: guarda primero un commit de checkpoint antes de corregir nada.
+
+
+- 05/10: Planetario casi plano a las 15 h con 0.6 m / 4.4 s del ENE en el modelo: Komar daba 0.75 m. Ahora la web usa la tabla v3 (`js/physics.js`) en 8 spots, viento efectivo max(media, 0.6 x racha), Calma < 6 km/h efectivos y el periodo 4-6 s no penaliza. Caso 4 en `node scripts/test_calibracion.mjs`. Los modelos (MF, ECMWF, GFS) daban casi lo mismo todo el día: el bajón real lo marcaron la boya (mar del E de 8 s que se apaga y gira a S) y la brisa de mar.
+- Spots del Grao de norte a sur (Jordi, 05/10): Gurugú = Serradal (40.00838, 0.03523), Pirámides = Playa del Pinar (39.99872, 0.03137), Planetario. Antes estaban intercambiados. Ambos usan la tabla v3 calculada en 39.99872 (la de 'Gurugu') hasta recalcular. La cámara del Grao y los rewinds cubren Planetario y Pirámides.
+- 05/10 por la mañana un amigo de Jordi surfeó bien a las 9 h con 0.47 m en rompiente y terral: la escala era pesimista. Ahora 0.40-0.50 m con terral o calma da Regular (techo sube un escalón con viento limpio); con viento de mar sigue Muy malo. Los otros 12 spots comprobados con costa OSM + Nominatim: en el agua y en su playa.
+- Seguridad: CSP en index/votar (permite jsdelivr, Open-Meteo, Turisme CV, IPCamLive, Windy, YouTube; vídeos https). Nada de scripts inline: el de votar está en `js/votar.js`. Si se añade una fuente externa nueva, hay que añadirla a la CSP o se bloquea.
+
+## Pendiente de Jordi
+- Confirmar orientaciones medidas con OSM que cambian mucho: La Renegà 148°, Voramar 142°, El Palaciet 143°.
+- Cámara de Surfers Castellón: pedir al club enlace público o permiso.
+
+
+## Rediseño y clips · 06/10/2026
+- [VERIFICADO] SPEC completado en rama Joorcs96/rediseno-surfline; resultados y límites en INFORME-REDISENO.md. Capturas sólo locales en .capturas/rediseno/.
+- [VERIFICADO] stopCam invalida la sesión y cancela recordClip; callbacks HLS/JPG/clip deben respetar esa sesión para no borrar un reproductor posterior.
+- [VERIFICADO] Leaflet carga CSS después del nuestro: usar #map en controles para que se conserven los 44 px. shot.mjs necesita carpeta absoluta para el perfil Chrome en este host.
+- [VERIFICADO] Node --check con dos archivos sólo comprueba el primero: ejecutar también js/cams.js por separado. Safari físico pendiente; ocultación sin captureStream comprobada en Chrome.
+- 10/10: en Orca, OpenCode falla al arrancar (agent_readiness / missing_status) y Antigravity con claude-sonnet-4-6, gpt-oss-120b-medium y gemini-3.8-flash-high se cerró al instante (process_stopped); gemini-3.1-pro-high sí funcionó. Para probar la web con Playwright, bloquear el service worker (serviceWorkers: 'block') o page.route no intercepta.
+
+## Histórico de Datos y Calibración · 11/10/2026
+- [VERIFICADO] Auditoría: MeteoSurf NO guardaba histórico acumulativo de boyas en realtime.json (sólo la última foto horaria) ni en historico_olas.csv (que son 2.640 previsiones de Open-Meteo, no boya).
+- [VERIFICADO] Rescate de Git: Extraídas 814 observaciones reales de 165 commits históricos de Git (486 boyas: Valencia 2630, Tarragona 2720 y 1712; 164 mareógrafo Sagunto; 164 viento REMPOR Castellón).
+- [VERIFICADO] Archivo canónico: data/historico_observaciones.jsonl y data/historico_observaciones.csv, deduplicados por (tipo_sensor, estacion_id, tiempo_utc). Preservan observed_at y retrieved_at distintos y commit_hash. Huecos reales conservados como null.
+- [VERIFICADO] Cuaderno Excel: scripts/exportar_excel.py genera data/MeteoSurf_Historico_Calibracion.xlsx con 6 hojas (Resumen, Boyas, Nivel y Viento, Previsiones Emitidas, Sesiones Confirmadas, Calibracion y Diagnostico) cumpliendo el skill Spreadsheets (openpyxl). Fórmulas auditables, 0 errores #REF!/#DIV/0!.
+- [VERIFICADO] Pruebas: python -m unittest scripts.test_historico_datos (5/5 tests OK: idempotencia dedup, esquemas, integridad historico_olas.csv original, apertura y escaneo de fórmulas de Excel, y calibración 09/10).
+- [VERIFICADO] Coste cero: scripts/archivar_historico.py --agregar-snapshot listo para ejecutarse en GitHub Actions tras realtime.py sin duplicar peticiones a Portus.
+
+
+## Ramas (auditoria 18/10/2026)
+
+[VERIFICADO] Inventario local mediante git for-each-ref, merge-base y rev-list; referencia origin/main = 
+907cc79e7e4fb502aa2a97cb822c0a5bd3f70652
+. Instantanea previa al commit de esta tabla.
+
+| Rama local | Integrada en origin/main | Commits sin integrar | Ultimo commit | Worktree |
+|---|---|---:|---|---|
+| Joorcs96/backend-avisos | si | 0 | 2026-10-18 17:23:08 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/backend-avisos |
+| Joorcs96/calibracion-prevision | si | 0 | 2026-10-05 00:53:34 +0200 |  |
+| Joorcs96/calibrar-sesion | si | 0 | 2026-10-10 04:08:43 +0200 |  |
+| Joorcs96/diseno-profesional | no | 4 | 2026-10-18 18:46:38 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/diseno-profesional |
+| Joorcs96/grabar-detectar | si | 0 | 2026-10-18 14:42:33 +0000 | C:/Users/Jordi/orca/workspaces/Surfline_CS/grabar-detectar |
+| Joorcs96/herramientas-diseno | no | 1 | 2026-10-16 00:06:16 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/herramientas-diseno |
+| Joorcs96/herramientas-pwa | no | 1 | 2026-10-18 17:45:36 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/herramientas-pwa |
+| Joorcs96/historico-datos | no | 3 | 2026-10-18 17:22:56 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/historico-datos |
+| Joorcs96/hud-terminator | no | 5 | 2026-09-30 06:23:15 +0000 | C:/Users/Jordi/orca/workspaces/Surfline_CS/hud-terminator |
+| Joorcs96/icono-pwa | si | 0 | 2026-10-18 17:23:08 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/icono-pwa |
+| Joorcs96/imagenes-clips | no | 5 | 2026-10-11 01:29:09 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/imagenes-clips |
+| Joorcs96/motor-alertas | si | 0 | 2026-10-18 17:23:08 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/motor-alertas |
+| Joorcs96/ms-audita-estrellas | no | 5 | 2026-10-05 09:40:47 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-audita-estrellas |
+| Joorcs96/ms-calibra | no | 5 | 2026-10-04 23:14:10 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-calibra |
+| Joorcs96/ms-corrige-estrellas | no | 1 | 2026-10-05 09:42:38 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-corrige-estrellas |
+| Joorcs96/ms-ficha | si | 0 | 2026-09-28 00:10:24 +0200 |  |
+| Joorcs96/ms-fisica | no | 4 | 2026-09-29 06:22:25 +0000 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-fisica |
+| Joorcs96/ms-investiga-datos | no | 1 | 2026-10-03 15:40:00 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-investiga-datos |
+| Joorcs96/ms-investiga-fisica | no | 1 | 2026-10-03 15:39:33 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-investiga-fisica |
+| Joorcs96/ms-realtime-reviewed | si | 0 | 2026-09-30 01:05:11 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-realtime-ui |
+| Joorcs96/ms-realtime-ui | no | 4 | 2026-09-29 06:22:25 +0000 |  |
+| Joorcs96/ms-rewinds | no | 4 | 2026-10-01 01:16:02 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-rewinds |
+| Joorcs96/ms-rewinds-ui | no | 5 | 2026-10-01 01:28:16 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-rewinds-ui |
+| Joorcs96/ms-tabla | si | 0 | 2026-09-28 00:04:36 +0200 |  |
+| Joorcs96/ms-verifica-fuentes | no | 3 | 2026-10-03 16:52:55 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-verifica-fuentes |
+| Joorcs96/nowcast-boya | no | 1 | 2026-10-18 17:02:37 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/calibracion-prevision |
+| Joorcs96/panel-avisos | si | 0 | 2026-10-18 17:23:08 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/panel-avisos |
+| Joorcs96/redisenar-main | si | 0 | 2026-10-04 23:53:20 +0200 |  |
+| Joorcs96/redisenar-web | no | 11 | 2026-10-04 23:22:20 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/redisenar-web |
+| Joorcs96/rediseno-surfline | si | 0 | 2026-10-06 09:10:32 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/rediseno-surfline |
+| Joorcs96/reparar-surfers | no | 9 | 2026-10-18 19:13:21 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/reparar-surfers |
+| Joorcs96/vigilante-camaras | si | 0 | 2026-10-18 18:45:34 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/vigilante-camaras |
+| Joorcs96/webcams-rapidas | no | 1 | 2026-10-18 17:54:37 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/webcams-rapidas |
+| actualizacion-v2 | no | 13 | 2026-09-25 01:15:33 +0200 |  |
+| anadir-oropesa-concha | si | 0 | 2026-10-18 19:56:47 +0200 | C:/Users/Jordi/orca/Surfline_CS |
+| backup-diseno-profesional-b63461b | no | 3 | 2026-10-16 00:21:39 +0200 |  |
+| backup-ms-corrige-estrellas-89c1d42 | no | 1 | 2026-10-03 16:04:32 +0200 |  |
+| backup-webcams-rapidas-20261018 | no | 5 | 2026-09-30 06:23:15 +0000 |  |
+| camara-surfers-castellon | si | 0 | 2026-10-10 14:29:09 +0200 |  |
+| corregir-prevision | si | 0 | 2026-10-06 09:10:32 +0200 |  |
+| desarrollo-web-surf | si | 0 | 2026-09-25 11:56:43 +0200 |  |
+| docs-auditoria-ramas | si | 0 | 2026-10-18 20:34:26 +0000 | C:/Users/Jordi/orca/workspaces/Surfline_CS/docs-auditoria-ramas |
+| fix-gaps | no | 1 | 2026-09-28 00:14:20 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-ficha |
+| fix-gaps-3-4-11-13-14 | no | 1 | 2026-09-28 00:12:09 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/ms-tabla |
+| main | si | 0 | 2026-10-18 18:45:34 +0200 |  |
+| meteosurf-v2 | si | 0 | 2026-09-27 23:36:04 +0200 |  |
+| mralcachofino-base | no | 12 | 2026-08-28 19:25:05 +0200 |  |
+| seguridad-csp | si | 0 | 2026-10-04 23:53:20 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/redisenar-main |

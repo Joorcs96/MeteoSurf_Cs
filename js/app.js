@@ -4,6 +4,7 @@ import { loadForecast, loadRealtime, antiguedadRealtime, nowIndex, tideExtremes,
 import { compassSVG, dirArrow } from './compass.js';
 import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordClip, estadoStream, iniciarVigiaOla, vigias } from './cams.js';
 import { aplicarNowcast } from './nowcast.js';
+import { iniciarCapas } from './mapa-capas.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -1072,15 +1073,17 @@ function tideChart(day) {
 
 // ---------- Mapa ----------
 let leaflet = null;
+let capasMapa = null;
 async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
-  view.innerHTML = '<div class="region-head"><h1>Mapa de spots</h1><p>Toca un punto para consultar su previsión.</p></div><div id="map"></div>';
+  view.innerHTML = '<div class="region-head"><h1>Mapa de spots</h1><p>Toca un punto para consultar su previsión. Con las capas ves viento, oleaje, periodo, temperatura del mar y presión, y al tocar el mar, el tiempo de ese punto.</p></div><div id="map-capas"></div><div id="map"></div>';
   if (!window.L) {
     await new Promise((res) => {
       const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l);
       const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'; s.onload = res; document.head.appendChild(s);
     });
   }
+  capasMapa?.destruir(); capasMapa = null;
   leaflet?.remove();
   leaflet = L.map('map', { zoomControl: true });
   const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
@@ -1113,6 +1116,7 @@ async function renderMap() {
   leaflet.fitBounds(bounds, { padding: [30, 30] });
   const syncLabels = () => document.getElementById('map')?.classList.toggle('show-labels', leaflet.getZoom() >= 11);
   leaflet.on('zoomend', syncLabels); syncLabels();
+  capasMapa = iniciarCapas(leaflet, $('#map-capas'), { L });
   setTimeout(() => leaflet.invalidateSize(), 50);
 }
 

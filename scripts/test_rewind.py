@@ -37,12 +37,12 @@ _leer_webcams_real = rewind.leer_webcams
 # Valores reales sacados de `node` con el SPOTS de js/spots.js.
 SEA_LAT_LON_ESPERADO = {
     "Planetario": (39.976, 0.0419),
-    "Piramides": (39.9954, 0.0464),
+    "Piramides": (39.95304, 0.02498),
     "Voramar": (40.0452, 0.0921),
     "Heliopolis": (40.0206, 0.0595),
     "MorroGos": (40.0928, 0.1640),
     "Renega": (40.0518, 0.1289),
-    "Gurugu": (40.0039, 0.0498),
+    "Gurugu": (39.9954, 0.0464),
 }
 
 
@@ -93,7 +93,7 @@ class TestSeleccionCamaras(unittest.TestCase):
         # que el spot quedaba sin clips en el índice y "Ver cómo rompía" salía
         # vacío justo en uno de los tres beaches del Grao.
         self.assertEqual(
-            cams["cv_grao_castellon"]["spotsCubiertos"], ["Planetario", "Piramides", "Gurugu"]
+            cams["cv_grao_castellon"]["spotsCubiertos"], ["Piramides", "Gurugu"]
         )
         self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Voramar", "Heliopolis"])
         self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Renega"])
@@ -706,7 +706,7 @@ class TestMain(unittest.TestCase):
             self.assertEqual(rewind.main(self._args(tmp)), 0)
             self.assertEqual(len(self.grabadas), 3)
             indice = json.loads(Path(tmp, "rewinds.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(indice["rewinds"]), 7)  # Grao cubre 3 spots, los otros 2 y 2
+            self.assertEqual(len(indice["rewinds"]), 6)  # Grao cubre 2 spots, los otros 2 y 2
             self.assertEqual(indice["timezone"], "Europe/Madrid")
             self.assertEqual(indice["updatedAt"], "2026-09-29T14:00:00+02:00")
             self.assertEqual(indice["dias"], 30)
@@ -963,11 +963,11 @@ class TestPrevisionYGrafoDeCamaras(unittest.TestCase):
         # Se comprueba que la excepción sale del bucle y no se propaga.
         self.assertEqual(salida, {})
 
-    def test_la_webcam_del_club_va_primera_en_el_grao(self):
+    def test_planetario_solo_usa_la_camara_de_surfers(self):
         cams = rewind.camaras_rewind(rewind.leer_webcams(), incluir_ipcamlive=True)
         grao = [c["id"] for c in cams if "Planetario" in c["spotsCubiertos"]]
-        self.assertEqual(grao[0], "surfers_castellon")
-        self.assertIn("cv_grao_castellon", grao)
+        # Planetario solo se graba con la cámara de Surfers.
+        self.assertEqual(grao, ["surfers_castellon"])
 
     def test_sin_resolucion_de_ipcamlive_se_salta_en_vez_de_descargar_html(self):
         rewind.resolver_stream_ipcamlive = lambda *a, **k: None

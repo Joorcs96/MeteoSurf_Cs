@@ -216,7 +216,7 @@ seccion('La webcam del club: prioridad, emisión resuelta y grababilidad');
   comprobar('la emisión está marcada como válida y fechada', resolta.ok === true && Number.isFinite(Date.parse(resolta.resolvedAt)));
   comprobar('la emisión caduca pronto, porque el streamid rota', resolta.ttlMin > 0 && resolta.ttlMin <= 120, String(resolta.ttlMin));
   comprobar('la cámara del club sigue también como iframe de reserva', CATALOGO.some((c) => c.id === 'surfers_castellon' && c.embedType === 'iframe'));
-  comprobar('la del club va antes que la de la Generalitat', club.findIndex((c) => c.id === 'cv_grao_castellon') > 0, club.map((c) => c.id).join(','));
+  comprobar('Planetario solo usa las cámaras de Surfers', club.every((c) => c.id.startsWith('surfers_castellon')), club.map((c) => c.id).join(','));
 }
 
 seccion('Elegir grabador: cuál se puede usar y por qué se dice que no');

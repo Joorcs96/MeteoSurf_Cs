@@ -79,11 +79,14 @@ class TestSeleccionCamaras(unittest.TestCase):
         cams = rewind.camaras_rewind(self.webcams)
         self.assertEqual(
             sorted(c["id"] for c in cams),
-            ["cv-benicassim-vela-hls", "cv-oropesa-hls", "cv_grao_castellon"],
+            ["cv-benicassim-vela-hls", "cv-oropesa-hls", "cv_grao_castellon", "voramar-axis-cam1"],
         )
 
-    def test_descarta_mjpeg_jpg_iframe_y_otros_servidores(self):
+    def test_descarta_jpg_iframe_y_otros_servidores(self):
         for cam in rewind.camaras_rewind(self.webcams):
+            if cam["id"] == "voramar-axis-cam1":
+                self.assertEqual(cam["embedType"], "mjpeg")  # principal de Voramar
+                continue
             self.assertEqual(cam["embedType"], "hls")
             self.assertIn("streaming.comunitatvalenciana.com", cam["embedUrl"])
 
@@ -696,7 +699,8 @@ class TestMain(unittest.TestCase):
             rewind.prevision_spots = self._prevision(0.3)
             rewind.grabar_camara = self._grabacion_falsa(tmp)
             self.assertEqual(rewind.main(self._args(tmp)), 0)
-            self.assertEqual(self.grabadas, [])
+            # Sin oleaje solo se graban las cámaras principales de Voramar y Planetario.
+            self.assertEqual(sorted(self.grabadas), ["cv-benicassim-vela-hls", "voramar-axis-cam1"])
 
     def test_graba_las_tres_camaras_y_monta_el_indice(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -704,7 +708,7 @@ class TestMain(unittest.TestCase):
             rewind.prevision_spots = self._prevision(0.8)
             rewind.grabar_camara = self._grabacion_falsa(tmp)
             self.assertEqual(rewind.main(self._args(tmp)), 0)
-            self.assertEqual(len(self.grabadas), 3)
+            self.assertEqual(len(self.grabadas), 4)
             indice = json.loads(Path(tmp, "rewinds.json").read_text(encoding="utf-8"))
             self.assertEqual(len(indice["rewinds"]), 6)  # Grao cubre 2 spots, los otros 2 y 2
             self.assertEqual(indice["timezone"], "Europe/Madrid")

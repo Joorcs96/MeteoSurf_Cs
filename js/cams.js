@@ -255,6 +255,7 @@ export function playClip(el, clip) {
   badge.className = 'live-badge';
   badge.textContent = 'Rewind · ' + new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   label.appendChild(badge); el.appendChild(label);
+  if (/^https:\/\//.test(clip.foto || '')) video.poster = clip.foto;
   video.addEventListener('error', () => { if (sessions.get(el) === session) msg(el, 'Clip no disponible', 'Puedes intentar descargarlo o volver al directo.'); }, { once: true });
 video.play().catch(() => {});
 return video;

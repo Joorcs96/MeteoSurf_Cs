@@ -61,6 +61,12 @@ PREFERENCIA_SPOT: Tuple[str, ...] = SPOTS_CON_CAMARA
 # de Playa del Pinar, que es donde entra Jordi.
 PREFERENCIA_CAMARA: Tuple[str, ...] = ("surfers_castellon",)
 
+# Spots cuya cámara principal se graba siempre de día, haya o no oleaje: Jordi
+# quiere ver el mar de Planetario y Voramar todos los días, también los planos.
+SPOTS_SIEMPRE_GRABAR: Tuple[str, ...] = ("Planetario", "Voramar")
+# Cámara MJPEG del Hotel Voramar (principal de Voramar). ffmpeg la lee directa.
+HOST_VORAMAR = "cam1.voramar.net"
+
 DURACION_S = 20             # segundos de clip
 ALTO_MAXIMO = 480           # alto del clip; el requisito es 720p o menos
 DESENFOQUE = 2              # desenfoque de caja (luma) para anonimizar; 0 lo desactiva
@@ -323,7 +329,8 @@ def camaras_rewind(
             or ALIAS_SURFERS_CASTELLON in url
             or (HOST_IPCAMLIVE in netloc and "Planetario" in (cam.get("spots") or []))
         )
-        if not (es_cv_hls or (incluir_ipcamlive and es_surfers)):
+        es_voramar_mjpeg = (embed_type == "mjpeg" and HOST_VORAMAR in netloc)
+        if not (es_cv_hls or es_voramar_mjpeg or (incluir_ipcamlive and es_surfers)):
             continue
         cubiertos = [s for s in (cam.get("spots") or []) if s in objetivo]
         if not cubiertos:
@@ -693,11 +700,20 @@ def ffprobe() -> str:
 
 def grabar_directo(url_maestro: str, salida: Path, duracion: int = DURACION_S) -> bool:
     """Graba del directo con ffmpeg; es el camino normal."""
-    cmd = [
-        ffmpeg(), "-y", "-hide_banner", "-loglevel", "error",
-        "-i", url_maestro, "-t", str(duracion),
-        "-c", "copy", "-f", "mpegts", str(salida),
-    ]
+    if HOST_VORAMAR in url_maestro:
+        # MJPEG no cabe tal cual en mpegts: se codifica a H.264 a 10 fps.
+        cmd = [
+            ffmpeg(), "-y", "-hide_banner", "-loglevel", "error",
+            "-f", "mjpeg", "-i", url_maestro, "-t", str(duracion), "-an",
+            "-vf", "fps=10", "-c:v", "libx264", "-preset", "veryfast",
+            "-pix_fmt", "yuv420p", "-f", "mpegts", str(salida),
+        ]
+    else:
+        cmd = [
+            ffmpeg(), "-y", "-hide_banner", "-loglevel", "error",
+            "-i", url_maestro, "-t", str(duracion),
+            "-c", "copy", "-f", "mpegts", str(salida),
+        ]
     try:
         subprocess.run(cmd, check=True, timeout=180)
     except Exception as exc:
@@ -1101,6 +1117,20 @@ def borrar_assets_viejos(repo: str, max_dias: int = DIAS_REPOSO, dry_run: bool =
 # ------------------------------------------------------------------ grabación
 
 
+def extraer_foto(clip: Path, foto: Path, segundo: float = 3.0) -> bool:
+    """Saca un fotograma del clip (ya desenfocado) para usarlo de foto y de póster."""
+    cmd = [
+        ffmpeg(), "-y", "-hide_banner", "-loglevel", "error",
+        "-ss", str(segundo), "-i", str(clip), "-frames:v", "1", "-q:v", "4", str(foto),
+    ]
+    try:
+        subprocess.run(cmd, check=True, timeout=60)
+    except Exception as exc:
+        print(f"  [aviso] No se pudo sacar la foto de {clip.name}: {exc}")
+        return False
+    return foto.exists() and foto.stat().st_size > 1_000
+
+
 def descargar_bruto(url_maestro: str, destino: Path, duracion: int = DURACION_S) -> None:
     """Deja en `destino` un .ts con el directo.
 
@@ -1220,7 +1250,9 @@ def grabar_camara(
         "deteccion": deteccion_clip,
     })
 
+    foto = clip.with_suffix(".jpg")
     url = url_descarga(args.repo, tag, archivo)
+    url_foto = url_descarga(args.repo, tag, foto.name) if extraer_foto(clip, foto) else None
     entradas = [
         entrada_indice(
             spots[sid], cam, prevision[sid], info, momento, archivo, tag, url,
@@ -1229,6 +1261,10 @@ def grabar_camara(
         for sid in cam["spotsCubiertos"]
         if sid in prevision and sid in spots
     ]
+    if url_foto:
+        for e in entradas:
+            e["foto"] = url_foto
+            e["archivoFoto"] = foto.name
     return clip, entradas
 
 
@@ -1350,6 +1386,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         maximo = max((e.get("altura") or 0.0) for e in evaluaciones)
         if args.forzar:
             print(f"  {cam.get('short')}: {maximo} m (forzado)")
+        elif any(sid in SPOTS_SIEMPRE_GRABAR for sid in cam["spotsCubiertos"]):
+            print(f"  {cam.get('short')}: {maximo} m, cámara principal: se graba siempre")
         elif not es_surfeable:
             print(f"  {cam.get('short')}: {maximo} m, por debajo de {args.min_altura} m. Se descarta.")
             continue
@@ -1374,6 +1412,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             if not subir_clip(clip, args.repo, etiqueta_release(momento)):
                 fallos += 1
                 continue
+            foto = clip.with_suffix(".jpg")
+            if foto.exists() and not subir_clip(foto, args.repo, etiqueta_release(momento)):
+                for n in nuevas:
+                    n.pop("foto", None)
+                    n.pop("archivoFoto", None)
         clips.append(clip)
         entradas.extend(nuevas)
         print()

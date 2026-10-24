@@ -960,16 +960,19 @@ def ejecutar_vigilante(
                 }
                 nuevas_entradas_indice.append(entrada)
 
-    # 4. Actualizar data/rewinds.json
+    # 4. Subir clips a Release y, solo si se han subido, anotarlos en data/rewinds.json.
+    #    Antes se anotaban siempre: en modo prueba o con la subida fallida el índice
+    #    apuntaba a archivos que no existen y los clips no se podían reproducir.
     agregados = 0
-    if nuevas_entradas_indice:
-        agregados = actualizar_indice_rewinds(nuevas_entradas_indice)
-        print(f"  [OK] data/rewinds.json actualizado (+{agregados} entradas).")
-
-    # 5. Subir clips a Release si corresponde
+    subidos = False
     if subir and archivos_mp4_generados and not modo_prueba:
         print(f"\n[4/4] Subiendo {len(archivos_mp4_generados)} clips a Release {etiqueta_mes}...")
-        subir_clips_a_release(repo, archivos_mp4_generados, etiqueta_mes)
+        subidos = bool(subir_clips_a_release(repo, archivos_mp4_generados, etiqueta_mes))
+    if nuevas_entradas_indice and subidos:
+        agregados = actualizar_indice_rewinds(nuevas_entradas_indice)
+        print(f"  [OK] data/rewinds.json actualizado (+{agregados} entradas).")
+    elif nuevas_entradas_indice:
+        print("  [INFO] Clips sin subir: no se anotan en data/rewinds.json.")
 
     # 6. Relanzar si aún estamos en franja diurna
     if not modo_prueba and esta_en_franja_diurna(ahora_madrid(), hora_fin=19):

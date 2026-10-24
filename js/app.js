@@ -382,7 +382,7 @@ function renderRewinds(spot) {
   });
   // Sin clips la tira nace desplegada: si no, el motivo se queda escondido detrás
   // de un botón que no parece hacer nada.
-  return `<div id="rewind-strip" class="rewind-strip" ${clips.length ? 'hidden' : ''}>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot. El grabador solo deja clips los días con oleaje suficiente, así que esta lista se llena poco a poco.</p>'}</div>`;
+  return `<div id="rewind-strip" class="rewind-strip" ${clips.length ? 'hidden' : ''}>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}${c.foto ? ' 📷' : ''}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot. El grabador solo deja clips los días con oleaje suficiente, así que esta lista se llena poco a poco.</p>'}</div>`;
 }
 function bindClips(spot, camEl, showCam) {
   const clips = clipsForSpot(spot);

@@ -38,3 +38,9 @@ video/
 
 # Playwright CLI local session state
 .playwright-cli/
+
+# App móvil
+surfline-mobile/node_modules/
+surfline-mobile/.expo/
+surfline-mobile/dist/
+surfline-mobile/.env

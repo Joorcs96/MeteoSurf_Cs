@@ -566,7 +566,7 @@ async function renderAssistant() {
         <span class="pro-badge">PRO</span>
         <div class="pro-banner-text">
           <strong>Acceso completo con Pro</strong>
-          <span>Previsión 16 días, rewind ilimitado y alertas personalizadas por 2,99 €/mes.</span>
+          <span>Evaluación técnica de funciones avanzadas. Actualmente todas las funciones son 100% gratuitas.</span>
         </div>
       </div>
       <button type="button" class="btn pro-banner-btn" id="pro-banner-btn">Ver ventajas</button>
@@ -610,13 +610,13 @@ function renderPro() {
     <div class="region-head">
       <div>
         <span class="pro-badge" style="margin-bottom:8px">PRO</span>
-        <h1>MeteoSurf Pro</h1>
-        <p>2,99 €/mes · Acceso completo a todas las funciones avanzadas</p>
+        <h1>MeteoSurf Pro (En evaluación)</h1>
+        <p>Actualmente 100% gratuito · Fase de evaluación técnica y lista de espera</p>
       </div>
     </div>
     <div class="card pad" style="max-width:540px;margin:24px auto;text-align:center">
       <h2 style="margin-top:0">¡Gracias por tu interés en MeteoSurf Pro!</h2>
-      <p style="color:var(--text-2);margin-bottom:20px">La suscripción Pro estará disponible en la próxima actualización con pasarela directa.</p>
+      <p style="color:var(--text-2);margin-bottom:20px">MeteoSurf_Cs es un proyecto independiente 100% gratuito. Evaluamos el interés de funciones avanzadas sin ningún cobro activo.</p>
       <ul class="pro-modal-features" style="max-width:320px;margin:0 auto 24px">
         <li><span class="pro-check">✓</span> Previsión completa 16 días</li>
         <li><span class="pro-check">✓</span> Rewind de cámaras ilimitado</li>
@@ -1875,7 +1875,14 @@ async function refresh(force = false) {
   try {
     state.fc = await loadForecast({ force });
   } catch (e) {
-    view.insertAdjacentHTML('afterbegin', `<div class="banner">No se ha podido descargar la previsión (${esc(e.message)}). Revisa la conexión y vuelve a intentarlo.</div>`);
+    view.insertAdjacentHTML('afterbegin', `<div class="banner" id="error-banner" role="alert" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <span>No se ha podido descargar la previsión (${esc(e.message)}). Revisa la conexión y vuelve a intentarlo.</span>
+      <button type="button" class="btn" id="btn-reintentar" style="min-height:44px;min-width:44px;padding:8px 16px;cursor:pointer">Reintentar</button>
+    </div>`);
+    document.getElementById('btn-reintentar')?.addEventListener('click', () => {
+      document.getElementById('error-banner')?.remove();
+      refresh(true);
+    });
     return;
   } finally {
     await realtime;

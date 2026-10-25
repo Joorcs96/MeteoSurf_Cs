@@ -1,3 +1,28 @@
+# Tablero de Estado · Surfline Castellón
+
+## 📋 PENDIENTES
+- App móvil Fase 2: Reproductor HLS nativo y clips Vigía
+
+## ⚙️ EN CURSO
+| Tarea | Rol/agente | Cerebro | Pestaña |
+| --- | --- | --- | --- |
+
+## 👀 EN REVISION
+| Tarea | Rol/agente | Cerebro | Pestaña |
+| --- | --- | --- | --- |
+
+## ✅ FINALIZADAS
+| Fecha | Logro | Commit | Verificación |
+| --- | --- | --- | --- |
+| 2026-10-26 | App móvil Fase 1: estructura base React Native Expo | 8397512 | [VERIFICADO expo start arrancó en puerto 8081 y tsc --noEmit pasó con 0 errores] |
+
+## 💡 MEJORAS I+D
+
+## ⚠️ DUDAS/BLOQUEOS
+- Ver DUDAS.md para detalles técnicos resueltos en Fase 1.
+
+---
+
 # Vigía de ola con clip real · 17/10/2026 (segunda vuelta, cierra el defecto crítico)
 
 | Tarea | Estado | Rama | Siguiente paso |

@@ -1,0 +1,379 @@
+export interface Webcam {
+  id: string;
+  name: string;
+  short: string;
+  spots: string[];
+  priority: number;
+  embedType: 'hls' | 'iframe' | 'mjpeg' | 'jpg';
+  embedUrl: string;
+  pageUrl?: string;
+  credit?: string;
+  distanceKm?: number;
+  verified?: boolean;
+  notes?: string;
+  notesShort?: string;
+  refreshSeconds?: number | null;
+  resolver?: string;
+  enabled: boolean;
+  [key: string]: any;
+}
+
+export const WEBCAMS_DATA: Webcam[] = [
+  {
+    "id": "cv_grao_castellon",
+    "name": "El Grao de Castellón (Plaza del Mar / Club Náutico)",
+    "short": "El Grao CV",
+    "spots": [
+      "Piramides",
+      "Gurugu"
+    ],
+    "priority": 1,
+    "embedType": "hls",
+    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/GraodeCastellon/playlist.m3u8",
+    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/castello-de-la-plana/webcams/el-grao-de-castellon",
+    "credit": "Turisme Comunitat Valenciana / Ajuntament de Castelló",
+    "refreshSeconds": null,
+    "distanceKm": 0.2,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "HLS en directo, CORS Access-Control-Allow-Origin:* en playlist, chunklist y segmentos .ts. Sin token en la URL. Comprobado en vivo hoy 27/09/2026 (MEDIA-SEQUENCE avanzó de 19870 a 19872 en 15s). Cámara del espigón/puerto del Grao: Planetario está pegado (~0.2km), Gurugú algo más al norte (~1.6km, estimado por ubicación conocida del espigón, no por coordenadas exactas scrapeadas). Es vista de puerto, no del pico exacto de la ola; útil para mar de fondo/viento general. Distancia dada es para Planetario; para Gurugú usar ~1.6km.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "windy_grao_castellon",
+    "name": "Windy",
+    "short": "Windy Grao",
+    "spots": [
+      "Piramides",
+      "Gurugu"
+    ],
+    "priority": 3,
+    "embedType": "iframe",
+    "embedUrl": "https://webcams.windy.com/webcams/public/embed/player/1349781016/day",
+    "pageUrl": "https://www.windy.com/webcams/1349781016",
+    "credit": "Windy.com (relay de Turisme Comunitat Valenciana)",
+    "refreshSeconds": 150,
+    "distanceKm": 0.2,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "Mismo origen que la cámara CV del Grao (la propia ficha de Windy cita comunitatvalenciana.com como fuente). Embed player sin X-Frame-Options -> se puede meter en <iframe> directamente. Alternativa de respaldo si hls.js falla; la imagen current/original.jpg tiene CORS * y Last-Modified de hace ~3 minutos al comprobarlo (27/09/2026 ~23:19 CEST).",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "cv_burriana",
+    "name": "Burriana (puerto / Playa del Arenal)",
+    "short": "Burriana CV",
+    "spots": [
+      "Burriana"
+    ],
+    "priority": 1,
+    "embedType": "hls",
+    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/Burriana/playlist.m3u8",
+    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/borriana-burriana/webcams/burriana",
+    "credit": "Turisme Comunitat Valenciana / Ajuntament de Borriana",
+    "refreshSeconds": null,
+    "distanceKm": 1.6,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "HLS en directo, mismo patron CORS abierto y sin token que El Grao. Comprobado en vivo hoy (MEDIA-SEQUENCE avanzó de 20086 a 20087 en 12s). Cámara en el puerto de Burriana, playa del Arenal al fondo; ~1.6km del punto de pico dado (39.870/-0.059), coherente con zona de puerto/Arenal.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "cv_xilxes",
+    "name": "Xilxes/Chilches (playa entre El Cerezo y Les Cases)",
+    "short": "Xilxes CV",
+    "spots": [
+      "Almenara"
+    ],
+    "priority": 3,
+    "embedType": "hls",
+    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/Xilxes/playlist.m3u8",
+    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/chilches-xilxes/webcams/xilxes-1",
+    "credit": "Turisme Comunitat Valenciana / Ajuntament de Xilxes",
+    "refreshSeconds": null,
+    "distanceKm": 4.4,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "HLS en directo confirmado hoy (MEDIA-SEQUENCE avanzó de 2101 a 2102 en 12s), CORS abierto, sin token. Es la playa de Chilches/Xilxes en si (spot bonus pedido por el usuario, no listado como id formal). Como referencia de Almenara/Casablanca queda a ~4.4km (separado por Moncofa) -> solo sirve de pista aproximada de mar/viento, no como vista real del spot. Para Nules queda aun mas lejos (~7.5km) y no se recomienda ofrecerla ahi.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "voramar-axis-cam1",
+    "name": "Hotel Voramar",
+    "short": "Voramar (Hotel Voramar)",
+    "spots": [
+      "Voramar"
+    ],
+    "priority": 1,
+    "embedType": "mjpeg",
+    "embedUrl": "https://cam1.voramar.net:445/axis-cgi/mjpg/video.cgi",
+    "pageUrl": "https://voramar.net/webcam-playa-voramar-benicassim/",
+    "credit": "Hotel Voramar (Benicàssim)",
+    "refreshSeconds": 0,
+    "distanceKm": 0.1,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "Cámara AXIS sobre la propia playa de Voramar, mirando a la rompiente. Streaming MJPEG continuo (multipart/x-mixed-replace), sin token, sin XFO/CSP. Se comprobó recibiendo >10 MB en 8 s (vídeo real). Riesgo: <img> con multipart/x-mixed-replace es poco fiable en Chrome; si falla, usar fallback JPG con sondeo cada 5-10 s: https://cam1.voramar.net:445/axis-cgi/jpg/image.cgi?ts=<cache-buster> (confirmado que el Content-Length cambia entre peticiones, o sea que es una imagen nueva cada vez).",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "cv-benicassim-vela-hls",
+    "name": "Comunitat Valenciana",
+    "short": "Benicàssim Vela (club náutico)",
+    "spots": [
+      "Heliopolis"
+    ],
+    "priority": 1,
+    "embedType": "hls",
+    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/BenicassimVela/playlist.m3u8",
+    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/benicassim-benicasim/webcams/benicassim-vela",
+    "credit": "Turisme Comunitat Valenciana",
+    "refreshSeconds": 0,
+    "distanceKm": 2.6,
+    "tokenRefresh": null,
+    "verified": false,
+    "notes": "Única cámara con vídeo real en directo cerca de Heliópolis (2,6 km) y razonablemente cerca de Voramar (1,9 km) — para Voramar se recomienda mejor la cámara del Hotel Voramar (prioridad 1 de ese spot); esta queda de prioridad 2 ahí. HLS con CORS * confirmado en manifest, sub-lista (chunklist_w*.m3u8) y segmentos .ts.",
+    "enabled": false,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 8
+  },
+  {
+    "id": "skyline-jpg-heliopolis",
+    "name": "SkylineWebcams",
+    "short": "Heliópolis (Hotel Trinimar)",
+    "spots": [
+      "Heliopolis"
+    ],
+    "priority": 2,
+    "embedType": "jpg",
+    "embedUrl": "https://cdn.skylinewebcams.com/live2816.jpg",
+    "pageUrl": "https://www.skylinewebcams.com/es/webcam/espana/comunidad-valenciana/castellon/benicasim.html",
+    "credit": "SkylineWebcams / Hotel Servigroup Trinimar",
+    "refreshSeconds": 90,
+    "distanceKm": 0.3,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "Hotel justo en la playa de Heliópolis, pero sólo hay foto fija (sin vídeo) porque la página con vídeo de Skyline bloquea el iframe (X-Frame-Options: SAMEORIGIN, confirmado con curl). La imagen se cachea 1080 s (18 min) en el CDN — no tiene sentido pedirla más a menudo que eso, aunque el propio servidor la actualiza antes; usar como imagen de referencia, no como 'en directo' minuto a minuto.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "cv-oropesa-hls",
+    "name": "Comunitat Valenciana",
+    "short": "Oropesa del Mar / La Concha",
+    "spots": [
+      "Concha"
+    ],
+    "priority": 1,
+    "embedType": "hls",
+    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/OropesadelMar/playlist.m3u8",
+    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/orpesa-oropesa-del-mar/webcams/oropesa-del-mar-1",
+    "credit": "Turisme Comunitat Valenciana",
+    "refreshSeconds": 0,
+    "distanceKm": 0.3,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "Coordenadas de la cámara (40.0844/0.1415): zona del castillo y La Concha de Oropesa, así que es la cámara de La Concha. Antes se compartía con Morro de Gos y la Renegà (1,3 y 3 km): ya no. HLS con CORS * confirmado.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "ipcamlive-peniscola-iframe",
+    "name": "Gran Hotel Peñíscola",
+    "short": "Peñíscola playa Norte",
+    "spots": [
+      "Peniscola"
+    ],
+    "priority": 2,
+    "embedType": "iframe",
+    "embedUrl": "https://g0.ipcamlive.com/player/player.php?alias=5750a365b7d90",
+    "pageUrl": "https://www.granhotelpeniscola.com/en/webcam-and-meteorology/",
+    "credit": "Gran Hotel Peñíscola / IPCamLive",
+    "refreshSeconds": 0,
+    "distanceKm": 2,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "Así la incrusta oficialmente el propio Gran Hotel Peñíscola en su web (mismo alias, sin token en la URL). Vista desde la azotea del hotel hacia la playa Norte y el castillo de Papa Luna. Sin X-Frame-Options en la respuesta -> incrustable de verdad. Se verificó con una captura nocturna con la fecha/hora quemada en la imagen (27-09-2026 23:25) coincidiendo con la hora real de la petición.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "ipcamlive-peniscola-hls",
+    "name": "IPCamLive Peñíscola",
+    "short": "Peñíscola playa Norte (HLS)",
+    "spots": [
+      "Peniscola"
+    ],
+    "priority": 1,
+    "embedType": "hls",
+    "embedUrl": "https://s29.ipcamlive.com/streams/1dcj5orke9msb6jxq/stream.m3u8",
+    "pageUrl": "https://www.granhotelpeniscola.com/en/webcam-and-meteorology/",
+    "credit": "Gran Hotel Peñíscola / IPCamLive",
+    "refreshSeconds": 0,
+    "distanceKm": 2,
+    "tokenRefresh": null,
+    "verified": false,
+    "notes": "Misma cámara que la fila anterior pero jugando directamente el HLS (CORS *, sin token) con hls.js, sin marca de IPCamLive ni iframe. Más control, pero el streamId/servidor (s29, 1dcj5orke9msb6jxq) podría cambiar si la cámara se reconecta con otros parámetros; el iframe con alias es la opción que IPCamLive garantiza estable a largo plazo. Recomendado como mejora opcional, no como única opción.",
+    "enabled": false,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 336
+  },
+  {
+    "id": "cv-peniscola-hls",
+    "name": "Comunitat Valenciana",
+    "short": "Peñíscola (CV)",
+    "spots": [
+      "Peniscola"
+    ],
+    "priority": 3,
+    "embedType": "hls",
+    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/Penyiscola/playlist.m3u8",
+    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/peniscola-peniscola/webcams/peniscola-1",
+    "credit": "Turisme Comunitat Valenciana",
+    "refreshSeconds": 0,
+    "distanceKm": 2.35,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "Cámara distinta, más orientada al pueblo/castillo que a la playa Norte. Buena tercera fuente/alternativa si las dos de IPCamLive fallan. HLS con CORS * confirmado.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "skyline-jpg-peniscola",
+    "name": "SkylineWebcams",
+    "short": "Peñíscola (Hotel Papa Luna)",
+    "spots": [
+      "Peniscola"
+    ],
+    "priority": 4,
+    "embedType": "jpg",
+    "embedUrl": "https://cdn.skylinewebcams.com/live5406.jpg",
+    "pageUrl": "https://www.servigroup.com/es/hotel-papa-luna-peniscola/webcam-peniscola/",
+    "credit": "SkylineWebcams / Hotel Servigroup Papa Luna",
+    "refreshSeconds": 90,
+    "distanceKm": 0.8,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "El propio Hotel Papa Luna incrusta la página de Skyline en un iframe, pero NO funciona en un navegador real por el X-Frame-Options SAMEORIGIN de skylinewebcams.com (confirmado con curl). Sólo sirve la miniatura JPG fija, de refuerzo/último recurso.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "cv-vinaros-hls",
+    "name": "Comunitat Valenciana",
+    "short": "Vinaròs (El Fortí)",
+    "spots": [
+      "Vinaros"
+    ],
+    "priority": 1,
+    "embedType": "hls",
+    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/Vinaros/playlist.m3u8",
+    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/vinaros/webcams/vinaros-2",
+    "credit": "Turisme Comunitat Valenciana",
+    "refreshSeconds": 0,
+    "distanceKm": 0.12,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "Coincidencia casi exacta de coordenadas con El Fortí (0,12 km). Mejor match geográfico de todo el informe. HLS con CORS * confirmado en manifest + chunklist + segmentos .ts (media_w*.ts, ~2-5 MB cada uno, vídeo real).",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  },
+  {
+    "id": "surfers_castellon",
+    "name": "Surfers Castellón (Playa del Pinar)",
+    "short": "Surfers Castellón",
+    "spots": [
+      "Planetario",
+      "Piramides",
+      "Gurugu"
+    ],
+    "priority": 2,
+    "embedType": "iframe",
+    "embedUrl": "https://g0.ipcamlive.com/player/player.php?alias=609a27d8a9c83&autoplay=1",
+    "pageUrl": "https://surferscastellon.com/live-webcam/",
+    "credit": "Club Surfers Castellón / IPCamLive",
+    "notesShort": "Reproductor del club, por si no se puede resolver la emisión.",
+    "distanceKm": 0.1,
+    "tokenRefresh": null,
+    "enabled": true,
+    "verified": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0,
+    "notes": "Cámara directa en la arena de Playa del Pinar, enfocando el pico y rompiente del Grao. Embed oficial de IPCamLive (alias 609a27d8a9c83), sin X-Frame-Options ni bloqueo de dominio."
+  },
+  {
+    "id": "surfers_castellon_hls",
+    "name": "Surfers Castellón (directo, grabable)",
+    "short": "Surfers Castellón (directo)",
+    "spots": [
+      "Planetario",
+      "Piramides",
+      "Gurugu"
+    ],
+    "priority": 0,
+    "embedType": "hls",
+    "resolver": "ipcamlive",
+    "alias": "609a27d8a9c83",
+    "embedUrl": "",
+    "pageUrl": "https://surferscastellon.com/live-webcam/",
+    "credit": "Club Surfers Castellón / IPCamLive",
+    "notesShort": "Misma cámara del club, en directo y con captura: el reproductor del club es un iframe que no se puede grabar.",
+    "distanceKm": 0.1,
+    "tokenRefresh": null,
+    "enabled": true,
+    "verified": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0,
+    "notes": "Misma cámara IPCamLive del club (alias 609a27d8a9c83) pero por la emisión HLS directa, que es la única forma de grabar en el navegador y la que usa scripts/rewind.py. embedUrl está vacío a propósito: la URL real la resuelve backend/actualizar_webcams.py --streams en data/streams.json, porque player.php no manda CORS y el navegador no puede sacar el streamid por su cuenta.",
+    "soloGrabacion": true
+  },
+  {
+    "id": "skyline-jpg-morrogos",
+    "name": "SkylineWebcams",
+    "short": "Morro de Gos (Hotel Koral Beach)",
+    "spots": [
+      "MorroGos"
+    ],
+    "priority": 1,
+    "embedType": "jpg",
+    "embedUrl": "https://cdn.skylinewebcams.com/live2815.jpg",
+    "pageUrl": "https://www.skylinewebcams.com/en/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
+    "credit": "SkylineWebcams / Hotel Servigroup Koral Beach",
+    "refreshSeconds": 90,
+    "distanceKm": 0.2,
+    "tokenRefresh": null,
+    "verified": true,
+    "notes": "Hotel justo en la playa de Morro de Gos (más cerca que la cámara de CV) pero sólo foto fija cada ~18 min, sin vídeo, mismo bloqueo de iframe que el resto de Skyline. La imagen se carga sin referer (referrerPolicy no-referrer) porque con nuestra web como referencia Skyline la bloquea. Es la única cámara de Morro de Gos.",
+    "enabled": true,
+    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "failCount": 0
+  }
+];
+
+export const STREAMS_DATA = {
+  "surfers_castellon_hls": {
+    "alias": "609a27d8a9c83",
+    "hls": "https://s169.ipcamlive.com/streams/a9b9cadtersyjiu6g/stream.m3u8",
+    "snapshot": "https://s169.ipcamlive.com/streams/a9b9cadtersyjiu6g/snapshot.jpg",
+    "ok": true,
+    "motivo": "",
+    "resolvedAt": "2026-10-24T16:07:27.980067Z",
+    "ttlMin": 45
+  }
+};

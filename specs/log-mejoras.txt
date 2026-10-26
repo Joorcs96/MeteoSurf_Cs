@@ -1,0 +1,51 @@
+﻿[██████████] 100 % · Finalizado con éxito · 0 min restantes
+
+Se ha completado la ejecución de la especificación [spec-mejoras-pendientes.md](file:///C:/Users/Jordi/orca/Surfline_CS/specs/spec-mejoras-pendientes.md) en la rama `feature/mejoras-ux-auditoria`.
+
+---
+
+### Resumen de mejoras implementadas (4 commits)
+
+1. **MEJ-01: Modal y Banner de Ventajas Pro**
+   - **Commit:** [`a8c0595`](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js) `ux: modal y banner Pro con ventajas de suscripción`
+   - **Archivos:** [index.html](file:///C:/Users/Jordi/orca/Surfline_CS/index.html), [css/app.css](file:///C:/Users/Jordi/orca/Surfline_CS/css/app.css), [js/app.js](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js)
+   - Añadida la función `showProModal()` y `hideProModal()`.
+   - Modal accesible con `z-index: 2200` (cubre el FAB), `backdrop-filter: blur`, 5 ventajas clave, suscripción a 2,99 €/mes y botones "Suscribirse" y "Ahora no".
+   - Control de sesión mediante `sessionStorage` (`pro_shown`) para no saturar al usuario.
+   - Banner visible en la vista del Asistente (`#/asistente`) con acceso directo al modal.
+   - Vista de cortesía para `#/pro` sin dependencias externas.
+
+2. **MEJ-02: Filtro "Apto para Principiantes" en Calendario Semanal**
+   - **Commit:** [`9121ad6`](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js) `ux: filtro principiantes en calendario semanal`
+   - **Archivos:** [css/app.css](file:///C:/Users/Jordi/orca/Surfline_CS/css/app.css), [js/app.js](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js)
+   - Botón toggle `🤙 Principiantes` en la cabecera de la vista calendario (`#/calendario`).
+   - Criterio de filtrado: $Hs < 0.6\text{ m}$, viento $< 15\text{ km/h}$ (o calma/terral) y calificación suave ($\le 2$ estrellas).
+   - Resaltado con borde y fondo verde suave (`#10b981`), indicador visual `🤙` y leyenda explicativa.
+   - Estado persistido en `sessionStorage` (`cal_beginner`).
+
+3. **MEJ-03: Ordenación por Mejor Franja Semanal**
+   - **Commit:** [`addafad`](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js) `ux: ordenar spots por mejor franja semanal`
+   - **Archivos:** [css/app.css](file:///C:/Users/Jordi/orca/Surfline_CS/css/app.css), [js/app.js](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js)
+   - Selector `<select id="spot-sort">` en la barra de filtros de la pantalla principal con opciones:
+     - *Por defecto*
+     - *Mejor día esta semana* (orden descendente por calificación máxima de los próximos 7 días)
+     - *Más cerca* (cálculo geodésico si se concede geolocalización)
+   - Preferencia guardada en `localStorage` (`sort_mode`).
+   - Reordenación reactiva automática al dispararse el evento `forecast:ready`.
+
+4. **MEJ-05: Badges de Estado en Directo para Cámaras HLS**
+   - **Commit:** [`82a7a9f`](file:///C:/Users/Jordi/orca/Surfline_CS/js/cams.js) `ux: badge estado en directo en cámaras HLS`
+   - **Archivos:** [css/app.css](file:///C:/Users/Jordi/orca/Surfline_CS/css/app.css), [js/cams.js](file:///C:/Users/Jordi/orca/Surfline_CS/js/cams.js)
+   - Indicador visual dinámico sobre el reproductor de vídeo HLS:
+     - 🟢 **● En directo** (al emitir el evento `playing`)
+     - 🟡 **● Búfer** (durante carga inicial o eventos `waiting`/`stalled`)
+     - 🔴 **● Sin señal** (si tras 8 segundos no arranca o la emisión falla)
+   - Limpieza automática de temporizadores y escuchadores al detener la cámara sin alterar el motor de streaming ni la vigía de olas.
+
+---
+
+### Verificación realizada
+- `node --check js/app.js` y `node --check js/cams.js`: sin errores de sintaxis ni violaciones CSP.
+- Suites de pruebas unitarias (`test_rating_conservador.js` y `test_orientaciones_mapa.js`): 100% pasando (17/17 OK).
+- No se han modificado archivos restringidos (`js/spots.js`, `js/physics.js`, `backend/`, `data/`).
+- No se ha realizado push (commits listos en la rama local `feature/mejoras-ux-auditoria`).

@@ -1,0 +1,1967 @@
+{
+  "generadoEl": "2026-10-26T00:50:00.000Z",
+  "semilla": "meteosurf-12m-v1",
+  "mesesSimulados": 12,
+  "escenarios": {
+    "conservador": {
+      "mesesTotales": 12,
+      "escenario": "conservador",
+      "resumen": {
+        "totalUsuariosNuevos": 3496,
+        "usuariosActivosFinales": 1299,
+        "sesionesTotalesAcumuladas": 100401,
+        "ingresosNetosAcumuladosEur": 345.63,
+        "costeServidorAcumuladoEur": 0
+      },
+      "meses": [
+        {
+          "mes": 1,
+          "nombreMes": "Enero",
+          "estacion": "invierno",
+          "usuariosNuevos": 319,
+          "nuevosPorCohorte": {
+            "principiante_local": 96,
+            "habitual_local": 80,
+            "avanzado": 48,
+            "visitante_fin_semana": 48,
+            "evaluador_inversor": 47
+          },
+          "usuariosActivosMensuales": 319,
+          "activosPorCohorte": {
+            "principiante_local": 96,
+            "habitual_local": 80,
+            "avanzado": 48,
+            "visitante_fin_semana": 48,
+            "evaluador_inversor": 47
+          },
+          "usuariosActivosSemanales": 185,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 249,
+          "activadosMovilFase1": 25,
+          "abandonos": 0,
+          "retornosSimulados": 0,
+          "tasaRetencionD7Promedio": 63.3,
+          "tasaRetencionD30Promedio": 41.1,
+          "sesionesTotales": 3489,
+          "consultasSpotTotales": 9769,
+          "embudoValor": {
+            "vistasPortada": 3489,
+            "aperturasSpot": 9769,
+            "vistasHorarias": 6350,
+            "consultasCamara": 4396,
+            "reportesOlasHeSurfeado": 38
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 4,
+            "tasaConversionGlobalPct": 1.3,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 11.96,
+            "ingresosNetosEur": 10.17,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 10.17,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 2,
+          "nombreMes": "Febrero",
+          "estacion": "invierno",
+          "usuariosNuevos": 304,
+          "nuevosPorCohorte": {
+            "principiante_local": 91,
+            "habitual_local": 76,
+            "avanzado": 46,
+            "visitante_fin_semana": 46,
+            "evaluador_inversor": 45
+          },
+          "usuariosActivosMensuales": 551,
+          "activosPorCohorte": {
+            "principiante_local": 162,
+            "habitual_local": 147,
+            "avanzado": 89,
+            "visitante_fin_semana": 77,
+            "evaluador_inversor": 76
+          },
+          "usuariosActivosSemanales": 314,
+          "ratioWauMau": 0.57,
+          "activadosPWA": 237,
+          "activadosMovilFase1": 23,
+          "abandonos": 72,
+          "retornosSimulados": 247,
+          "tasaRetencionD7Promedio": 62,
+          "tasaRetencionD30Promedio": 43.5,
+          "sesionesTotales": 5857,
+          "consultasSpotTotales": 16399,
+          "embudoValor": {
+            "vistasPortada": 5857,
+            "aperturasSpot": 16399,
+            "vistasHorarias": 10659,
+            "consultasCamara": 7380,
+            "reportesOlasHeSurfeado": 66
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 8,
+            "tasaConversionGlobalPct": 1.5,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 23.92,
+            "ingresosNetosEur": 20.33,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 20.33,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 3,
+          "nombreMes": "Marzo",
+          "estacion": "primavera",
+          "usuariosNuevos": 289,
+          "nuevosPorCohorte": {
+            "principiante_local": 87,
+            "habitual_local": 72,
+            "avanzado": 43,
+            "visitante_fin_semana": 43,
+            "evaluador_inversor": 44
+          },
+          "usuariosActivosMensuales": 704,
+          "activosPorCohorte": {
+            "principiante_local": 205,
+            "habitual_local": 196,
+            "avanzado": 119,
+            "visitante_fin_semana": 91,
+            "evaluador_inversor": 93
+          },
+          "usuariosActivosSemanales": 387,
+          "ratioWauMau": 0.55,
+          "activadosPWA": 225,
+          "activadosMovilFase1": 22,
+          "abandonos": 136,
+          "retornosSimulados": 415,
+          "tasaRetencionD7Promedio": 58.5,
+          "tasaRetencionD30Promedio": 41.1,
+          "sesionesTotales": 7018,
+          "consultasSpotTotales": 19650,
+          "embudoValor": {
+            "vistasPortada": 7018,
+            "aperturasSpot": 19650,
+            "vistasHorarias": 12773,
+            "consultasCamara": 8843,
+            "reportesOlasHeSurfeado": 84
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 7,
+            "tasaConversionGlobalPct": 1,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 20.93,
+            "ingresosNetosEur": 17.79,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 17.79,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 4,
+          "nombreMes": "Abril",
+          "estacion": "primavera",
+          "usuariosNuevos": 269,
+          "nuevosPorCohorte": {
+            "principiante_local": 81,
+            "habitual_local": 67,
+            "avanzado": 40,
+            "visitante_fin_semana": 40,
+            "evaluador_inversor": 41
+          },
+          "usuariosActivosMensuales": 792,
+          "activosPorCohorte": {
+            "principiante_local": 227,
+            "habitual_local": 230,
+            "avanzado": 141,
+            "visitante_fin_semana": 95,
+            "evaluador_inversor": 99
+          },
+          "usuariosActivosSemanales": 420,
+          "ratioWauMau": 0.53,
+          "activadosPWA": 210,
+          "activadosMovilFase1": 21,
+          "abandonos": 181,
+          "retornosSimulados": 523,
+          "tasaRetencionD7Promedio": 58.8,
+          "tasaRetencionD30Promedio": 40.9,
+          "sesionesTotales": 6831,
+          "consultasSpotTotales": 19127,
+          "embudoValor": {
+            "vistasPortada": 6831,
+            "aperturasSpot": 19127,
+            "vistasHorarias": 12433,
+            "consultasCamara": 8607,
+            "reportesOlasHeSurfeado": 95
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 8,
+            "tasaConversionGlobalPct": 1,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 23.92,
+            "ingresosNetosEur": 20.33,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 20.33,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 5,
+          "nombreMes": "Mayo",
+          "estacion": "primavera",
+          "usuariosNuevos": 278,
+          "nuevosPorCohorte": {
+            "principiante_local": 83,
+            "habitual_local": 70,
+            "avanzado": 42,
+            "visitante_fin_semana": 42,
+            "evaluador_inversor": 41
+          },
+          "usuariosActivosMensuales": 859,
+          "activosPorCohorte": {
+            "principiante_local": 241,
+            "habitual_local": 260,
+            "avanzado": 160,
+            "visitante_fin_semana": 97,
+            "evaluador_inversor": 101
+          },
+          "usuariosActivosSemanales": 447,
+          "ratioWauMau": 0.52,
+          "activadosPWA": 217,
+          "activadosMovilFase1": 21,
+          "abandonos": 211,
+          "retornosSimulados": 581,
+          "tasaRetencionD7Promedio": 57.1,
+          "tasaRetencionD30Promedio": 40,
+          "sesionesTotales": 6399,
+          "consultasSpotTotales": 17917,
+          "embudoValor": {
+            "vistasPortada": 6399,
+            "aperturasSpot": 17917,
+            "vistasHorarias": 11646,
+            "consultasCamara": 8063,
+            "reportesOlasHeSurfeado": 103
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 9,
+            "tasaConversionGlobalPct": 1,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 26.91,
+            "ingresosNetosEur": 22.87,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 22.87,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 6,
+          "nombreMes": "Junio",
+          "estacion": "verano",
+          "usuariosNuevos": 263,
+          "nuevosPorCohorte": {
+            "principiante_local": 79,
+            "habitual_local": 66,
+            "avanzado": 39,
+            "visitante_fin_semana": 39,
+            "evaluador_inversor": 40
+          },
+          "usuariosActivosMensuales": 885,
+          "activosPorCohorte": {
+            "principiante_local": 238,
+            "habitual_local": 275,
+            "avanzado": 170,
+            "visitante_fin_semana": 106,
+            "evaluador_inversor": 96
+          },
+          "usuariosActivosSemanales": 434,
+          "ratioWauMau": 0.49,
+          "activadosPWA": 205,
+          "activadosMovilFase1": 20,
+          "abandonos": 237,
+          "retornosSimulados": 622,
+          "tasaRetencionD7Promedio": 56.9,
+          "tasaRetencionD30Promedio": 39.3,
+          "sesionesTotales": 5146,
+          "consultasSpotTotales": 14410,
+          "embudoValor": {
+            "vistasPortada": 5146,
+            "aperturasSpot": 14410,
+            "vistasHorarias": 9367,
+            "consultasCamara": 10087,
+            "reportesOlasHeSurfeado": 106
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 9,
+            "tasaConversionGlobalPct": 1,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 26.91,
+            "ingresosNetosEur": 22.87,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 22.87,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 7,
+          "nombreMes": "Julio",
+          "estacion": "verano",
+          "usuariosNuevos": 252,
+          "nuevosPorCohorte": {
+            "principiante_local": 76,
+            "habitual_local": 63,
+            "avanzado": 38,
+            "visitante_fin_semana": 38,
+            "evaluador_inversor": 37
+          },
+          "usuariosActivosMensuales": 865,
+          "activosPorCohorte": {
+            "principiante_local": 223,
+            "habitual_local": 277,
+            "avanzado": 173,
+            "visitante_fin_semana": 107,
+            "evaluador_inversor": 85
+          },
+          "usuariosActivosSemanales": 407,
+          "ratioWauMau": 0.47,
+          "activadosPWA": 197,
+          "activadosMovilFase1": 19,
+          "abandonos": 272,
+          "retornosSimulados": 613,
+          "tasaRetencionD7Promedio": 53.8,
+          "tasaRetencionD30Promedio": 35.9,
+          "sesionesTotales": 3961,
+          "consultasSpotTotales": 11091,
+          "embudoValor": {
+            "vistasPortada": 3961,
+            "aperturasSpot": 11091,
+            "vistasHorarias": 7209,
+            "consultasCamara": 7764,
+            "reportesOlasHeSurfeado": 104
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 8,
+            "tasaConversionGlobalPct": 0.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 23.92,
+            "ingresosNetosEur": 20.33,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 20.33,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 8,
+          "nombreMes": "Agosto",
+          "estacion": "verano",
+          "usuariosNuevos": 276,
+          "nuevosPorCohorte": {
+            "principiante_local": 83,
+            "habitual_local": 69,
+            "avanzado": 41,
+            "visitante_fin_semana": 41,
+            "evaluador_inversor": 42
+          },
+          "usuariosActivosMensuales": 880,
+          "activosPorCohorte": {
+            "principiante_local": 221,
+            "habitual_local": 284,
+            "avanzado": 179,
+            "visitante_fin_semana": 111,
+            "evaluador_inversor": 85
+          },
+          "usuariosActivosSemanales": 414,
+          "ratioWauMau": 0.47,
+          "activadosPWA": 215,
+          "activadosMovilFase1": 21,
+          "abandonos": 261,
+          "retornosSimulados": 604,
+          "tasaRetencionD7Promedio": 53.7,
+          "tasaRetencionD30Promedio": 36.6,
+          "sesionesTotales": 3967,
+          "consultasSpotTotales": 11108,
+          "embudoValor": {
+            "vistasPortada": 3967,
+            "aperturasSpot": 11108,
+            "vistasHorarias": 7220,
+            "consultasCamara": 7776,
+            "reportesOlasHeSurfeado": 106
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 8,
+            "tasaConversionGlobalPct": 0.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 23.92,
+            "ingresosNetosEur": 20.33,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 20.33,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 9,
+          "nombreMes": "Septiembre",
+          "estacion": "otono",
+          "usuariosNuevos": 302,
+          "nuevosPorCohorte": {
+            "principiante_local": 91,
+            "habitual_local": 76,
+            "avanzado": 45,
+            "visitante_fin_semana": 45,
+            "evaluador_inversor": 45
+          },
+          "usuariosActivosMensuales": 956,
+          "activosPorCohorte": {
+            "principiante_local": 245,
+            "habitual_local": 310,
+            "avanzado": 195,
+            "visitante_fin_semana": 110,
+            "evaluador_inversor": 96
+          },
+          "usuariosActivosSemanales": 507,
+          "ratioWauMau": 0.53,
+          "activadosPWA": 236,
+          "activadosMovilFase1": 23,
+          "abandonos": 226,
+          "retornosSimulados": 654,
+          "tasaRetencionD7Promedio": 55.9,
+          "tasaRetencionD30Promedio": 39.9,
+          "sesionesTotales": 8504,
+          "consultasSpotTotales": 23811,
+          "embudoValor": {
+            "vistasPortada": 8504,
+            "aperturasSpot": 23811,
+            "vistasHorarias": 15477,
+            "consultasCamara": 10715,
+            "reportesOlasHeSurfeado": 115
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 10,
+            "tasaConversionGlobalPct": 1,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 29.9,
+            "ingresosNetosEur": 25.42,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 25.42,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 10,
+          "nombreMes": "Octubre",
+          "estacion": "otono",
+          "usuariosNuevos": 323,
+          "nuevosPorCohorte": {
+            "principiante_local": 97,
+            "habitual_local": 81,
+            "avanzado": 48,
+            "visitante_fin_semana": 48,
+            "evaluador_inversor": 49
+          },
+          "usuariosActivosMensuales": 1105,
+          "activosPorCohorte": {
+            "principiante_local": 283,
+            "habitual_local": 360,
+            "avanzado": 225,
+            "visitante_fin_semana": 122,
+            "evaluador_inversor": 115
+          },
+          "usuariosActivosSemanales": 641,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 252,
+          "activadosMovilFase1": 25,
+          "abandonos": 174,
+          "retornosSimulados": 782,
+          "tasaRetencionD7Promedio": 62.6,
+          "tasaRetencionD30Promedio": 44.4,
+          "sesionesTotales": 15074,
+          "consultasSpotTotales": 42206,
+          "embudoValor": {
+            "vistasPortada": 15074,
+            "aperturasSpot": 42206,
+            "vistasHorarias": 27434,
+            "consultasCamara": 18993,
+            "reportesOlasHeSurfeado": 133
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 19,
+            "tasaConversionGlobalPct": 1.7,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 56.81,
+            "ingresosNetosEur": 48.29,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 48.29,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 11,
+          "nombreMes": "Noviembre",
+          "estacion": "otono",
+          "usuariosNuevos": 326,
+          "nuevosPorCohorte": {
+            "principiante_local": 98,
+            "habitual_local": 82,
+            "avanzado": 49,
+            "visitante_fin_semana": 49,
+            "evaluador_inversor": 48
+          },
+          "usuariosActivosMensuales": 1237,
+          "activosPorCohorte": {
+            "principiante_local": 316,
+            "habitual_local": 407,
+            "avanzado": 254,
+            "visitante_fin_semana": 132,
+            "evaluador_inversor": 128
+          },
+          "usuariosActivosSemanales": 730,
+          "ratioWauMau": 0.59,
+          "activadosPWA": 254,
+          "activadosMovilFase1": 25,
+          "abandonos": 194,
+          "retornosSimulados": 911,
+          "tasaRetencionD7Promedio": 62.6,
+          "tasaRetencionD30Promedio": 44.8,
+          "sesionesTotales": 17275,
+          "consultasSpotTotales": 48370,
+          "embudoValor": {
+            "vistasPortada": 17275,
+            "aperturasSpot": 48370,
+            "vistasHorarias": 31441,
+            "consultasCamara": 21767,
+            "reportesOlasHeSurfeado": 148
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 23,
+            "tasaConversionGlobalPct": 1.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 68.77,
+            "ingresosNetosEur": 58.45,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 58.45,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 12,
+          "nombreMes": "Diciembre",
+          "estacion": "invierno",
+          "usuariosNuevos": 295,
+          "nuevosPorCohorte": {
+            "principiante_local": 89,
+            "habitual_local": 74,
+            "avanzado": 44,
+            "visitante_fin_semana": 44,
+            "evaluador_inversor": 44
+          },
+          "usuariosActivosMensuales": 1299,
+          "activosPorCohorte": {
+            "principiante_local": 326,
+            "habitual_local": 439,
+            "avanzado": 274,
+            "visitante_fin_semana": 130,
+            "evaluador_inversor": 130
+          },
+          "usuariosActivosSemanales": 753,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 230,
+          "activadosMovilFase1": 23,
+          "abandonos": 233,
+          "retornosSimulados": 1004,
+          "tasaRetencionD7Promedio": 59.8,
+          "tasaRetencionD30Promedio": 42.7,
+          "sesionesTotales": 16880,
+          "consultasSpotTotales": 47265,
+          "embudoValor": {
+            "vistasPortada": 16880,
+            "aperturasSpot": 47265,
+            "vistasHorarias": 30722,
+            "consultasCamara": 21269,
+            "reportesOlasHeSurfeado": 156
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 23,
+            "tasaConversionGlobalPct": 1.8,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 68.77,
+            "ingresosNetosEur": 58.45,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 58.45,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        }
+      ]
+    },
+    "base": {
+      "mesesTotales": 12,
+      "escenario": "base",
+      "resumen": {
+        "totalUsuariosNuevos": 5102,
+        "usuariosActivosFinales": 2685,
+        "sesionesTotalesAcumuladas": 191451,
+        "ingresosNetosAcumuladosEur": 1377.51,
+        "costeServidorAcumuladoEur": 0
+      },
+      "meses": [
+        {
+          "mes": 1,
+          "nombreMes": "Enero",
+          "estacion": "invierno",
+          "usuariosNuevos": 452,
+          "nuevosPorCohorte": {
+            "principiante_local": 136,
+            "habitual_local": 113,
+            "avanzado": 68,
+            "visitante_fin_semana": 68,
+            "evaluador_inversor": 67
+          },
+          "usuariosActivosMensuales": 452,
+          "activosPorCohorte": {
+            "principiante_local": 136,
+            "habitual_local": 113,
+            "avanzado": 68,
+            "visitante_fin_semana": 68,
+            "evaluador_inversor": 67
+          },
+          "usuariosActivosSemanales": 262,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 353,
+          "activadosMovilFase1": 35,
+          "abandonos": 0,
+          "retornosSimulados": 0,
+          "tasaRetencionD7Promedio": 69.4,
+          "tasaRetencionD30Promedio": 48.2,
+          "sesionesTotales": 4903,
+          "consultasSpotTotales": 13729,
+          "embudoValor": {
+            "vistasPortada": 4903,
+            "aperturasSpot": 13729,
+            "vistasHorarias": 8924,
+            "consultasCamara": 6178,
+            "reportesOlasHeSurfeado": 54
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 13,
+            "tasaConversionGlobalPct": 2.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 38.87,
+            "ingresosNetosEur": 33.04,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 33.04,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 2,
+          "nombreMes": "Febrero",
+          "estacion": "invierno",
+          "usuariosNuevos": 441,
+          "nuevosPorCohorte": {
+            "principiante_local": 132,
+            "habitual_local": 110,
+            "avanzado": 66,
+            "visitante_fin_semana": 66,
+            "evaluador_inversor": 67
+          },
+          "usuariosActivosMensuales": 831,
+          "activosPorCohorte": {
+            "principiante_local": 246,
+            "habitual_local": 217,
+            "avanzado": 131,
+            "visitante_fin_semana": 118,
+            "evaluador_inversor": 119
+          },
+          "usuariosActivosSemanales": 474,
+          "ratioWauMau": 0.57,
+          "activadosPWA": 344,
+          "activadosMovilFase1": 34,
+          "abandonos": 62,
+          "retornosSimulados": 390,
+          "tasaRetencionD7Promedio": 70.5,
+          "tasaRetencionD30Promedio": 47.3,
+          "sesionesTotales": 8645,
+          "consultasSpotTotales": 24206,
+          "embudoValor": {
+            "vistasPortada": 8645,
+            "aperturasSpot": 24206,
+            "vistasHorarias": 15734,
+            "consultasCamara": 10893,
+            "reportesOlasHeSurfeado": 100
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 24,
+            "tasaConversionGlobalPct": 2.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 71.76,
+            "ingresosNetosEur": 61,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 61,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 3,
+          "nombreMes": "Marzo",
+          "estacion": "primavera",
+          "usuariosNuevos": 427,
+          "nuevosPorCohorte": {
+            "principiante_local": 128,
+            "habitual_local": 107,
+            "avanzado": 64,
+            "visitante_fin_semana": 64,
+            "evaluador_inversor": 64
+          },
+          "usuariosActivosMensuales": 1135,
+          "activosPorCohorte": {
+            "principiante_local": 332,
+            "habitual_local": 308,
+            "avanzado": 187,
+            "visitante_fin_semana": 153,
+            "evaluador_inversor": 155
+          },
+          "usuariosActivosSemanales": 624,
+          "ratioWauMau": 0.55,
+          "activadosPWA": 333,
+          "activadosMovilFase1": 33,
+          "abandonos": 123,
+          "retornosSimulados": 708,
+          "tasaRetencionD7Promedio": 67.8,
+          "tasaRetencionD30Promedio": 45.3,
+          "sesionesTotales": 10922,
+          "consultasSpotTotales": 30581,
+          "embudoValor": {
+            "vistasPortada": 10922,
+            "aperturasSpot": 30581,
+            "vistasHorarias": 19878,
+            "consultasCamara": 13761,
+            "reportesOlasHeSurfeado": 136
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 25,
+            "tasaConversionGlobalPct": 2.2,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 74.75,
+            "ingresosNetosEur": 63.54,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 63.54,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 4,
+          "nombreMes": "Abril",
+          "estacion": "primavera",
+          "usuariosNuevos": 393,
+          "nuevosPorCohorte": {
+            "principiante_local": 118,
+            "habitual_local": 98,
+            "avanzado": 59,
+            "visitante_fin_semana": 59,
+            "evaluador_inversor": 59
+          },
+          "usuariosActivosMensuales": 1353,
+          "activosPorCohorte": {
+            "principiante_local": 390,
+            "habitual_local": 382,
+            "avanzado": 234,
+            "visitante_fin_semana": 172,
+            "evaluador_inversor": 175
+          },
+          "usuariosActivosSemanales": 717,
+          "ratioWauMau": 0.53,
+          "activadosPWA": 307,
+          "activadosMovilFase1": 30,
+          "abandonos": 175,
+          "retornosSimulados": 960,
+          "tasaRetencionD7Promedio": 65.4,
+          "tasaRetencionD30Promedio": 46.4,
+          "sesionesTotales": 11758,
+          "consultasSpotTotales": 32922,
+          "embudoValor": {
+            "vistasPortada": 11758,
+            "aperturasSpot": 32922,
+            "vistasHorarias": 21399,
+            "consultasCamara": 14815,
+            "reportesOlasHeSurfeado": 162
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 29,
+            "tasaConversionGlobalPct": 2.1,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 86.71,
+            "ingresosNetosEur": 73.7,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 73.7,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 5,
+          "nombreMes": "Mayo",
+          "estacion": "primavera",
+          "usuariosNuevos": 374,
+          "nuevosPorCohorte": {
+            "principiante_local": 112,
+            "habitual_local": 94,
+            "avanzado": 56,
+            "visitante_fin_semana": 56,
+            "evaluador_inversor": 56
+          },
+          "usuariosActivosMensuales": 1513,
+          "activosPorCohorte": {
+            "principiante_local": 428,
+            "habitual_local": 445,
+            "avanzado": 274,
+            "visitante_fin_semana": 181,
+            "evaluador_inversor": 185
+          },
+          "usuariosActivosSemanales": 787,
+          "ratioWauMau": 0.52,
+          "activadosPWA": 292,
+          "activadosMovilFase1": 29,
+          "abandonos": 214,
+          "retornosSimulados": 1139,
+          "tasaRetencionD7Promedio": 66.7,
+          "tasaRetencionD30Promedio": 45.9,
+          "sesionesTotales": 11164,
+          "consultasSpotTotales": 31259,
+          "embudoValor": {
+            "vistasPortada": 11164,
+            "aperturasSpot": 31259,
+            "vistasHorarias": 20318,
+            "consultasCamara": 14067,
+            "reportesOlasHeSurfeado": 182
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 32,
+            "tasaConversionGlobalPct": 2.1,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 95.68,
+            "ingresosNetosEur": 81.33,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 81.33,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 6,
+          "nombreMes": "Junio",
+          "estacion": "verano",
+          "usuariosNuevos": 386,
+          "nuevosPorCohorte": {
+            "principiante_local": 116,
+            "habitual_local": 97,
+            "avanzado": 58,
+            "visitante_fin_semana": 58,
+            "evaluador_inversor": 57
+          },
+          "usuariosActivosMensuales": 1656,
+          "activosPorCohorte": {
+            "principiante_local": 453,
+            "habitual_local": 501,
+            "avanzado": 311,
+            "visitante_fin_semana": 203,
+            "evaluador_inversor": 188
+          },
+          "usuariosActivosSemanales": 811,
+          "ratioWauMau": 0.49,
+          "activadosPWA": 301,
+          "activadosMovilFase1": 30,
+          "abandonos": 243,
+          "retornosSimulados": 1270,
+          "tasaRetencionD7Promedio": 67.1,
+          "tasaRetencionD30Promedio": 45.8,
+          "sesionesTotales": 9436,
+          "consultasSpotTotales": 26422,
+          "embudoValor": {
+            "vistasPortada": 9436,
+            "aperturasSpot": 26422,
+            "vistasHorarias": 17174,
+            "consultasCamara": 18495,
+            "reportesOlasHeSurfeado": 199
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 33,
+            "tasaConversionGlobalPct": 2,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 98.67,
+            "ingresosNetosEur": 83.87,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 83.87,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 7,
+          "nombreMes": "Julio",
+          "estacion": "verano",
+          "usuariosNuevos": 396,
+          "nuevosPorCohorte": {
+            "principiante_local": 119,
+            "habitual_local": 99,
+            "avanzado": 59,
+            "visitante_fin_semana": 59,
+            "evaluador_inversor": 60
+          },
+          "usuariosActivosMensuales": 1754,
+          "activosPorCohorte": {
+            "principiante_local": 463,
+            "habitual_local": 548,
+            "avanzado": 342,
+            "visitante_fin_semana": 216,
+            "evaluador_inversor": 185
+          },
+          "usuariosActivosSemanales": 824,
+          "ratioWauMau": 0.47,
+          "activadosPWA": 309,
+          "activadosMovilFase1": 30,
+          "abandonos": 298,
+          "retornosSimulados": 1358,
+          "tasaRetencionD7Promedio": 65,
+          "tasaRetencionD30Promedio": 43.2,
+          "sesionesTotales": 7657,
+          "consultasSpotTotales": 21440,
+          "embudoValor": {
+            "vistasPortada": 7657,
+            "aperturasSpot": 21440,
+            "vistasHorarias": 13936,
+            "consultasCamara": 15008,
+            "reportesOlasHeSurfeado": 210
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 31,
+            "tasaConversionGlobalPct": 1.8,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 92.69,
+            "ingresosNetosEur": 78.79,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 78.79,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 8,
+          "nombreMes": "Agosto",
+          "estacion": "verano",
+          "usuariosNuevos": 401,
+          "nuevosPorCohorte": {
+            "principiante_local": 120,
+            "habitual_local": 100,
+            "avanzado": 60,
+            "visitante_fin_semana": 60,
+            "evaluador_inversor": 61
+          },
+          "usuariosActivosMensuales": 1846,
+          "activosPorCohorte": {
+            "principiante_local": 472,
+            "habitual_local": 591,
+            "avanzado": 372,
+            "visitante_fin_semana": 227,
+            "evaluador_inversor": 184
+          },
+          "usuariosActivosSemanales": 868,
+          "ratioWauMau": 0.47,
+          "activadosPWA": 313,
+          "activadosMovilFase1": 31,
+          "abandonos": 309,
+          "retornosSimulados": 1445,
+          "tasaRetencionD7Promedio": 65.5,
+          "tasaRetencionD30Promedio": 44.1,
+          "sesionesTotales": 8034,
+          "consultasSpotTotales": 22495,
+          "embudoValor": {
+            "vistasPortada": 8034,
+            "aperturasSpot": 22495,
+            "vistasHorarias": 14622,
+            "consultasCamara": 15746,
+            "reportesOlasHeSurfeado": 222
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 33,
+            "tasaConversionGlobalPct": 1.8,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 98.67,
+            "ingresosNetosEur": 83.87,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 83.87,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 9,
+          "nombreMes": "Septiembre",
+          "estacion": "otono",
+          "usuariosNuevos": 404,
+          "nuevosPorCohorte": {
+            "principiante_local": 121,
+            "habitual_local": 101,
+            "avanzado": 61,
+            "visitante_fin_semana": 61,
+            "evaluador_inversor": 60
+          },
+          "usuariosActivosMensuales": 1977,
+          "activosPorCohorte": {
+            "principiante_local": 504,
+            "habitual_local": 644,
+            "avanzado": 407,
+            "visitante_fin_semana": 226,
+            "evaluador_inversor": 196
+          },
+          "usuariosActivosSemanales": 1048,
+          "ratioWauMau": 0.53,
+          "activadosPWA": 315,
+          "activadosMovilFase1": 31,
+          "abandonos": 273,
+          "retornosSimulados": 1573,
+          "tasaRetencionD7Promedio": 67,
+          "tasaRetencionD30Promedio": 44.3,
+          "sesionesTotales": 18087,
+          "consultasSpotTotales": 50643,
+          "embudoValor": {
+            "vistasPortada": 18087,
+            "aperturasSpot": 50643,
+            "vistasHorarias": 32918,
+            "consultasCamara": 22789,
+            "reportesOlasHeSurfeado": 237
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 45,
+            "tasaConversionGlobalPct": 2.3,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 134.55,
+            "ingresosNetosEur": 114.37,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 114.37,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 10,
+          "nombreMes": "Octubre",
+          "estacion": "otono",
+          "usuariosNuevos": 485,
+          "nuevosPorCohorte": {
+            "principiante_local": 146,
+            "habitual_local": 121,
+            "avanzado": 73,
+            "visitante_fin_semana": 73,
+            "evaluador_inversor": 72
+          },
+          "usuariosActivosMensuales": 2250,
+          "activosPorCohorte": {
+            "principiante_local": 574,
+            "habitual_local": 735,
+            "avanzado": 464,
+            "visitante_fin_semana": 250,
+            "evaluador_inversor": 227
+          },
+          "usuariosActivosSemanales": 1305,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 378,
+          "activadosMovilFase1": 37,
+          "abandonos": 212,
+          "retornosSimulados": 1765,
+          "tasaRetencionD7Promedio": 69.7,
+          "tasaRetencionD30Promedio": 48.4,
+          "sesionesTotales": 30294,
+          "consultasSpotTotales": 84824,
+          "embudoValor": {
+            "vistasPortada": 30294,
+            "aperturasSpot": 84824,
+            "vistasHorarias": 55136,
+            "consultasCamara": 38171,
+            "reportesOlasHeSurfeado": 270
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 83,
+            "tasaConversionGlobalPct": 3.7,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 248.17,
+            "ingresosNetosEur": 210.94,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 210.94,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 11,
+          "nombreMes": "Noviembre",
+          "estacion": "otono",
+          "usuariosNuevos": 481,
+          "nuevosPorCohorte": {
+            "principiante_local": 144,
+            "habitual_local": 120,
+            "avanzado": 72,
+            "visitante_fin_semana": 72,
+            "evaluador_inversor": 73
+          },
+          "usuariosActivosMensuales": 2500,
+          "activosPorCohorte": {
+            "principiante_local": 635,
+            "habitual_local": 822,
+            "avanzado": 518,
+            "visitante_fin_semana": 270,
+            "evaluador_inversor": 255
+          },
+          "usuariosActivosSemanales": 1475,
+          "ratioWauMau": 0.59,
+          "activadosPWA": 375,
+          "activadosMovilFase1": 37,
+          "abandonos": 231,
+          "retornosSimulados": 2019,
+          "tasaRetencionD7Promedio": 69,
+          "tasaRetencionD30Promedio": 49.1,
+          "sesionesTotales": 35785,
+          "consultasSpotTotales": 100198,
+          "embudoValor": {
+            "vistasPortada": 35785,
+            "aperturasSpot": 100198,
+            "vistasHorarias": 65129,
+            "consultasCamara": 45089,
+            "reportesOlasHeSurfeado": 300
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 97,
+            "tasaConversionGlobalPct": 3.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 290.03,
+            "ingresosNetosEur": 246.53,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 246.53,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 12,
+          "nombreMes": "Diciembre",
+          "estacion": "invierno",
+          "usuariosNuevos": 462,
+          "nuevosPorCohorte": {
+            "principiante_local": 139,
+            "habitual_local": 116,
+            "avanzado": 69,
+            "visitante_fin_semana": 69,
+            "evaluador_inversor": 69
+          },
+          "usuariosActivosMensuales": 2685,
+          "activosPorCohorte": {
+            "principiante_local": 675,
+            "habitual_local": 898,
+            "avanzado": 565,
+            "visitante_fin_semana": 278,
+            "evaluador_inversor": 269
+          },
+          "usuariosActivosSemanales": 1557,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 360,
+          "activadosMovilFase1": 36,
+          "abandonos": 277,
+          "retornosSimulados": 2223,
+          "tasaRetencionD7Promedio": 67.2,
+          "tasaRetencionD30Promedio": 46.9,
+          "sesionesTotales": 34766,
+          "consultasSpotTotales": 97345,
+          "embudoValor": {
+            "vistasPortada": 34766,
+            "aperturasSpot": 97345,
+            "vistasHorarias": 63274,
+            "consultasCamara": 43805,
+            "reportesOlasHeSurfeado": 322
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 97,
+            "tasaConversionGlobalPct": 3.6,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 290.03,
+            "ingresosNetosEur": 246.53,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 246.53,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        }
+      ]
+    },
+    "favorable": {
+      "mesesTotales": 12,
+      "escenario": "favorable",
+      "resumen": {
+        "totalUsuariosNuevos": 6830,
+        "usuariosActivosFinales": 4360,
+        "sesionesTotalesAcumuladas": 295355,
+        "ingresosNetosAcumuladosEur": 3593.69,
+        "costeServidorAcumuladoEur": 0
+      },
+      "meses": [
+        {
+          "mes": 1,
+          "nombreMes": "Enero",
+          "estacion": "invierno",
+          "usuariosNuevos": 611,
+          "nuevosPorCohorte": {
+            "principiante_local": 183,
+            "habitual_local": 153,
+            "avanzado": 92,
+            "visitante_fin_semana": 92,
+            "evaluador_inversor": 91
+          },
+          "usuariosActivosMensuales": 611,
+          "activosPorCohorte": {
+            "principiante_local": 183,
+            "habitual_local": 153,
+            "avanzado": 92,
+            "visitante_fin_semana": 92,
+            "evaluador_inversor": 91
+          },
+          "usuariosActivosSemanales": 354,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 477,
+          "activadosMovilFase1": 47,
+          "abandonos": 0,
+          "retornosSimulados": 0,
+          "tasaRetencionD7Promedio": 73.4,
+          "tasaRetencionD30Promedio": 51.1,
+          "sesionesTotales": 6655,
+          "consultasSpotTotales": 18634,
+          "embudoValor": {
+            "vistasPortada": 6655,
+            "aperturasSpot": 18634,
+            "vistasHorarias": 12112,
+            "consultasCamara": 8385,
+            "reportesOlasHeSurfeado": 73
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 30,
+            "tasaConversionGlobalPct": 4.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 89.7,
+            "ingresosNetosEur": 76.25,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 76.25,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 2,
+          "nombreMes": "Febrero",
+          "estacion": "invierno",
+          "usuariosNuevos": 585,
+          "nuevosPorCohorte": {
+            "principiante_local": 176,
+            "habitual_local": 146,
+            "avanzado": 88,
+            "visitante_fin_semana": 88,
+            "evaluador_inversor": 87
+          },
+          "usuariosActivosMensuales": 1138,
+          "activosPorCohorte": {
+            "principiante_local": 338,
+            "habitual_local": 295,
+            "avanzado": 178,
+            "visitante_fin_semana": 164,
+            "evaluador_inversor": 163
+          },
+          "usuariosActivosSemanales": 649,
+          "ratioWauMau": 0.57,
+          "activadosPWA": 456,
+          "activadosMovilFase1": 45,
+          "abandonos": 58,
+          "retornosSimulados": 553,
+          "tasaRetencionD7Promedio": 71.4,
+          "tasaRetencionD30Promedio": 51.2,
+          "sesionesTotales": 12107,
+          "consultasSpotTotales": 33899,
+          "embudoValor": {
+            "vistasPortada": 12107,
+            "aperturasSpot": 33899,
+            "vistasHorarias": 22034,
+            "consultasCamara": 15255,
+            "reportesOlasHeSurfeado": 137
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 56,
+            "tasaConversionGlobalPct": 4.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 167.44,
+            "ingresosNetosEur": 142.32,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 142.32,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 3,
+          "nombreMes": "Marzo",
+          "estacion": "primavera",
+          "usuariosNuevos": 541,
+          "nuevosPorCohorte": {
+            "principiante_local": 162,
+            "habitual_local": 135,
+            "avanzado": 81,
+            "visitante_fin_semana": 81,
+            "evaluador_inversor": 82
+          },
+          "usuariosActivosMensuales": 1567,
+          "activosPorCohorte": {
+            "principiante_local": 460,
+            "habitual_local": 420,
+            "avanzado": 254,
+            "visitante_fin_semana": 216,
+            "evaluador_inversor": 217
+          },
+          "usuariosActivosSemanales": 862,
+          "ratioWauMau": 0.55,
+          "activadosPWA": 422,
+          "activadosMovilFase1": 42,
+          "abandonos": 112,
+          "retornosSimulados": 1026,
+          "tasaRetencionD7Promedio": 71.8,
+          "tasaRetencionD30Promedio": 49.7,
+          "sesionesTotales": 14787,
+          "consultasSpotTotales": 41403,
+          "embudoValor": {
+            "vistasPortada": 14787,
+            "aperturasSpot": 41403,
+            "vistasHorarias": 26912,
+            "consultasCamara": 18631,
+            "reportesOlasHeSurfeado": 188
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 58,
+            "tasaConversionGlobalPct": 3.7,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 173.42,
+            "ingresosNetosEur": 147.41,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 147.41,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 4,
+          "nombreMes": "Abril",
+          "estacion": "primavera",
+          "usuariosNuevos": 521,
+          "nuevosPorCohorte": {
+            "principiante_local": 156,
+            "habitual_local": 130,
+            "avanzado": 78,
+            "visitante_fin_semana": 78,
+            "evaluador_inversor": 79
+          },
+          "usuariosActivosMensuales": 1927,
+          "activosPorCohorte": {
+            "principiante_local": 558,
+            "habitual_local": 534,
+            "avanzado": 325,
+            "visitante_fin_semana": 254,
+            "evaluador_inversor": 256
+          },
+          "usuariosActivosSemanales": 1021,
+          "ratioWauMau": 0.53,
+          "activadosPWA": 406,
+          "activadosMovilFase1": 40,
+          "abandonos": 161,
+          "retornosSimulados": 1406,
+          "tasaRetencionD7Promedio": 73.2,
+          "tasaRetencionD30Promedio": 51.2,
+          "sesionesTotales": 16467,
+          "consultasSpotTotales": 46108,
+          "embudoValor": {
+            "vistasPortada": 16467,
+            "aperturasSpot": 46108,
+            "vistasHorarias": 29970,
+            "consultasCamara": 20749,
+            "reportesOlasHeSurfeado": 231
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 68,
+            "tasaConversionGlobalPct": 3.5,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 203.32,
+            "ingresosNetosEur": 172.82,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 172.82,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 5,
+          "nombreMes": "Mayo",
+          "estacion": "primavera",
+          "usuariosNuevos": 541,
+          "nuevosPorCohorte": {
+            "principiante_local": 162,
+            "habitual_local": 135,
+            "avanzado": 81,
+            "visitante_fin_semana": 81,
+            "evaluador_inversor": 82
+          },
+          "usuariosActivosMensuales": 2265,
+          "activosPorCohorte": {
+            "principiante_local": 647,
+            "habitual_local": 648,
+            "avanzado": 396,
+            "visitante_fin_semana": 285,
+            "evaluador_inversor": 289
+          },
+          "usuariosActivosSemanales": 1178,
+          "ratioWauMau": 0.52,
+          "activadosPWA": 422,
+          "activadosMovilFase1": 42,
+          "abandonos": 203,
+          "retornosSimulados": 1724,
+          "tasaRetencionD7Promedio": 70.8,
+          "tasaRetencionD30Promedio": 47.8,
+          "sesionesTotales": 16681,
+          "consultasSpotTotales": 46707,
+          "embudoValor": {
+            "vistasPortada": 16681,
+            "aperturasSpot": 46707,
+            "vistasHorarias": 30360,
+            "consultasCamara": 21018,
+            "reportesOlasHeSurfeado": 272
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 79,
+            "tasaConversionGlobalPct": 3.5,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 236.21,
+            "ingresosNetosEur": 200.78,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 200.78,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 6,
+          "nombreMes": "Junio",
+          "estacion": "verano",
+          "usuariosNuevos": 522,
+          "nuevosPorCohorte": {
+            "principiante_local": 157,
+            "habitual_local": 131,
+            "avanzado": 78,
+            "visitante_fin_semana": 78,
+            "evaluador_inversor": 78
+          },
+          "usuariosActivosMensuales": 2548,
+          "activosPorCohorte": {
+            "principiante_local": 709,
+            "habitual_local": 751,
+            "avanzado": 461,
+            "visitante_fin_semana": 322,
+            "evaluador_inversor": 305
+          },
+          "usuariosActivosSemanales": 1249,
+          "ratioWauMau": 0.49,
+          "activadosPWA": 407,
+          "activadosMovilFase1": 40,
+          "abandonos": 239,
+          "retornosSimulados": 2026,
+          "tasaRetencionD7Promedio": 72.2,
+          "tasaRetencionD30Promedio": 45.9,
+          "sesionesTotales": 13776,
+          "consultasSpotTotales": 38573,
+          "embudoValor": {
+            "vistasPortada": 13776,
+            "aperturasSpot": 38573,
+            "vistasHorarias": 25072,
+            "consultasCamara": 27001,
+            "reportesOlasHeSurfeado": 306
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 84,
+            "tasaConversionGlobalPct": 3.3,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 251.16,
+            "ingresosNetosEur": 213.49,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 213.49,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 7,
+          "nombreMes": "Julio",
+          "estacion": "verano",
+          "usuariosNuevos": 501,
+          "nuevosPorCohorte": {
+            "principiante_local": 150,
+            "habitual_local": 125,
+            "avanzado": 75,
+            "visitante_fin_semana": 75,
+            "evaluador_inversor": 76
+          },
+          "usuariosActivosMensuales": 2750,
+          "activosPorCohorte": {
+            "principiante_local": 741,
+            "habitual_local": 839,
+            "avanzado": 519,
+            "visitante_fin_semana": 345,
+            "evaluador_inversor": 306
+          },
+          "usuariosActivosSemanales": 1293,
+          "ratioWauMau": 0.47,
+          "activadosPWA": 391,
+          "activadosMovilFase1": 39,
+          "abandonos": 299,
+          "retornosSimulados": 2249,
+          "tasaRetencionD7Promedio": 68.4,
+          "tasaRetencionD30Promedio": 48.2,
+          "sesionesTotales": 11891,
+          "consultasSpotTotales": 33295,
+          "embudoValor": {
+            "vistasPortada": 11891,
+            "aperturasSpot": 33295,
+            "vistasHorarias": 21642,
+            "consultasCamara": 23307,
+            "reportesOlasHeSurfeado": 330
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 80,
+            "tasaConversionGlobalPct": 2.9,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 239.2,
+            "ingresosNetosEur": 203.32,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 203.32,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 8,
+          "nombreMes": "Agosto",
+          "estacion": "verano",
+          "usuariosNuevos": 536,
+          "nuevosPorCohorte": {
+            "principiante_local": 161,
+            "habitual_local": 134,
+            "avanzado": 80,
+            "visitante_fin_semana": 80,
+            "evaluador_inversor": 81
+          },
+          "usuariosActivosMensuales": 2971,
+          "activosPorCohorte": {
+            "principiante_local": 778,
+            "habitual_local": 932,
+            "avanzado": 580,
+            "visitante_fin_semana": 369,
+            "evaluador_inversor": 312
+          },
+          "usuariosActivosSemanales": 1396,
+          "ratioWauMau": 0.47,
+          "activadosPWA": 418,
+          "activadosMovilFase1": 41,
+          "abandonos": 315,
+          "retornosSimulados": 2435,
+          "tasaRetencionD7Promedio": 70.5,
+          "tasaRetencionD30Promedio": 48.1,
+          "sesionesTotales": 12732,
+          "consultasSpotTotales": 35649,
+          "embudoValor": {
+            "vistasPortada": 12732,
+            "aperturasSpot": 35649,
+            "vistasHorarias": 23172,
+            "consultasCamara": 24954,
+            "reportesOlasHeSurfeado": 357
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 90,
+            "tasaConversionGlobalPct": 3,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 269.1,
+            "ingresosNetosEur": 228.74,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 228.74,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 9,
+          "nombreMes": "Septiembre",
+          "estacion": "otono",
+          "usuariosNuevos": 601,
+          "nuevosPorCohorte": {
+            "principiante_local": 180,
+            "habitual_local": 150,
+            "avanzado": 90,
+            "visitante_fin_semana": 90,
+            "evaluador_inversor": 91
+          },
+          "usuariosActivosMensuales": 3285,
+          "activosPorCohorte": {
+            "principiante_local": 856,
+            "habitual_local": 1046,
+            "avanzado": 653,
+            "visitante_fin_semana": 387,
+            "evaluador_inversor": 343
+          },
+          "usuariosActivosSemanales": 1741,
+          "ratioWauMau": 0.53,
+          "activadosPWA": 469,
+          "activadosMovilFase1": 46,
+          "abandonos": 287,
+          "retornosSimulados": 2684,
+          "tasaRetencionD7Promedio": 71.8,
+          "tasaRetencionD30Promedio": 49.3,
+          "sesionesTotales": 29302,
+          "consultasSpotTotales": 82045,
+          "embudoValor": {
+            "vistasPortada": 29302,
+            "aperturasSpot": 82045,
+            "vistasHorarias": 53329,
+            "consultasCamara": 36920,
+            "reportesOlasHeSurfeado": 394
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 122,
+            "tasaConversionGlobalPct": 3.7,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 364.78,
+            "ingresosNetosEur": 310.06,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 310.06,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 10,
+          "nombreMes": "Octubre",
+          "estacion": "otono",
+          "usuariosNuevos": 630,
+          "nuevosPorCohorte": {
+            "principiante_local": 189,
+            "habitual_local": 158,
+            "avanzado": 95,
+            "visitante_fin_semana": 95,
+            "evaluador_inversor": 93
+          },
+          "usuariosActivosMensuales": 3678,
+          "activosPorCohorte": {
+            "principiante_local": 956,
+            "habitual_local": 1181,
+            "avanzado": 735,
+            "visitante_fin_semana": 422,
+            "evaluador_inversor": 384
+          },
+          "usuariosActivosSemanales": 2133,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 491,
+          "activadosMovilFase1": 49,
+          "abandonos": 237,
+          "retornosSimulados": 3048,
+          "tasaRetencionD7Promedio": 73.7,
+          "tasaRetencionD30Promedio": 52,
+          "sesionesTotales": 47144,
+          "consultasSpotTotales": 132004,
+          "embudoValor": {
+            "vistasPortada": 47144,
+            "aperturasSpot": 132004,
+            "vistasHorarias": 85803,
+            "consultasCamara": 59402,
+            "reportesOlasHeSurfeado": 441
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 225,
+            "tasaConversionGlobalPct": 6.1,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 672.75,
+            "ingresosNetosEur": 571.84,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 571.84,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 11,
+          "nombreMes": "Noviembre",
+          "estacion": "otono",
+          "usuariosNuevos": 666,
+          "nuevosPorCohorte": {
+            "principiante_local": 200,
+            "habitual_local": 167,
+            "avanzado": 100,
+            "visitante_fin_semana": 100,
+            "evaluador_inversor": 99
+          },
+          "usuariosActivosMensuales": 4089,
+          "activosPorCohorte": {
+            "principiante_local": 1060,
+            "habitual_local": 1323,
+            "avanzado": 820,
+            "visitante_fin_semana": 459,
+            "evaluador_inversor": 427
+          },
+          "usuariosActivosSemanales": 2413,
+          "ratioWauMau": 0.59,
+          "activadosPWA": 519,
+          "activadosMovilFase1": 51,
+          "abandonos": 255,
+          "retornosSimulados": 3423,
+          "tasaRetencionD7Promedio": 73.3,
+          "tasaRetencionD30Promedio": 51.2,
+          "sesionesTotales": 57390,
+          "consultasSpotTotales": 160692,
+          "embudoValor": {
+            "vistasPortada": 57390,
+            "aperturasSpot": 160692,
+            "vistasHorarias": 104450,
+            "consultasCamara": 72311,
+            "reportesOlasHeSurfeado": 491
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 262,
+            "tasaConversionGlobalPct": 6.4,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 783.38,
+            "ingresosNetosEur": 665.87,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 665.87,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        },
+        {
+          "mes": 12,
+          "nombreMes": "Diciembre",
+          "estacion": "invierno",
+          "usuariosNuevos": 575,
+          "nuevosPorCohorte": {
+            "principiante_local": 173,
+            "habitual_local": 144,
+            "avanzado": 86,
+            "visitante_fin_semana": 86,
+            "evaluador_inversor": 86
+          },
+          "usuariosActivosMensuales": 4360,
+          "activosPorCohorte": {
+            "principiante_local": 1118,
+            "habitual_local": 1436,
+            "avanzado": 890,
+            "visitante_fin_semana": 471,
+            "evaluador_inversor": 445
+          },
+          "usuariosActivosSemanales": 2529,
+          "ratioWauMau": 0.58,
+          "activadosPWA": 449,
+          "activadosMovilFase1": 44,
+          "abandonos": 304,
+          "retornosSimulados": 3785,
+          "tasaRetencionD7Promedio": 71.4,
+          "tasaRetencionD30Promedio": 50.7,
+          "sesionesTotales": 56423,
+          "consultasSpotTotales": 157984,
+          "embudoValor": {
+            "vistasPortada": 56423,
+            "aperturasSpot": 157984,
+            "vistasHorarias": 102690,
+            "consultasCamara": 71093,
+            "reportesOlasHeSurfeado": 523
+          },
+          "modeloInversion": {
+            "conversionesProSimuladas": 260,
+            "tasaConversionGlobalPct": 6,
+            "precioProHipotetico": 2.99,
+            "ingresosBrutosEur": 777.4,
+            "ingresosNetosEur": 660.79,
+            "costesConocidosEur": 0,
+            "costesPendientes": {
+              "dominioPersonalizado": "null (sin dominio de pago)",
+              "apiComercialSla": "null (Open-Meteo free tier actual)",
+              "soporteMantenimiento": "null (voluntario no computado)"
+            },
+            "margenNetoEur": 660.79,
+            "cacLtvAnalisis": "No calculable con evidencia actual (inversión de marketing = 0€; adquisición 100% orgánica)"
+          }
+        }
+      ]
+    }
+  },
+  "sensibilidad": {
+    "comparativaActivosFinales": {
+      "conservador": 1299,
+      "base": 2685,
+      "favorable": 4360
+    },
+    "comparativaIngresosNetos": {
+      "conservador": 345.63,
+      "base": 1377.51,
+      "favorable": 3593.69
+    }
+  },
+  "checksumSha256": "ff66e27371a3335d1e195b5b9d6986c119aac28ba8456fc37d266c6432ece9ba"
+}

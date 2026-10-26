@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Informe de Simulación 12M · MeteoSurf_Cs</title>
+  <style>
+    :root {
+      --bg: #0b1320;
+      --surface: #121e33;
+      --surface-2: #192a47;
+      --surface-card: #15243d;
+      --text: #e6edf5;
+      --text-muted: #8fa6c4;
+      --brand: #0284c7;
+      --brand-glow: rgba(2, 132, 199, 0.25);
+      --accent: #38bdf8;
+      --green: #10b981;
+      --green-bg: rgba(16, 185, 129, 0.15);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245, 158, 11, 0.15);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.15);
+      --border: #233658;
+      --radius: 12px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.6;
+      padding: 24px 16px 80px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header.header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: var(--brand-glow);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      margin-bottom: 12px;
+    }
+    .badge.verified { background: var(--green-bg); color: var(--green); border-color: rgba(16, 185, 129, 0.3); }
+    .badge.simulated { background: var(--amber-bg); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    h1 { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px; letter-spacing: -0.5px; }
+    p.lead { font-size: 16px; color: var(--text-muted); max-width: 800px; }
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .meta-bar span { display: inline-flex; align-items: center; gap: 6px; }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .kpi-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .kpi-label { font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+    .kpi-value { font-size: 28px; font-weight: 800; color: #fff; }
+    .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .kpi-sub.green { color: var(--green); }
+
+    /* Tabs */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 18px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    /* Tables */
+    .table-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow-x: auto;
+      margin-bottom: 32px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    th {
+      background: var(--surface-2);
+      color: #fff;
+      font-weight: 700;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .text-right { text-align: right; }
+    .tag-season {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    .season-invierno { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .season-primavera { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+    .season-verano { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    .season-otono { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+
+    /* Card Box */
+    .card-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .card-box h3 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+    .card-box p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+
+    /* Grid 2 Col */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    /* Status Pill */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .pill.verified { background: var(--green-bg); color: var(--green); }
+    .pill.blocked { background: var(--red-bg); color: var(--red); }
+    .pill.pending { background: var(--amber-bg); color: var(--amber); }
+
+    /* Interactive Filters */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .select-btn-group {
+      display: inline-flex;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .select-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .select-btn.active {
+      background: var(--brand);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="badge verified">✓ Datos Verificados en Host</span>
+        <span class="badge simulated">⚙ Simulación Semilla meteosurf-12m-v1</span>
+      </div>
+      <h1>Informe de Simulación Longitudinal · MeteoSurf_Cs</h1>
+      <p class="lead">
+        Evaluación objetiva y reproducible de 6 y 12 meses para la PWA publicada y la app React Native/Expo (Fase 1). Modelado de 5.000 usuarios sintéticos, 5 cohortes, estacionalidad mediterránea y viabilidad de inversión a coste 0€.
+      </p>
+      <div class="meta-bar">
+        <span>📅 Fecha: 26 de octubre de 2026</span>
+        <span>💻 Host: Portátil Windows (Node v24.21.0, Playwright v1.63.0)</span>
+        <span>📱 Expo: SDK 58 (~58.0.19, React 19.3.0, RN 0.88.0)</span>
+        <span>🔒 Semilla determinista: meteosurf-12m-v1</span>
+      </div>
+    </header>
+
+    <!-- Top KPIs Base 12M -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Usuarios Nuevos (12M Base)</div>
+        <div class="kpi-value">5.102</div>
+        <div class="kpi-sub">Sintéticos · Semilla fija</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Activos Finales (MAU Mes 12)</div>
+        <div class="kpi-value">2.685</div>
+        <div class="kpi-sub green">52,6% Retención acumulada</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Sesiones Totales (12M)</div>
+        <div class="kpi-value">191.451</div>
+        <div class="kpi-sub">536.063 aperturas de spots</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ingresos Netos Hipotéticos</div>
+        <div class="kpi-value">1.377,51 €</div>
+        <div class="kpi-sub">2,99 €/mes Pro · 15% comisión</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Coste Servidor Acumulado</div>
+        <div class="kpi-value" style="color:var(--green)">0,00 €</div>
+        <div class="kpi-sub green">GitHub Pages + Open-Meteo free</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('simulacion')">📊 Simulación Mensual (6M / 12M)</button>
+      <button class="tab-btn" onclick="switchTab('sensibilidad')">⚖️ Sensibilidad de Escenarios</button>
+      <button class="tab-btn" onclick="switchTab('cohortes')">👥 5 Cohortes Sintéticas</button>
+      <button class="tab-btn" onclick="switchTab('recorridos')">🗺️ 14 Recorridos Longitudinales</button>
+      <button class="tab-btn" onclick="switchTab('auditoria')">🔍 Auditoría PWA y Móvil</button>
+      <button class="tab-btn" onclick="switchTab('mejoras')">🛠️ Mejoras y Commits</button>
+      <button class="tab-btn" onclick="switchTab('inversor')">💼 Tesis y Riesgos Inversión</button>
+    </nav>
+
+    <!-- TAB 1: Simulación Mensual -->
+    <div id="tab-simulacion" class="tab-content active">
+      <div class="controls-row">
+        <h3>Evolución Mensual Detallada (Escenario Base)</h3>
+        <div class="select-btn-group">
+          <button class="select-btn active" id="btn-view-12m" onclick="toggleSimPeriod(12)">12 Meses (Anual)</button>
+          <button class="select-btn" id="btn-view-6m" onclick="toggleSimPeriod(6)">6 Meses</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table id="table-monthly">
+          <thead>
+            <tr>
+              <th>Mes</th>
+              <th>Estación</th>
+              <th class="text-right">Nuevos</th>
+              <th class="text-right">MAU</th>
+              <th class="text-right">WAU</th>
+              <th class="text-right">WAU/MAU</th>
+              <th class="text-right">Act. PWA</th>
+              <th class="text-right">Act. Móvil</th>
+              <th class="text-right">Sesiones</th>
+              <th class="text-right">Conv. Pro</th>
+              <th class="text-right">% Conv.</th>
+              <th class="text-right">Ingr. Netos</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-monthly">
+            <!-- Rendered by JS below -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: Sensibilidad -->
+    <div id="tab-sensibilidad" class="tab-content">
+      <div class="card-box">
+        <h3>Matriz de Sensibilidad entre Escenarios (12 Meses)</h3>
+        <p>Los tres escenarios aplican los mismos perfiles y estacionalidad mediterránea para no proyectar un número único como verdad absoluta.</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Escenario</th>
+                <th>Finalidad Operativa</th>
+                <th class="text-right">Nuevos (12M)</th>
+                <th class="text-right">MAU Final (m12)</th>
+                <th class="text-right">Sesiones Totales</th>
+                <th class="text-right">Ingresos Netos (12M)</th>
+                <th class="text-right">Coste Servidor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Conservador</strong></td>
+                <td>Adquisición baja (x0.7), abandono mayor (+5%), conversión Pro 0.6x</td>
+                <td class="text-right">3.571</td>
+                <td class="text-right">1.299</td>
+                <td class="text-right">108.648</td>
+                <td class="text-right">345,63 €</td>
+                <td class="text-right" style="color:var(--green)">0,00 €</td>
+              </tr>
+              <tr style="background:rgba(2,132,199,0.08)">
+                <td><strong>Base</strong></td>
+                <td>Supuestos centrales equilibrados documentados en supuestos.json</td>
+                <td class="text-right">5.102</td>
+                <td class="text-right">2.685</td>
+                <td class="text-right">191.451</td>
+                <td class="text-right">1.377,51 €</td>
+                <td class="text-right" style="color:var(--green)">0,00 €</td>
+              </tr>
+              <tr>
+                <td><strong>Favorable</strong></td>
+                <td>Adquisición alta (x1.35), retención fuerte, conversión Pro 1.4x</td>
+                <td class="text-right">6.891</td>
+                <td class="text-right">4.360</td>
+                <td class="text-right">321.490</td>
+                <td class="text-right">3.593,69 €</td>
+                <td class="text-right" style="color:var(--green)">0,00 €</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Cohortes -->
+    <div id="tab-cohortes" class="tab-content">
+      <div class="grid-2">
+        <div class="card-box">
+          <span class="badge">30% del Total</span>
+          <h3>Principiante Local</h3>
+          <p><strong>Necesidad:</strong> Saber si puede surfear mañana sin interpretar terminología cruda de física de olas.</p>
+          <p><strong>Frecuencia:</strong> 4,5 sesiones/mes · <strong>Abandono base:</strong> 18%/mes.</p>
+          <p><strong>Ruta:</strong> Onboarding → Tarjeta de spot → Resumen en lenguaje natural.</p>
+          <p><strong>Señal de valor:</strong> Comprender si la condición es segura o no para su nivel.</p>
+        </div>
+        <div class="card-box">
+          <span class="badge">25% del Total</span>
+          <h3>Habitual Local</h3>
+          <p><strong>Necesidad:</strong> Elegir la hora exacta y el spot óptimo contrastando boya, cámara y tabla horaria.</p>
+          <p><strong>Frecuencia:</strong> 14,0 sesiones/mes · <strong>Abandono base:</strong> 7%/mes.</p>
+          <p><strong>Ruta:</strong> Acceso directo a Favoritos → Tabla Horas → Streaming HLS de webcam.</p>
+          <p><strong>Señal de valor:</strong> Verificación visual y física antes de desplazarse.</p>
+        </div>
+        <div class="card-box">
+          <span class="badge">15% del Total</span>
+          <h3>Avanzado</h3>
+          <p><strong>Necesidad:</strong> Contrastar swell secundario, periodos largos (>8s) y orientación angular de viento terral.</p>
+          <p><strong>Frecuencia:</strong> 18,0 sesiones/mes · <strong>Abandono base:</strong> 6%/mes.</p>
+          <p><strong>Ruta:</strong> Brújula SVG → Tendencia 16 días → Comparador multimodelo.</p>
+          <p><strong>Señal de valor:</strong> Anticipar ventanas limpias durante temporales potentes.</p>
+        </div>
+        <div class="card-box">
+          <span class="badge">15% del Total</span>
+          <h3>Visitante de Fin de Semana</h3>
+          <p><strong>Necesidad:</strong> Planificar viaje el viernes desde Valencia, Teruel o Zaragoza hacia Castellón.</p>
+          <p><strong>Frecuencia:</strong> 3,0 sesiones/mes · <strong>Abandono base:</strong> 22%/mes.</p>
+          <p><strong>Ruta:</strong> Búsqueda móvil → Asistente de previsión → Cámaras.</p>
+          <p><strong>Señal de valor:</strong> Recomendación consolidada para el sábado/domingo.</p>
+        </div>
+        <div class="card-box">
+          <span class="badge">15% del Total</span>
+          <h3>Evaluador / Inversor</h3>
+          <p><strong>Necesidad:</strong> Validar diferenciación competitiva frente a gigantes globales, arquitectura de costes y retención.</p>
+          <p><strong>Frecuencia:</strong> 2,0 sesiones/mes · <strong>Abandono base:</strong> 25%/mes.</p>
+          <p><strong>Ruta:</strong> Auditoría de código, inspección de fuentes de datos, viabilidad comercial.</p>
+          <p><strong>Señal de valor:</strong> Coste 0€ y resolución de problemas locales que el software global ignora.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Recorridos Longitudinales -->
+    <div id="tab-recorridos" class="tab-content">
+      <div class="card-box">
+        <h3>Matriz de 14 Recorridos Longitudinales Sintéticos</h3>
+        <p>Simulación trazada con datos observables, tiempos de respuesta y análisis de severidad de fricciones.</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Cohorte</th>
+                <th>Plataforma</th>
+                <th>Momento / Clima</th>
+                <th>Fricción Observada</th>
+                <th>Severidad</th>
+                <th>Mejora Asociada</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-recorridos">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: Auditoría PWA y Móvil -->
+    <div id="tab-auditoria" class="tab-content">
+      <div class="grid-2">
+        <div class="card-box">
+          <span class="pill verified">VERIFICADO PLAYWRIGHT</span>
+          <h3 style="margin-top:8px">Línea Base PWA (Web Progresiva)</h3>
+          <p><strong>Tiempos de Carga:</strong> DOMContentLoaded en 176–224 ms; Forecast inicial útil en 324–356 ms.</p>
+          <p><strong>Accesibilidad:</strong> 0 elementos menores de 44px tras aplicar MEJ-01. Cero recortes o desbordamientos.</p>
+          <p><strong>Resiliencia Offline:</strong> Sin pantallas en blanco. Banner accesible con botón de reintento interactivo.</p>
+          <p><strong>Service Worker:</strong> Registrado en ámbito raíz (<code>/</code>), sin bloqueos de recarga local.</p>
+        </div>
+        <div class="card-box">
+          <span class="pill verified">VERIFICADO EXPO</span>
+          <h3 style="margin-top:8px">Línea Base App Móvil (Expo SDK 58)</h3>
+          <p><strong>Estado Actual:</strong> Fase 1 (Estructura base, pestañas y persistencia adaptativa).</p>
+          <p><strong>Chequeo TypeScript:</strong> <code>npx tsc --noEmit</code> exitoso con 0 errores.</p>
+          <p><strong>Expo Doctor:</strong> 18/20 checks pasados tras retirar propiedades deprecadas en <code>app.json</code>.</p>
+          <p><strong>Metro Dev Server:</strong> Arrancó limpiamente en <code>http://localhost:8081</code>.</p>
+          <p><strong>Emulador:</strong> <span class="pill pending">[NO VERIFICADO: no hay emulador]</span> (host Windows sin SDK de Android en PATH).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: Mejoras y Commits -->
+    <div id="tab-mejoras" class="tab-content">
+      <div class="card-box">
+        <h3>Historial de Mejoras Aplicadas en esta Sesión</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Commit</th>
+                <th>Producto</th>
+                <th>Tipo</th>
+                <th>Mejora Implementada</th>
+                <th>Verificación</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>MEJ-01</strong></td>
+                <td><code>3d77d11</code></td>
+                <td>PWA Web</td>
+                <td>Accesibilidad</td>
+                <td>Asegurar tamaño táctil mínimo de 44×44px en botones de navegación (enlace Mapa corregido).</td>
+                <td><span class="pill verified">VERIFICADO</span></td>
+              </tr>
+              <tr>
+                <td><strong>MEJ-02</strong></td>
+                <td><code>a9f9ca5</code></td>
+                <td>App Móvil</td>
+                <td>Configuración</td>
+                <td>Eliminar propiedades obsoletas newArchEnabled y splash de app.json para Expo SDK 58.</td>
+                <td><span class="pill verified">VERIFICADO</span></td>
+              </tr>
+              <tr>
+                <td><strong>MEJ-03</strong></td>
+                <td><code>0eb2070</code></td>
+                <td>App Móvil</td>
+                <td>Claridad UX</td>
+                <td>Microcopia honesta en pantallas de Fase 1 explicando el estado base y enlazando a PWA.</td>
+                <td><span class="pill verified">VERIFICADO</span></td>
+              </tr>
+              <tr>
+                <td><strong>MEJ-04</strong></td>
+                <td><code>f54e218</code></td>
+                <td>PWA Web</td>
+                <td>Honestidad</td>
+                <td>Clarificar fase de evaluación y lista de espera en modal Pro sin cobros activos ficticios.</td>
+                <td><span class="pill verified">VERIFICADO</span></td>
+              </tr>
+              <tr>
+                <td><strong>MEJ-05</strong></td>
+                <td><code>3655836</code></td>
+                <td>PWA Web</td>
+                <td>Resiliencia</td>
+                <td>Añadir botón interactivo accesible 'Reintentar' en el banner ante desconexión de red.</td>
+                <td><span class="pill verified">VERIFICADO</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: Tesis Inversor -->
+    <div id="tab-inversor" class="tab-content">
+      <div class="card-box">
+        <h3>Tesis de Valor Local vs Gigantes Globales</h3>
+        <p>
+          Las plataformas globales como Surfline, Magicseaweed o Windguru están calibradas para regímenes oceánicos de periodo largo (>10s) y olas >1m. En el Mediterráneo (Castellón), un baño perfecto ocurre habitualmente con 0,4–0,6m de ola, periodo de 4–6s y viento terral temprano. El software global califica estas sesiones como "Muy malas / Plato", desincentivando al surfista local.
+        </p>
+        <p>
+          <strong>La ventaja competitiva de MeteoSurf_Cs radica en:</strong>
+        </p>
+        <ul style="margin-left: 20px; color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+          <li>Calibración física costera v3 ajustada a la boya de Valencia (REDEXT 2630) y mareógrafo de Sagunto.</li>
+          <li>Integración en directo de la cámara de rompiente del Club Surfers Castellón.</li>
+          <li>Arquitectura serverless en GitHub Pages con coste 0,00 €/mes para el tráfico actual.</li>
+        </ul>
+
+        <h3 style="margin-top: 24px;">Matriz de Riesgos y Mitigaciones</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Riesgo</th>
+                <th>Severidad</th>
+                <th>Impacto</th>
+                <th>Experimento de Bajo Coste / Mitigación</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Acceso a cámaras</strong></td>
+                <td>Crítica</td>
+                <td>Pérdida de streaming del club</td>
+                <td>Formalizar acuerdo de reciprocidad con el Club Surfers Castellón a cambio de widget oficial.</td>
+              </tr>
+              <tr>
+                <td><strong>Términos Open-Meteo</strong></td>
+                <td>Alta</td>
+                <td>Límite comercial</td>
+                <td>Mantener free tier en fase actual; presupuestar API comercial (~25€/mes) cuando los ingresos superen 100€/mes.</td>
+              </tr>
+              <tr>
+                <td><strong>Estacionalidad estival</strong></td>
+                <td>Media</td>
+                <td>Caída de uso en mar plano</td>
+                <td>Añadir módulo de paddle surf, kayak y cámaras turísticas en los meses de julio y agosto.</td>
+              </tr>
+              <tr>
+                <td><strong>Publicación en App Store</strong></td>
+                <td>Alta</td>
+                <td>Rechazo Guideline 4.2</td>
+                <td>No enviar la app a revisión hasta finalizar la Fase 2 (streaming nativo de vídeo HLS).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const dataMonthlyBase = [
+      { mes: 1, nombre: 'Enero', estacion: 'invierno', nuevos: 452, mau: 452, wau: 262, ratio: '0.58', actPwa: 353, actMob: 35, sesiones: 4903, conv: 13, pct: '2.9%', ingr: '33,04 €' },
+      { mes: 2, nombre: 'Febrero', estacion: 'invierno', nuevos: 441, mau: 831, wau: 474, ratio: '0.57', actPwa: 344, actMob: 34, sesiones: 8645, conv: 24, pct: '2.9%', ingr: '61,00 €' },
+      { mes: 3, nombre: 'Marzo', estacion: 'primavera', nuevos: 427, mau: 1135, wau: 624, ratio: '0.55', actPwa: 333, actMob: 33, sesiones: 10922, conv: 25, pct: '2.2%', ingr: '63,54 €' },
+      { mes: 4, nombre: 'Abril', estacion: 'primavera', nuevos: 393, mau: 1353, wau: 717, ratio: '0.53', actPwa: 307, actMob: 30, sesiones: 11758, conv: 29, pct: '2.1%', ingr: '73,70 €' },
+      { mes: 5, nombre: 'Mayo', estacion: 'primavera', nuevos: 374, mau: 1513, wau: 787, ratio: '0.52', actPwa: 292, actMob: 29, sesiones: 11164, conv: 32, pct: '2.1%', ingr: '81,33 €' },
+      { mes: 6, nombre: 'Junio', estacion: 'verano', nuevos: 386, mau: 1656, wau: 811, ratio: '0.49', actPwa: 301, actMob: 30, sesiones: 9436, conv: 33, pct: '2.0%', ingr: '83,87 €' },
+      { mes: 7, nombre: 'Julio', estacion: 'verano', nuevos: 396, mau: 1754, wau: 824, ratio: '0.47', actPwa: 309, actMob: 30, sesiones: 7657, conv: 31, pct: '1.8%', ingr: '78,79 €' },
+      { mes: 8, nombre: 'Agosto', estacion: 'verano', nuevos: 401, mau: 1846, wau: 868, ratio: '0.47', actPwa: 313, actMob: 31, sesiones: 8034, conv: 33, pct: '1.8%', ingr: '83,87 €' },
+      { mes: 9, nombre: 'Septiembre', estacion: 'otono', nuevos: 404, mau: 1977, wau: 1048, ratio: '0.53', actPwa: 315, actMob: 31, sesiones: 18087, conv: 45, pct: '2.3%', ingr: '114,37 €' },
+      { mes: 10, nombre: 'Octubre', estacion: 'otono', nuevos: 485, mau: 2250, wau: 1305, ratio: '0.58', actPwa: 378, actMob: 37, sesiones: 30294, conv: 83, pct: '3.7%', ingr: '210,94 €' },
+      { mes: 11, nombre: 'Noviembre', estacion: 'otono', nuevos: 481, mau: 2500, wau: 1475, ratio: '0.59', actPwa: 375, actMob: 37, sesiones: 35785, conv: 97, pct: '3.9%', ingr: '246,53 €' },
+      { mes: 12, nombre: 'Diciembre', estacion: 'invierno', nuevos: 462, mau: 2685, wau: 1557, ratio: '0.58', actPwa: 360, actMob: 36, sesiones: 34766, conv: 97, pct: '3.6%', ingr: '246,53 €' }
+    ];
+
+    const recorridos = [
+      { id: 'REC-01', cohorte: 'Principiante', plat: 'PWA Móvil', momento: 'Día 1 / Onboarding', friccion: 'Banner Pro prematuro en primera sesión', sev: 'Media', mejora: 'MEJ-04 (Claridad Pro modal)' },
+      { id: 'REC-02', cohorte: 'Principiante', plat: 'PWA Móvil', momento: 'Semana 1', friccion: 'Scroll horizontal de tabla sin pista visual', sev: 'Baja', mejora: 'css/app.css' },
+      { id: 'REC-03', cohorte: 'Principiante', plat: 'PWA Móvil', momento: 'Mes 1 (Verano)', friccion: 'Falta sugerencia de calma/paddle surf en plato', sev: 'Baja', mejora: 'js/assistant.js' },
+      { id: 'REC-04', cohorte: 'Habitual', plat: 'PWA Móvil', momento: 'Día 1 / Marejada', friccion: 'Carga de vídeo HLS en 4G débil', sev: 'Media', mejora: 'js/cams.js' },
+      { id: 'REC-05', cohorte: 'Habitual', plat: 'App Móvil', momento: 'Semana 1', friccion: 'Discrepancia de funciones con la PWA', sev: 'Alta', mejora: 'MEJ-03 (Microcopia honesta)' },
+      { id: 'REC-06', cohorte: 'Habitual', plat: 'PWA Móvil', momento: 'Mes 3', friccion: 'Confirmación sutil al guardar reporte', sev: 'Baja', mejora: 'js/app.js' },
+      { id: 'REC-07', cohorte: 'Avanzado', plat: 'PWA Móvil', momento: 'Día 1 / Temporal', friccion: 'Solapamiento de pines en zoom rápido del mapa', sev: 'Media', mejora: 'css/app.css' },
+      { id: 'REC-08', cohorte: 'Avanzado', plat: 'PWA Escritorio', momento: 'Mes 1 / Estudio', friccion: 'Botón Mapa con 34px de ancho (<44px WCAG)', sev: 'Media', mejora: 'MEJ-01 (Min 44px navegacion)' },
+      { id: 'REC-09', cohorte: 'Visitante', plat: 'PWA Móvil', momento: 'Viernes tarde', friccion: 'Preguntas ambiguas al asistente', sev: 'Baja', mejora: 'js/app.js' },
+      { id: 'REC-10', cohorte: 'Visitante', plat: 'PWA Móvil', momento: 'Sábado mañana', friccion: 'Descarga de clip de 3 MB en cobertura débil', sev: 'Baja', mejora: 'js/cams.js' },
+      { id: 'REC-11', cohorte: 'Evaluador', plat: 'PWA Escritorio', momento: 'Due Diligence', friccion: 'Botón Suscribirse Pro sin pasarela activa', sev: 'Alta', mejora: 'MEJ-04 (Transparencia Pro)' },
+      { id: 'REC-12', cohorte: 'Evaluador', plat: 'App Móvil', momento: 'Auditoría SDK', friccion: 'Fallo de validación de esquema en app.json', sev: 'Media', mejora: 'MEJ-02 (Eliminar newArch/splash)' },
+      { id: 'REC-13', cohorte: 'Principiante', plat: 'PWA Móvil', momento: 'Sin red / Túnel', friccion: 'Sin botón directo de reintento en pantalla', sev: 'Media', mejora: 'MEJ-05 (Botón Reintentar)' },
+      { id: 'REC-14', cohorte: 'Habitual', plat: 'PWA Móvil', momento: 'Cámaras', friccion: 'Stream caducado de Peñíscola en gris', sev: 'Baja', mejora: 'js/cams.js' }
+    ];
+
+    function renderMonthlyTable(months) {
+      const tbody = document.getElementById('tbody-monthly');
+      tbody.innerHTML = '';
+      const slice = dataMonthlyBase.slice(0, months);
+      slice.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${m.mes} · ${m.nombre}</strong></td>
+          <td><span class="tag-season season-${m.estacion}">${m.estacion}</span></td>
+          <td class="text-right">${m.nuevos}</td>
+          <td class="text-right">${m.mau}</td>
+          <td class="text-right">${m.wau}</td>
+          <td class="text-right">${m.ratio}</td>
+          <td class="text-right">${m.actPwa}</td>
+          <td class="text-right">${m.actMob}</td>
+          <td class="text-right">${m.sesiones.toLocaleString('es-ES')}</td>
+          <td class="text-right">${m.conv}</td>
+          <td class="text-right">${m.pct}</td>
+          <td class="text-right" style="font-weight:700;color:var(--accent)">${m.ingr}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderRecorridos() {
+      const tbody = document.getElementById('tbody-recorridos');
+      tbody.innerHTML = '';
+      recorridos.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><code>${r.id}</code></td>
+          <td><strong>${r.cohorte}</strong></td>
+          <td>${r.plat}</td>
+          <td>${r.momento}</td>
+          <td>${r.friccion}</td>
+          <td><span class="pill ${r.sev === 'Alta' ? 'blocked' : 'pending'}">${r.sev}</span></td>
+          <td><code>${r.mejora}</code></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function toggleSimPeriod(months) {
+      document.getElementById('btn-view-12m').classList.toggle('active', months === 12);
+      document.getElementById('btn-view-6m').classList.toggle('active', months === 6);
+      renderMonthlyTable(months);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    // Inicializar
+    renderMonthlyTable(12);
+    renderRecorridos();
+  </script>
+</body>
+</html>

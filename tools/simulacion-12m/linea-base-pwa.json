@@ -1,0 +1,121 @@
+{
+  "fecha": "2026-10-26T00:02:30.582Z",
+  "baseUrl": "http://127.0.0.1:8789",
+  "viewports": {
+    "movil_390x844_claro": {
+      "domLoadedTime": 286,
+      "forecastRenderTime": 524,
+      "onboardingStatus": {
+        "existe": true,
+        "visible": true,
+        "titulo": null,
+        "tieneBotonCierre": true
+      },
+      "interactivosAudit": {
+        "totalInteractivos": 63,
+        "menores44pxCount": 0,
+        "menores44pxMuestra": [],
+        "sinNombreAccesibleCount": 0,
+        "sinNombreAccesibleMuestra": [],
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390
+      },
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequestsCount": 0
+    },
+    "movil_390x844_oscuro": {
+      "domLoadedTime": 238,
+      "forecastRenderTime": 483,
+      "onboardingStatus": {
+        "existe": true,
+        "visible": true,
+        "titulo": null,
+        "tieneBotonCierre": true
+      },
+      "interactivosAudit": {
+        "totalInteractivos": 63,
+        "menores44pxCount": 0,
+        "menores44pxMuestra": [],
+        "sinNombreAccesibleCount": 0,
+        "sinNombreAccesibleMuestra": [],
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390
+      },
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequestsCount": 0
+    },
+    "escritorio_1366x768_claro": {
+      "domLoadedTime": 243,
+      "forecastRenderTime": 483,
+      "onboardingStatus": {
+        "existe": true,
+        "visible": true,
+        "titulo": null,
+        "tieneBotonCierre": true
+      },
+      "interactivosAudit": {
+        "totalInteractivos": 63,
+        "menores44pxCount": 0,
+        "menores44pxMuestra": [],
+        "sinNombreAccesibleCount": 0,
+        "sinNombreAccesibleMuestra": [],
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 1366,
+        "innerWidth": 1366
+      },
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequestsCount": 0
+    },
+    "escritorio_1366x768_oscuro": {
+      "domLoadedTime": 241,
+      "forecastRenderTime": 379,
+      "onboardingStatus": {
+        "existe": true,
+        "visible": true,
+        "titulo": null,
+        "tieneBotonCierre": true
+      },
+      "interactivosAudit": {
+        "totalInteractivos": 62,
+        "menores44pxCount": 0,
+        "menores44pxMuestra": [],
+        "sinNombreAccesibleCount": 0,
+        "sinNombreAccesibleMuestra": [],
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 1366,
+        "innerWidth": 1366
+      },
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequestsCount": 0
+    }
+  },
+  "pruebasFlujos": {
+    "spotAbierto": true,
+    "spotId": "Planetario",
+    "horasOk": true,
+    "calendarioOk": true,
+    "camarasOk": true,
+    "asistenteOk": true,
+    "urlTrasBack": "http://127.0.0.1:8789/index.html#/camaras",
+    "urlTrasReload": "http://127.0.0.1:8789/index.html#/camaras",
+    "pantallaSanaTrasReload": true,
+    "navErrors": []
+  },
+  "resilienciaRed": {
+    "hasWhiteScreen": false,
+    "hasErrorMessage": false,
+    "bodyExcerpt": "MeteoSurfCs No se ha podido descargar la previsión (Failed to fetch). Revisa la conexión y vuelve a intentarlo. Reintentar Costa de Castellón 14 spots · previsión a 16 días 📅 Ver semana Todos Favor"
+  },
+  "serviceWorker": {
+    "supported": true,
+    "registrationsCount": 1,
+    "scope": "http://127.0.0.1:8789/"
+  },
+  "friccionesDetectadas": []
+}

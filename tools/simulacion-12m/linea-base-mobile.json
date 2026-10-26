@@ -1,0 +1,85 @@
+{
+  "fecha": "2026-10-26T00:46:00.000Z",
+  "producto": "surfline-mobile",
+  "expoSdk": "58.0.19",
+  "react": "19.3.0",
+  "reactNative": "0.88.0",
+  "typescriptCheck": {
+    "comando": "npx tsc --noEmit",
+    "exitCode": 0,
+    "errores": 0,
+    "estado": "[VERIFICADO]"
+  },
+  "expoDoctor": {
+    "comando": "npx expo-doctor",
+    "checksPassed": "17/20",
+    "checksFailed": "3/20",
+    "detalles": [
+      {
+        "tipo": "schema",
+        "campo": "newArchEnabled",
+        "mensaje": "Additional property 'newArchEnabled' is not allowed in app.json for SDK 58",
+        "severidad": "media",
+        "resolucionPropuesta": "Retirar 'newArchEnabled' de expo en app.json ya que en SDK 58 la nueva arquitectura viene habilitada por defecto"
+      },
+      {
+        "tipo": "peerDependencies",
+        "mensaje": "Missing peer dependencies: expo-font (@expo/vector-icons), expo-constants (expo-router), expo-linking (expo-router), react-native-worklets (react-native-reanimated)",
+        "severidad": "baja",
+        "resolucionPropuesta": "Instalar con npx expo install cuando se amplíen dependencias o documentar para Fase 2"
+      },
+      {
+        "tipo": "versionMismatch",
+        "mensaje": "@react-native-async-storage/async-storage 3.1.1 instalado (esperado 2.2.0 por matriz de Expo)",
+        "severidad": "baja",
+        "resolucionPropuesta": "Alinear versión o registrar excepción controlada"
+      }
+    ]
+  },
+  "metroDevServer": {
+    "comando": "npx expo start --port 8081 --no-dev",
+    "url": "http://localhost:8081",
+    "arranqueLimpio": true,
+    "estado": "[VERIFICADO]"
+  },
+  "emulador": {
+    "disponible": false,
+    "motivo": "Host Windows sin adb en PATH ni simulador iOS",
+    "estado": "[NO VERIFICADO: no hay emulador]"
+  },
+  "pantallasFase1": [
+    {
+      "ruta": "app/(tabs)/index.tsx",
+      "titulo": "Spots en Directo",
+      "subtitulo": "Cámaras HLS — Fase 2",
+      "estadoFuncional": "En construcción (placeholder Fase 2)",
+      "propuestaHonesta": "Mostrar estado honesto de Fase 1 ('Próximamente: Cámaras HLS en directo') sin inducir a error"
+    },
+    {
+      "ruta": "app/(tabs)/forecasts.tsx",
+      "titulo": "Previsión Marítima",
+      "subtitulo": "Física de olas y offline — Fase 3",
+      "estadoFuncional": "En construcción (placeholder Fase 3)",
+      "propuestaHonesta": "Mostrar aviso informativo de hoja de ruta ('En desarrollo: Motor de previsión física') sin promesas comerciales"
+    },
+    {
+      "ruta": "app/(tabs)/vigia.tsx",
+      "titulo": "Vigía Clip Studio",
+      "subtitulo": "Captura y exportación de clips — Fase 2",
+      "estadoFuncional": "En construcción (placeholder Fase 2)",
+      "propuestaHonesta": "Explicar que la captura de clips requiere la fase nativa de vídeo"
+    },
+    {
+      "ruta": "app/(tabs)/community.tsx",
+      "titulo": "Comunidad",
+      "subtitulo": "Votación GPS verificada — Fase 4",
+      "estadoFuncional": "En construcción (placeholder Fase 4)",
+      "propuestaHonesta": "Explicar que los reportes comunitarios se habilitarán en la Fase 4"
+    }
+  ],
+  "almacenamiento": {
+    "archivo": "src/services/storage/storageAdapter.ts",
+    "estrategia": "Dual (MMKV nativo con fallback automático a AsyncStorage en Expo Go)",
+    "estado": "[VERIFICADO]"
+  }
+}

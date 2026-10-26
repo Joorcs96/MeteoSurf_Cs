@@ -227,6 +227,13 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - 05/10 por la mañana un amigo de Jordi surfeó bien a las 9 h con 0.47 m en rompiente y terral: la escala era pesimista. Ahora 0.40-0.50 m con terral o calma da Regular (techo sube un escalón con viento limpio); con viento de mar sigue Muy malo. Los otros 12 spots comprobados con costa OSM + Nominatim: en el agua y en su playa.
 - Seguridad: CSP en index/votar (permite jsdelivr, Open-Meteo, Turisme CV, IPCamLive, Windy, YouTube; vídeos https). Nada de scripts inline: el de votar está en `js/votar.js`. Si se añade una fuente externa nueva, hay que añadirla a la CSP o se bloquea.
 
+## Simulación Longitudinal 12M e Inversión (26/10/2026)
+- [VERIFICADO] Simulación sintética determinista generada en tools/simulacion-12m/ (semilla meteosurf-12m-v1, 5.000 usuarios, 5 cohortes, estacionalidad mediterránea, ventanas 6M y 12M, 3 escenarios).
+- [VERIFICADO] Informe en docs/INFORME-SIMULACION-12M.md y navegable en tools/informe-simulacion-12m.html.
+- [VERIFICADO] Mejoras aplicadas en rama Joorcs96/simulacion-12m: MEJ-01 (44px nav), MEJ-02 (app.json SDK 58), MEJ-03 (microcopia honesta Fase 1 en app móvil), MEJ-04 (transparencia pro modal), MEJ-05 (botón reintentar conexión).
+- [VERIFICADO] Pruebas pasadas: verificar-resultados.mjs (invariantes e idempotencia OK), test_motor_fisica (34/34 OK), tsc --noEmit en app móvil (0 errores), Playwright PWA línea base (0 errores, 0 menores 44px).
+- [BLOQUEO ANOTADO] PROGRESO.md no se tocó por conservar marcadores de conflicto ajenos preexistentes (seguridad-csp).
+
 ## Pendiente de Jordi
 - Confirmar orientaciones medidas con OSM que cambian mucho: La Renegà 148°, Voramar 142°, El Palaciet 143°.
 - Cámara de Surfers Castellón: pedir al club enlace público o permiso.

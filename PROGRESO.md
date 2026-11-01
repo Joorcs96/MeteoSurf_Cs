@@ -1,3 +1,29 @@
+# Tablero de Estado · Surfline Castellón
+
+## 📋 PENDIENTES
+- Despliegue en tiendas de apps (EAS)
+
+## ⚙️ EN CURSO
+| Tarea | Rol/agente | Cerebro | Pestaña |
+| --- | --- | --- | --- |
+
+## 👀 EN REVISION
+| Tarea | Rol/agente | Cerebro | Pestaña |
+| --- | --- | --- | --- |
+
+## ✅ FINALIZADAS
+| Fecha | Logro | Commit | Verificación |
+| --- | --- | --- | --- |
+| 2026-10-26 | App móvil Fases 2 a 5: Cámaras HLS, Física, GPS, Vigía y Exportación | a535f1a | [VERIFICADO simulacion_e2e.ts 24/24 pruebas ok, tsc 0 errores, expo export iOS/Android bundles generados] |
+| 2026-10-26 | App móvil Fase 1: estructura base React Native Expo | 8397512 | [VERIFICADO expo start arrancó en puerto 8081 y tsc --noEmit pasó con 0 errores] |
+
+## 💡 MEJORAS I+D
+
+## ⚠️ DUDAS/BLOQUEOS
+- Ver DUDAS.md para detalles técnicos resueltos en Fase 1.
+
+---
+
 # Vigía de ola con clip real · 17/10/2026 (segunda vuelta, cierra el defecto crítico)
 
 | Tarea | Estado | Rama | Siguiente paso |
@@ -114,3 +140,5 @@ Sin merge a main. `js/` y `historico_olas.csv` intactos.
 =======
 | Rediseño | Hecha: adaptado a main (Outfit, motion, data preserved) | Joorcs96/redisenar-main | Revisar |
 >>>>>>> seguridad-csp
+? [2026-10-24] Rama Joorcs96/reparar-surfers integrada en main
+? [2026-10-24] Rama Joorcs96/redisenar-web integrada en main

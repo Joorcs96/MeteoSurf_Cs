@@ -1,0 +1,110 @@
+{
+  "semilla": "meteosurf-12m-v1",
+  "descripcion": "Supuestos explícitos y parametrización para la simulación sintética de 6 y 12 meses de MeteoSurf_Cs",
+  "usuariosTotalesSinteticos": 5000,
+  "cohortes": {
+    "principiante_local": {
+      "nombre": "Principiante local",
+      "peso": 0.30,
+      "necesidadPrincipal": "Decidir si puede surfear mañana sin interpretar partes complejos",
+      "canales": ["Búsqueda orgánica", "PWA móvil"],
+      "frecuenciaBaseMensual": 4.5,
+      "abandonoBaseMensual": 0.18,
+      "toleranciaErrorDatos": 0.15,
+      "sensibilidadPrecio": "alta",
+      "tasaConversionProBase": 0.012
+    },
+    "habitual_local": {
+      "nombre": "Habitual local",
+      "peso": 0.25,
+      "necesidadPrincipal": "Elegir la hora exacta y el spot con mejor baño comparando previsión, cámara y tabla",
+      "canales": ["Acceso directo / Favoritos", "PWA móvil y App"],
+      "frecuenciaBaseMensual": 14.0,
+      "abandonoBaseMensual": 0.07,
+      "toleranciaErrorDatos": 0.08,
+      "sensibilidadPrecio": "media",
+      "tasaConversionProBase": 0.035
+    },
+    "avanzado": {
+      "nombre": "Avanzado",
+      "peso": 0.15,
+      "necesidadPrincipal": "Contrastar viento, rachas, periodo, boya mar adentro y cámaras en tiempo real",
+      "canales": ["Directo / Escritorio y PWA móvil"],
+      "frecuenciaBaseMensual": 18.0,
+      "abandonoBaseMensual": 0.06,
+      "toleranciaErrorDatos": 0.04,
+      "sensibilidadPrecio": "baja",
+      "tasaConversionProBase": 0.045
+    },
+    "visitante_fin_semana": {
+      "nombre": "Visitante de fin de semana",
+      "peso": 0.15,
+      "necesidadPrincipal": "Planificar viaje desde Valencia, Teruel o Madrid antes de desplazarse",
+      "canales": ["Búsqueda móvil", "PWA"],
+      "frecuenciaBaseMensual": 3.0,
+      "abandonoBaseMensual": 0.22,
+      "toleranciaErrorDatos": 0.12,
+      "sensibilidadPrecio": "media",
+      "tasaConversionProBase": 0.015
+    },
+    "evaluador_inversor": {
+      "nombre": "Evaluador/inversor",
+      "peso": 0.15,
+      "necesidadPrincipal": "Validar propuesta técnica, precisión local, métricas y viabilidad de costes",
+      "canales": ["Escritorio", "PWA y código móvil"],
+      "frecuenciaBaseMensual": 2.0,
+      "abandonoBaseMensual": 0.25,
+      "toleranciaErrorDatos": 0.02,
+      "sensibilidadPrecio": "neutra",
+      "tasaConversionProBase": 0.005
+    }
+  },
+  "estacionalidadMediterranea": [
+    { "mes": 1, "nombre": "Enero", "estacion": "invierno", "factorOleaje": 1.30, "factorTurismo": 0.70, "factorRetencion": 1.15 },
+    { "mes": 2, "nombre": "Febrero", "estacion": "invierno", "factorOleaje": 1.25, "factorTurismo": 0.70, "factorRetencion": 1.10 },
+    { "mes": 3, "nombre": "Marzo", "estacion": "primavera", "factorOleaje": 1.10, "factorTurismo": 0.85, "factorRetencion": 1.05 },
+    { "mes": 4, "nombre": "Abril", "estacion": "primavera", "factorOleaje": 0.95, "factorTurismo": 1.00, "factorRetencion": 1.00 },
+    { "mes": 5, "nombre": "Mayo", "estacion": "primavera", "factorOleaje": 0.80, "factorTurismo": 1.15, "factorRetencion": 0.95 },
+    { "mes": 6, "nombre": "Junio", "estacion": "verano", "factorOleaje": 0.60, "factorTurismo": 1.40, "factorRetencion": 0.85 },
+    { "mes": 7, "nombre": "Julio", "estacion": "verano", "factorOleaje": 0.45, "factorTurismo": 1.60, "factorRetencion": 0.75 },
+    { "mes": 8, "nombre": "Agosto", "estacion": "verano", "factorOleaje": 0.45, "factorTurismo": 1.65, "factorRetencion": 0.75 },
+    { "mes": 9, "nombre": "Septiembre", "estacion": "otono", "factorOleaje": 0.90, "factorTurismo": 1.20, "factorRetencion": 0.95 },
+    { "mes": 10, "nombre": "Octubre", "estacion": "otono", "factorOleaje": 1.35, "factorTurismo": 0.85, "factorRetencion": 1.20 },
+    { "mes": 11, "nombre": "Noviembre", "estacion": "otono", "factorOleaje": 1.40, "factorTurismo": 0.75, "factorRetencion": 1.25 },
+    { "mes": 12, "nombre": "Diciembre", "estacion": "invierno", "factorOleaje": 1.30, "factorTurismo": 0.70, "factorRetencion": 1.15 }
+  ],
+  "escenarios": {
+    "conservador": {
+      "multiplicadorAdquisicion": 0.70,
+      "multiplicadorRetencion": 0.80,
+      "multiplicadorConversion": 0.60,
+      "tasaAbandonoExtra": 0.05
+    },
+    "base": {
+      "multiplicadorAdquisicion": 1.00,
+      "multiplicadorRetencion": 1.00,
+      "multiplicadorConversion": 1.00,
+      "tasaAbandonoExtra": 0.00
+    },
+    "favorable": {
+      "multiplicadorAdquisicion": 1.35,
+      "multiplicadorRetencion": 1.20,
+      "multiplicadorConversion": 1.40,
+      "tasaAbandonoExtra": -0.03
+    }
+  },
+  "modeloFinanciero": {
+    "precioProHipoteticoMensual": 2.99,
+    "comisionPlataformaPct": 0.15,
+    "costes": {
+      "hosting": 0.0,
+      "dominioPersonalizadoAnual": null,
+      "apiOpenMeteo": 0.0,
+      "apiComercialSlaPendiente": null,
+      "mantenimientoInfra": null,
+      "soporteUsuarios": null
+    },
+    "inversionMarketing": 0.0,
+    "advertenciaComercial": "Los costes 0€ corresponden a capas gratuitas (GitHub Pages, Open-Meteo no comercial) que no garantizan SLA comercial, derechos de reproducción masiva de cámaras de terceros ni costes de publicación en tiendas de aplicaciones."
+  }
+}

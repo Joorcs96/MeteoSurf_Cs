@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>MeteoSurf_Cs · Previsión de surf en Castellón</title>
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f7fa">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#090b0e">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#070b12">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -28,6 +28,7 @@
     </a>
     <nav class="topnav" aria-label="Secciones">
       <a href="#/" data-nav="hoy">Previsión</a>
+      <a href="#/calendario" data-nav="calendario">Semana</a>
       <a href="#/mapa" data-nav="mapa">Mapa</a>
       <a href="#/camaras" data-nav="camaras">Cámaras</a>
       <a href="#/asistente" data-nav="asistente">Asistente</a>
@@ -57,6 +58,58 @@
     <a href="#/asistente" data-nav="asistente"><svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg>Asistente</a>
     <a href="#/favoritos" data-nav="favoritos"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Favoritos</a>
   </nav>
+
+  <button class="fab-assistant" id="fab-assistant" aria-label="Preguntar al asistente" title="Preguntar al asistente">🤙</button>
+
+  <div class="onboard-overlay" id="onboard-overlay" role="dialog" aria-modal="true" aria-labelledby="onboard-title" style="display:none">
+    <div class="onboard-card">
+      <h3 id="onboard-title" class="onboard-title">Guía rápida de previsión</h3>
+      <ul class="onboard-list">
+        <li class="onboard-item">
+          <span class="onboard-icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>
+          </span>
+          <span class="onboard-text"><strong>Hs</strong> = altura de ola</span>
+        </li>
+        <li class="onboard-item">
+          <span class="onboard-icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          <span class="onboard-text"><strong>Periodo</strong> = segundos entre olas</span>
+        </li>
+        <li class="onboard-item">
+          <span class="onboard-icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </span>
+          <span class="onboard-text"><strong>Estrellas</strong> = calidad 0-5</span>
+        </li>
+      </ul>
+      <button type="button" class="onboard-btn" id="onboard-btn">Entendido</button>
+    </div>
+  </div>
+
+  <div class="pro-modal-overlay" id="pro-modal" role="dialog" aria-modal="true" aria-labelledby="pro-modal-title" style="display:none">
+    <div class="pro-modal-card">
+      <span class="pro-badge-top">METEOSURF PRO · EVALUACIÓN</span>
+      <h2 id="pro-modal-title" class="pro-modal-title">MeteoSurf Pro (En evaluación)</h2>
+      <div class="pro-modal-price">
+        <span class="pro-price-num">2,99 €</span>
+        <span class="pro-price-period">/mes (hipotético)</span>
+      </div>
+      <p class="pro-modal-sub">Evaluación técnica y lista de espera. Actualmente el servicio es 100% gratuito y sin cobros activos.</p>
+      <ul class="pro-modal-features">
+        <li><span class="pro-check" aria-hidden="true">✓</span> Previsión completa 16 días</li>
+        <li><span class="pro-check" aria-hidden="true">✓</span> Rewind de cámaras ilimitado</li>
+        <li><span class="pro-check" aria-hidden="true">✓</span> Alertas de condiciones</li>
+        <li><span class="pro-check" aria-hidden="true">✓</span> Soporte para más spots</li>
+        <li><span class="pro-check" aria-hidden="true">✓</span> Sin publicidad</li>
+      </ul>
+      <div class="pro-modal-actions">
+        <a href="#/pro" class="btn pro-btn-primary" id="pro-subscribe-btn">Ver hoja de ruta</a>
+        <button type="button" class="btn pro-btn-secondary" id="pro-dismiss-btn">Entendido</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="js/config.js"></script>
   <script type="module" src="js/notificaciones.js"></script>

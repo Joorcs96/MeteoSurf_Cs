@@ -1,0 +1,26 @@
+{
+  "results": {
+    "spotCardsCount": 14,
+    "filterChipsCount": 8,
+    "firstSpotHref": "#/spot/Planetario",
+    "spotTitle": "Planetario",
+    "hasHourlyTable": false,
+    "hasWindMeteo": false,
+    "camCardsCount": 11,
+    "compararViewLoaded": true,
+    "mapContainerPresent": true,
+    "asistentePresent": true,
+    "votarSpotSelect": true
+  },
+  "errors": [],
+  "recentLogs": [
+    "[warning] Allow attribute will take precedence over 'allowfullscreen'.",
+    "[log] Player Version: 10.0.7",
+    "[log] Player Version: 10.0.7",
+    "[log] Player Version: 10.0.7",
+    "[warning] [.WebGL-0x2a3400a70200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x2a3400a70200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x2a3400a70200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x2a3400a70200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+  ]
+}

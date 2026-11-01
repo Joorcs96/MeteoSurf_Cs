@@ -6,10 +6,41 @@ import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordC
 import { aplicarNowcast } from './nowcast.js';
 import { iniciarCapas, motorLeaflet } from './mapa-capas.js';
 import { puntosSector, puntoEnRumbo, LARGO_FLECHA } from './orientaciones-mapa.js';
+// Onboarding para principiantes
+let _obFirstRender = false;
+function showOnboarding() {
+  if (_obFirstRender) return;
+  _obFirstRender = true;
+  if (!localStorage.getItem('ob_done')) {
+    const overlay = document.querySelector('.onboard-overlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      const btn = overlay.querySelector('#onboard-btn') || overlay.querySelector('.onboard-btn') || overlay.querySelector('button');
+      btn?.addEventListener('click', () => {
+        localStorage.setItem('ob_done', '1');
+        overlay.style.display = 'none';
+      });
+    }
+  }
+}
+
+// Modal y ventajas Pro
+export function showProModal(force = false) {
+  if (!force && sessionStorage.getItem('pro_shown')) return;
+  sessionStorage.setItem('pro_shown', '1');
+  const overlay = document.querySelector('#pro-modal');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+export function hideProModal() {
+  const overlay = document.querySelector('#pro-modal');
+  if (overlay) overlay.style.display = 'none';
+}
+
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
-const state = { fc: null, realtime: null, rewinds: null, zone: 'all', dayIdx: 0, camIdx: 0, spotId: null };
+const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null };
 
 // Asistente de previsión (se carga aparte para no retrasar el primer pintado)
 let aiMod = null;
@@ -33,6 +64,54 @@ const toggleFav = (id) => { favs.has(id) ? favs.delete(id) : favs.add(id); store
 const DEFAULT_SPOT = 'Planetario';
 const ordered = () => [...SPOTS].sort((a, b) => (b.id === DEFAULT_SPOT) - (a.id === DEFAULT_SPOT));
 const favoriteSpots = () => [...favs].map((id) => SPOTS.find((s) => s.id === id)).filter(Boolean);
+
+let userPos = null;
+function maxRatingWeek(s, fc) {
+  const spotFc = fc?.spots[s.id];
+  if (!spotFc?.days?.length) return { maxR: -1, maxSurf: 0 };
+  const days = spotFc.days.slice(0, 7);
+  let maxR = -1;
+  let maxSurf = 0;
+  for (const d of days) {
+    if (d.rating != null && !isNaN(d.rating) && d.rating > maxR) {
+      maxR = d.rating;
+    }
+    const pool = d.hours || [];
+    for (const h of pool) {
+      if (h.rating != null && !isNaN(h.rating) && h.rating > maxR) {
+        maxR = h.rating;
+      }
+      const surfVal = h.surf?.mid ?? h.surf?.max ?? 0;
+      if (surfVal > maxSurf) maxSurf = surfVal;
+    }
+  }
+  return { maxR, maxSurf };
+}
+
+function distanceTo(spot, pos) {
+  if (!pos || spot.lat == null || spot.lon == null) return Infinity;
+  const rad = Math.PI / 180;
+  const dLat = (spot.lat - pos.lat) * rad;
+  const dLon = (spot.lon - pos.lon) * rad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(pos.lat * rad) * Math.cos(spot.lat * rad) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function sortSpots(list, mode, fc, pos) {
+  if (mode === 'best_week' && fc) {
+    return [...list].sort((a, b) => {
+      const ra = maxRatingWeek(a, fc);
+      const rb = maxRatingWeek(b, fc);
+      if (rb.maxR !== ra.maxR) return rb.maxR - ra.maxR;
+      if (rb.maxSurf !== ra.maxSurf) return rb.maxSurf - ra.maxSurf;
+      return (b.id === DEFAULT_SPOT) - (a.id === DEFAULT_SPOT);
+    });
+  }
+  if (mode === 'nearest' && pos) {
+    return [...list].sort((a, b) => distanceTo(a, pos) - distanceTo(b, pos));
+  }
+  return list;
+}
 
 // ---------- Formato ----------
 const m = (x) => (x == null || isNaN(x) ? '–' : x.toFixed(1));
@@ -156,6 +235,7 @@ function route() {
   document.body.classList.toggle('vista-mapa', page === 'mapa');
   document.body.classList.toggle('vista-home', !page || page === 'favoritos');
   document.body.classList.toggle('vista-camaras', page === 'camaras');
+  document.body.classList.toggle('vista-calendario', page === 'calendario');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
   renderQuickSpots();
   const savedClip = $('#save-clip');
@@ -165,6 +245,8 @@ function route() {
   if (page === 'mapa') return renderMap();
   if (page === 'camaras') return renderCams();
   if (page === 'asistente') return renderAssistant();
+  if (page === 'calendario') return renderCalendario();
+  if (page === 'pro') return renderPro();
   if (page === 'favoritos') { state.zone = 'fav'; return renderHome(); }
   if (state.zone === 'fav' && page !== 'favoritos') state.zone = 'all';
   return renderHome();
@@ -175,7 +257,10 @@ function renderHome() {
   document.title = 'MeteoSurf_Cs · Previsión de surf en Castellón';
   const fc = state.fc;
   const zones = [['all', 'Todos'], ['fav', 'Favoritos'], ['cams', 'Con cámara'], ['offshore', 'Terral ahora'], ...ZONES.map((z) => [z.id, z.name])];
-  const spots = (state.zone === 'fav' ? favoriteSpots() : ordered()).filter((s) => {
+  const sortMode = localStorage.getItem('sort_mode') || 'default';
+  const baseSpots = state.zone === 'fav' ? favoriteSpots() : ordered();
+  const sortedSpots = sortSpots(baseSpots, sortMode, fc, userPos);
+  const spots = sortedSpots.filter((s) => {
     if (state.zone === 'all') return true;
     if (state.zone === 'fav') return favs.has(s.id);
     if (state.zone === 'cams') return camsForSpot(s).length > 0;
@@ -188,18 +273,29 @@ function renderHome() {
 
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
-    <div class="region-head">
+    <div class="region-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
       <div>
         <h1>Costa de Castellón</h1>
         <p>${fc ? `Actualizado ${new Date(fc.fetchedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · ` : ''}${SPOTS.length} spots · previsión a 16 días</p>
       </div>
+      <a href="#/calendario" class="chip btn" style="text-decoration:none;font-weight:600">📅 Ver semana</a>
     </div>
 
     ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
-    <div class="chips" role="tablist">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
+    <div class="home-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="chips" role="tablist" style="margin:0">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
+      <div class="sort-control" style="display:inline-flex;align-items:center;gap:6px">
+        <label for="spot-sort" style="font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap">Ordenar:</label>
+        <select id="spot-sort" class="chip btn" style="font-size:12px;font-weight:600;padding:6px 10px;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:var(--radius, 4px);cursor:pointer">
+          <option value="default" ${sortMode === 'default' ? 'selected' : ''}>Por defecto</option>
+          <option value="best_week" ${sortMode === 'best_week' ? 'selected' : ''}>Mejor día esta semana</option>
+          <option value="nearest" ${sortMode === 'nearest' ? 'selected' : ''}>Más cerca</option>
+        </select>
+      </div>
+    </div>
     ${state.zone === 'fav' ? '<div class="section-title">Mis spots</div>' : ''}
     ${state.zone === 'fav' ? `<div data-realtime-list>${realtimeLine()}</div>` : ''}
-    <div class="spot-grid">${spots.length ? [...new Set(spots.map((s) => s.zone))].map((zone) => `<h2 class="zone-heading">${esc(ZONES.find((z) => z.id === zone)?.name || zone)}</h2>${spots.filter((s) => s.zone === zone).map(spotCard).join('')}`).join('') : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa el marcador de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
+    <div class="spot-grid">${spots.length ? ((sortMode === 'default' && state.zone === 'all') ? [...new Set(spots.map((s) => s.zone))].map((zone) => `<h2 class="zone-heading">${esc(ZONES.find((z) => z.id === zone)?.name || zone)}</h2>${spots.filter((s) => s.zone === zone).map(spotCard).join('')}`).join('') : spots.map(spotCard).join('')) : `<div class="card pad muted">${state.zone === 'fav' ? 'Aún no tienes favoritos. Pulsa el marcador de un spot para añadirlo.' : 'No hay spots en esta zona.'}</div>`}</div>
     ${footer()}`;
 
   if (state.zone === 'fav') {
@@ -213,15 +309,181 @@ function renderHome() {
     if (grid) grid.outerHTML = favoriteComparison(spots);
   }
 
+  $('#spot-sort')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    localStorage.setItem('sort_mode', val);
+    if (val === 'nearest' && !userPos) {
+      if (navigator.geolocation) {
+        toast('Obteniendo tu ubicación…');
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+            renderHome();
+          },
+          () => {
+            toast('No se pudo acceder a la ubicación.');
+            renderHome();
+          },
+          { timeout: 7000, maximumAge: 60000 }
+        );
+      } else {
+        toast('Geolocalización no disponible.');
+      }
+    }
+    renderHome();
+  });
+
   view.querySelectorAll('[data-zone]').forEach((b) => b.addEventListener('click', () => {
     state.zone = b.dataset.zone;
     if (location.hash.startsWith('#/favoritos') && state.zone !== 'fav') history.replaceState(null, '', '#/');
     renderHome();
   }));
   bindFavs();
-  if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p><a href="#/asistente">Preguntar al asistente</a></p>'); })
+  if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p style="margin-top:10px"><a class="chip btn" href="#/asistente" style="display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;text-decoration:none;font-weight:600">🤙 Preguntar al asistente</a></p>'); })
     .catch(() => $('#region-report')?.remove());
   else $('#region-report')?.remove();
+  showOnboarding();
+}
+
+// ---------- Vista: Calendario semanal de previsión ----------
+function renderCalendario() {
+  document.title = 'Semana · MeteoSurf_Cs';
+  const fc = state.fc;
+  if (!fc) {
+    view.innerHTML = `
+      <div class="region-head">
+        <div>
+          <h1>Calendario semanal</h1>
+          <p>Previsión de los próximos 7 días</p>
+        </div>
+      </div>
+      <div class="skeleton" style="height:36px;width:60%;margin:8px 0 16px"></div>
+      <div class="skeleton" style="height:260px"></div>
+    `;
+    return;
+  }
+
+  const zones = [
+    ['fav', 'Mis favoritos'],
+    ['all', 'Todos los spots'],
+    ...ZONES.map((z) => [z.id, z.name])
+  ];
+  const isBeginner = sessionStorage.getItem('cal_beginner') === '1';
+  const currentZone = state.calZone || (favoriteSpots().length ? 'fav' : 'all');
+  let calSpots = [];
+  if (currentZone === 'fav') {
+    calSpots = favoriteSpots().length ? favoriteSpots() : ordered().slice(0, 5);
+  } else if (currentZone === 'all') {
+    calSpots = ordered();
+  } else {
+    calSpots = ordered().filter((s) => s.zone === currentZone);
+  }
+  if (!calSpots.length) calSpots = ordered().slice(0, 5);
+
+  const sampleSpotId = calSpots[0]?.id || DEFAULT_SPOT;
+  const sampleDays = fc.spots[sampleSpotId]?.days || [];
+  const days = sampleDays.slice(0, 7);
+
+  view.innerHTML = `
+    <div class="region-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1>Calendario semanal</h1>
+        <p>Mejor momento de cada día (6h–20h) para los próximos 7 días · semáforo de calidad</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="chip btn ${isBeginner ? 'on cal-chip-beginner' : ''}" id="cal-beginner-toggle" aria-pressed="${isBeginner}">🤙 Principiantes</button>
+        <a class="chip btn" href="#/" style="text-decoration:none;font-weight:600">${ICON.back} Previsión</a>
+      </div>
+    </div>
+
+    <div class="chips" role="tablist">
+      ${zones.map(([id, n]) => `<button class="chip btn ${currentZone === id ? 'on' : ''}" data-cal-zone="${id}">${n}</button>`).join('')}
+    </div>
+    ${currentZone === 'fav' && !favoriteSpots().length ? '<p class="faint" style="margin:4px 0 12px;font-size:12px">Mostrando los 5 spots principales. Pulsa en el marcador de un spot para añadirlo a favoritos.</p>' : ''}
+
+    <div class="cal-grid-wrap">
+      <table class="cal-grid" aria-label="Cuadrícula semanal de previsión de surf">
+        <thead>
+          <tr>
+            <th class="cal-corner">Día</th>
+            ${calSpots.map((s) => `<th><a href="#/spot/${encodeURIComponent(s.id)}" title="Ver spot ${esc(s.name)}">${esc(s.name)}</a></th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${days.map((d, i) => {
+            const dName = dayName(d.date, i);
+            const dDate = dayShort(d.date);
+            return `<tr>
+              <th class="cal-day">
+                <span class="dn">${dName}</span>
+                <span class="dd">${dDate}</span>
+              </th>
+              ${calSpots.map((s) => {
+                const spotFc = fc.spots[s.id];
+                const dayObj = spotFc?.days?.find((x) => x.date === d.date) || spotFc?.days?.[i];
+                const dayHours = dayObj?.hours || spotFc?.hours?.filter((h) => h.date === d.date) || [];
+                const daylight = dayHours.filter((h) => h.hour >= 6 && h.hour <= 20 && h.rating != null && !isNaN(h.rating));
+                const pool = daylight.length ? daylight : dayHours.filter((h) => h.rating != null && !isNaN(h.rating));
+                let best = null;
+                if (pool.length) {
+                  best = pool.reduce((a, b) => (
+                    b.rating > a.rating || (b.rating === a.rating && (b.surf?.mid ?? 0) > (a.surf?.mid ?? 0)) ? b : a
+                  ));
+                }
+                const r = best?.rating;
+                const cls = ratingCls(r);
+                const height = best?.surf?.mid != null ? `${best.surf.mid.toFixed(1)} m` : (range(best?.surf) !== '–' ? `${range(best.surf)} m` : '–');
+                const hora = best ? `${best.hour}:00` : '–';
+                const label = ratingLabel(r);
+                const hs = best?.surf?.mid != null ? best.surf.mid : (best?.surf?.max ?? 0);
+                const windOk = best && (
+                  best.windSpeed == null || isNaN(best.windSpeed) ||
+                  best.windSpeed < 15 ||
+                  best.wind?.key === 'offshore' || best.wind?.key === 'glassy'
+                );
+                const ratingOk = best && (best.rating == null || isNaN(best.rating) || best.rating <= 2);
+                const isAptoPrincipiantes = isBeginner && best && hs < 0.6 && windOk && ratingOk;
+                const beginnerCls = isAptoPrincipiantes ? 'cal-beginner' : '';
+                return `<td class="cal-cell ${cls} ${beginnerCls}">
+                  <a href="#/spot/${encodeURIComponent(s.id)}" title="${esc(s.name)} · ${dName}: ${label} (${height} a las ${hora})${isAptoPrincipiantes ? ' · 🤙 Apto para principiantes' : ''}">
+                    <span class="cal-hour">${hora}</span>
+                    <span class="cal-height">${height}</span>
+                    <span class="cal-rating">${label}</span>
+                  </a>
+                </td>`;
+              }).join('')}
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    ${isBeginner ? '<div class="cal-beginner-note" style="margin-top:10px;font-size:12px;color:#10b981;font-weight:600">🤙 Resaltados en verde los días con olas &lt; 0.6 m, viento suave o terral y condiciones fáciles para principiantes.</div>' : ''}
+    <div class="cal-legend" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px;font-size:12px;color:var(--text-2)">
+      <span style="font-weight:600">Semáforo:</span>
+      <span class="rating-pill r0">Plato</span>
+      <span class="rating-pill r2">Malo</span>
+      <span class="rating-pill r3">Malo-Reg.</span>
+      <span class="rating-pill r4">Regular</span>
+      <span class="rating-pill r5">Reg-Bueno</span>
+      <span class="rating-pill r6">Bueno</span>
+      <span class="rating-pill r7">Épico</span>
+    </div>
+
+    ${footer()}`;
+
+  $('#cal-beginner-toggle')?.addEventListener('click', () => {
+    if (sessionStorage.getItem('cal_beginner') === '1') {
+      sessionStorage.removeItem('cal_beginner');
+    } else {
+      sessionStorage.setItem('cal_beginner', '1');
+    }
+    renderCalendario();
+  });
+  view.querySelectorAll('[data-cal-zone]').forEach((b) => b.addEventListener('click', () => {
+    state.calZone = b.dataset.calZone;
+    renderCalendario();
+  }));
 }
 
 // Parte plegable: titular de una línea con la mejor ventana y el texto completo al desplegar
@@ -299,6 +561,16 @@ async function renderAssistant() {
   const ctx = { spotId: state.spotId };
   view.innerHTML = `<div class="region-head"><div><h1>Asistente de previsión</h1>
       <p>Pregunta cuándo y dónde surfear. Responde con la previsión actual de los ${SPOTS.length} spots.</p></div></div>
+    <div class="pro-banner" id="pro-banner" role="region" aria-label="MeteoSurf Pro">
+      <div class="pro-banner-content">
+        <span class="pro-badge">PRO</span>
+        <div class="pro-banner-text">
+          <strong>Acceso completo con Pro</strong>
+          <span>Evaluación técnica de funciones avanzadas. Actualmente todas las funciones son 100% gratuitas.</span>
+        </div>
+      </div>
+      <button type="button" class="btn pro-banner-btn" id="pro-banner-btn">Ver ventajas</button>
+    </div>
     <div class="chat card" id="chat"></div>
     <div class="chips" id="sugg" style="margin:12px 0"></div>
     <form class="ask" id="ask" autocomplete="off">
@@ -324,7 +596,38 @@ async function renderAssistant() {
   $('#sugg').innerHTML = ai.suggestions(ctx).map((q) => `<button class="chip btn" type="button">${esc(q)}</button>`).join('');
   $('#sugg').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => ask(b.textContent)));
   $('#ask').addEventListener('submit', (e) => { e.preventDefault(); const q = $('#q').value; $('#q').value = ''; ask(q); });
+  $('#pro-banner-btn')?.addEventListener('click', () => showProModal(true));
+  $('#pro-banner')?.addEventListener('click', (e) => {
+    if (e.target.id !== 'pro-banner-btn') showProModal(true);
+  });
+  showProModal(false);
   draw();
+}
+
+function renderPro() {
+  document.title = 'MeteoSurf Pro · MeteoSurf_Cs';
+  view.innerHTML = `
+    <div class="region-head">
+      <div>
+        <span class="pro-badge" style="margin-bottom:8px">PRO</span>
+        <h1>MeteoSurf Pro (En evaluación)</h1>
+        <p>Actualmente 100% gratuito · Fase de evaluación técnica y lista de espera</p>
+      </div>
+    </div>
+    <div class="card pad" style="max-width:540px;margin:24px auto;text-align:center">
+      <h2 style="margin-top:0">¡Gracias por tu interés en MeteoSurf Pro!</h2>
+      <p style="color:var(--text-2);margin-bottom:20px">MeteoSurf_Cs es un proyecto independiente 100% gratuito. Evaluamos el interés de funciones avanzadas sin ningún cobro activo.</p>
+      <ul class="pro-modal-features" style="max-width:320px;margin:0 auto 24px">
+        <li><span class="pro-check">✓</span> Previsión completa 16 días</li>
+        <li><span class="pro-check">✓</span> Rewind de cámaras ilimitado</li>
+        <li><span class="pro-check">✓</span> Alertas push de condiciones</li>
+        <li><span class="pro-check">✓</span> Soporte para más spots</li>
+        <li><span class="pro-check">✓</span> Sin publicidad</li>
+      </ul>
+      <a href="#/" class="btn pro-btn-primary" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;text-decoration:none">Volver a la previsión</a>
+    </div>
+    ${footer()}
+  `;
 }
 
 function miniatura(url, w = 250) {
@@ -340,7 +643,7 @@ function spotCard(s) {
   const foto = s.photo?.thumb ? miniatura(s.photo.thumb, 500) : '';
   return `<div class="spot-card2 ${h ? ratingCls(h.rating) : ''}">
     <a class="sc-link" href="#/spot/${encodeURIComponent(s.id)}" aria-label="${esc(s.name)}: ${h ? range(h.surf) + ' m, ' + ratingLabel(h.rating) : 'sin previsión'}">
-      ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="" loading="lazy" decoding="async">` : ''}
+      ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="Playa y rompiente de ${esc(s.name)}, ${esc(s.zoneName)}" loading="lazy" decoding="async">` : ''}
       <span class="sc-shade"></span>
       ${cam ? `<span class="sc-cam" title="Cámara en directo">${ICON.cam} Directo</span>` : ''}
       <span class="sc-info">
@@ -709,7 +1012,7 @@ function renderSpot(id) {
   view.innerHTML = `
     <a class="back" href="#/">${ICON.back} Costa de Castellón</a>
     <div class="spot-head">
-      ${spot.photo?.thumb ? `<button class="spot-thumb" data-tab="fotos" aria-label="Ver fotos de ${esc(spot.name)}"><img src="${esc(miniatura(spot.photo.thumb, 250))}" alt=""></button>` : ''}
+      ${spot.photo?.thumb ? `<button class="spot-thumb" data-tab="fotos" aria-label="Ver fotos de ${esc(spot.name)}"><img src="${esc(miniatura(spot.photo.thumb, 250))}" alt="Fotografía del spot ${esc(spot.name)}"></button>` : ''}
       <div class="sh-txt"><h1>${esc(spot.name)}</h1><div class="sub">${esc(spot.zoneName)}</div></div>
       ${h ? `<span class="rating-pill ${ratingCls(h.rating)}">${ratingLabel(h.rating)}</span>` : ''}
       <button class="fav-btn ${favs.has(id) ? 'on' : ''}" data-fav="${esc(id)}" style="background:var(--surface-2);color:var(--text-2)" aria-label="Favorito">${ICON.star}</button>
@@ -728,6 +1031,8 @@ function renderSpot(id) {
       </div>
       <div class="a-now" id="s-ahora" data-panel="ahora">
         ${h ? nowPanel(spot, f, h) : loadingBlock()}
+        ${h ? humanSummary(spot, h) : ''}
+        ${f && h ? miniHoursStrip(f, h) : ''}
         <details><summary>Observaciones reales cercanas</summary><div data-realtime-spot="${esc(id)}">${realtimeCard(spot)}</div></details>
       </div>
       <div class="a-fc" data-panel="horas">
@@ -743,7 +1048,9 @@ function renderSpot(id) {
             <b id="chart-title"></b><span class="faint" style="font-size:12px">Altura en rompiente (m) · color = calidad · flechas = viento</span></div>
           <div id="chart"></div>
         </div>
-        <h3>Viento por horas · km/h</h3><div id="wind-chart"></div><h3>Marea · nivel del mar</h3><div class="tide" id="tide"></div><details><summary>Ver tabla horaria</summary><div class="ftable-wrap" id="ftable"></div></details>
+        <h3>Viento por horas · km/h</h3><div id="wind-chart"></div><h3>Marea · nivel del mar</h3><div class="tide" id="tide"></div>
+        <div class="section-title" style="margin-top:24px">Tabla horaria detallada</div>
+        <div class="ftable-wrap hourly-table hourly-scroll spot-hours" id="ftable"></div>
 ` : loadingBlock()}
       </div>
       <div class="a-dias" data-panel="dias">
@@ -793,11 +1100,18 @@ function renderSpot(id) {
     state.tab = t;
     view.querySelectorAll('[data-panel]').forEach((el) => el.classList.toggle('en-tab', el.dataset.panel === t));
     view.querySelectorAll('.tabs [data-tab]').forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
-    if (t === 'horas' && f) drawDay(spot, f);
+    const curF = f || state.fc?.spots[id];
+    if (t === 'horas' && curF) drawDay(spot, curF);
     if (t !== 'ahora') { stopCam($('#cam')); pararVigia?.(); } else if (!$('#cam')?.dataset.cameraType) showCam();
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
+  const onForecastReady = () => {
+    const curF = state.fc?.spots[id];
+    if (curF && state.tab === 'horas') drawDay(spot, curF);
+  };
+  window.addEventListener('forecast:ready', onForecastReady, { once: true });
   view.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => irTab(b.dataset.tab)));
+  view.querySelectorAll('[data-goto-tab]').forEach((b) => b.addEventListener('click', () => irTab(b.dataset.gotoTab)));
   fotosDe(spot).then((lista) => {
     const g = $('#galeria');
     if (!g) return;
@@ -987,9 +1301,74 @@ function wetsuit(t) {
   return 'Neopreno 5/4 mm y escarpines';
 }
 
+function humanSummary(spot, h) {
+  if (!h) return '';
+  const r = h.rating ?? 0;
+  const windKey = h.wind?.key ?? '';
+  let icon = 'ℹ️';
+  let tag = 'Resumen para todos los públicos';
+  let text = '';
+
+  if (r >= 4) {
+    icon = '🔥';
+    tag = 'Sesión épica / Muy buenas condiciones';
+    text = `Oleaje consistente de ${range(h.surf)} m con viento favorable (${h.wind?.label || 'limpio'}). Condiciones ideales para surfistas de nivel intermedio y avanzado.`;
+  } else if (r >= 2) {
+    if (windKey === 'offshore' || windKey === 'crossoff' || windKey === 'glassy') {
+      icon = '🏄';
+      tag = 'Olas limpias y manejables';
+      text = `Olas suaves de ${range(h.surf)} m con mar ordenado. Muy disfrutable con tabla evolutiva, tablón (longboard) o twin-fin.`;
+    } else {
+      icon = '🌊';
+      tag = 'Mar chopi / revuelto';
+      text = `Viento de mar (${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : ''}) levantando ola revuelta de ${range(h.surf)} m. Mejor con tablas con buen volumen o para pillar espumas.`;
+    }
+  } else {
+    if (h.surf?.mid < 0.25) {
+      icon = '☀️';
+      tag = 'Mar plato';
+      text = 'Apenas hay oleaje surfeable en rompiente. Excelente para natación, paddle surf (SUP), kayak o bautismos en la orilla.';
+    } else {
+      icon = '💨';
+      tag = 'Condiciones duras o cruzadas';
+      text = `Oleaje de ${range(h.surf)} m desordenado por viento lateral/onshore. Recomendado esperar a la mejor franja horaria o buscar abrigo en espigón.`;
+    }
+  }
+
+  return `<div class="human-summary-card">
+    <div class="hs-tag"><span>${icon}</span> <span>${tag}</span></div>
+    <div>${text}</div>
+  </div>`;
+}
+
+function miniHoursStrip(f, h) {
+  if (!f?.hours?.length) return '';
+  const ni = nowIndex(f.hours);
+  const upcoming = f.hours.slice(ni, ni + 6);
+  if (upcoming.length < 2) return '';
+
+  return `<div class="mini-hours-card spot-hours">
+    <div class="mini-hours-head">
+      <span class="mini-hours-title">Próximas horas hoy</span>
+      <button class="mini-hours-btn" type="button" data-goto-tab="horas">Ver 24h detalladas →</button>
+    </div>
+    <div class="mini-hours-grid">
+      ${upcoming.map((uh) => `
+        <div class="mini-hour-item">
+          <span class="mini-hour-time">${uh.hour}:00</span>
+          <span class="mini-hour-wave">${range(uh.surf)}<small>m</small></span>
+          <span class="rating-pill ${ratingCls(uh.rating)}" style="font-size:10px;padding:1px 5px">${ratingLabel(uh.rating)}</span>
+          <span class="mini-hour-wind" title="${uh.wind?.label || ''}">${dirArrow(uh.windDir || 0)} ${uh.windSpeed != null && !isNaN(uh.windSpeed) ? Math.round(uh.windSpeed) : ''}</span>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
 // Gráfica de barras del día + tabla + marea
 function drawDay(spot, f) {
-  const day = f.days[state.dayIdx];
+  const day = f?.days?.[state.dayIdx];
+  if (!day) return;
   $('#chart-title').textContent = `${dayName(day.date, state.dayIdx)} ${dayShort(day.date)} · ${ratingLabel(day.rating)}`;
   $('#chart').innerHTML = barChart($('#chart').clientWidth || 640, day.hours, f.days[0].date === day.date ? nowIndex(f.hours) % 24 : -1, day);
   $('#wind-chart').innerHTML = windChart(day);
@@ -1093,15 +1472,12 @@ function hourlyTable(f, dayIdx) {
   const td = (c, i, inner, cls = '') => `<td class="${cls}${c.first ? ' daysep' : ''}${i === nowCol && dayIdx === 0 ? ' nowc' : ''}">${inner}</td>`;
   const row = (label, fn, rowCls = '') => `<tr class="${rowCls}"><td class="lbl">${label}</td>${cols.map((c, i) => fn(c, i)).join('')}</tr>`;
   let s = '<table class="ftable num"><thead>';
-  s += `<tr><th class="lbl"></th>${days.map((d, i) => `<th colspan="${cols.filter((c) => c.d === d).length}" class="daysep ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}">${dayName(d.date, dayIdx + i)} ${dayShort(d.date)}</th>`).join('')}</tr>`;
+  s += `<tr class="ftable-summary-head"><th class="lbl" style="font-size:11px;color:var(--text-2);letter-spacing:0.02em;white-space:nowrap" title="Hora | Ola | Calidad | Viento | Dir">Hora | Ola | Calidad | Viento | Dir</th><th colspan="${cols.length}" style="text-align:left;font-size:11px;font-weight:600;color:var(--text-3);padding-left:12px">Previsión detallada cada 3 h</th></tr>`;
+  s += `<tr><th class="lbl">Día</th>${days.map((d, i) => `<th colspan="${cols.filter((c) => c.d === d).length}" class="daysep ${goodDay(d) ? `good-day ${ratingCls(d.rating)}` : ''}">${dayName(d.date, dayIdx + i)} ${dayShort(d.date)}</th>`).join('')}</tr>`;
   s += `<tr><th class="lbl">Hora</th>${cols.map((c) => `<th class="${c.first ? 'daysep' : ''}">${c.h.hour}h</th>`).join('')}</tr></thead><tbody>`;
   const kjCls = (e) => e == null ? '' : e < 50 ? 'kj-0' : e < 150 ? 'kj-1' : e < 400 ? 'kj-2' : 'kj-3';
+  s += row('Ola (m)', (c, i) => td(c, i, range(c.h.surf), `big hcell ${hClass(c.h.surf.mid)}`));
   s += row('Calidad', (c, i) => td(c, i, `<div class="${ratingCls(c.h.rating)}" title="${ratingLabel(c.h.rating)}">${ratingLabel(c.h.rating)}</div>`, 'cell-r'));
-  s += row('Surf (m)', (c, i) => td(c, i, range(c.h.surf), `big hcell ${hClass(c.h.surf.mid)}`));
-  s += row('Mar total', (c, i) => td(c, i, `${m(c.h.waveHeight)}`));
-  s += row('Energía', (c, i) => td(c, i, c.h.energy || '–', kjCls(c.h.energy)));
-  s += row('Periodo', (c, i) => td(c, i, c.h.wavePeriod ? c.h.wavePeriod.toFixed(0) : '–'));
-  s += row('Dir. mar', (c, i) => td(c, i, `${dirArrow(c.h.swells[0]?.dir ?? c.h.waveDir)}<br>${compass(c.h.swells[0]?.dir ?? c.h.waveDir)}`));
   s += row('Viento', (c, i) => td(c, i,
     `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
 <span>${dirArrow(c.h.windDir)} <b>${kmh(c.h.windSpeed)}</b></span>
@@ -1109,6 +1485,10 @@ function hourlyTable(f, dayIdx) {
        <span class="wind-tag wind-${c.h.wind.key}" style="font-size:9px;padding:1px 4px">${WIND_SHORT[c.h.wind.key] || c.h.wind.label}</span>
      </div>`,
     `wcell-${c.h.wind.key}`));
+  s += row('Dir. mar', (c, i) => td(c, i, `${dirArrow(c.h.swells[0]?.dir ?? c.h.waveDir)}<br>${compass(c.h.swells[0]?.dir ?? c.h.waveDir)}`));
+  s += row('Mar total', (c, i) => td(c, i, `${m(c.h.waveHeight)}`));
+  s += row('Energía', (c, i) => td(c, i, c.h.energy || '–', kjCls(c.h.energy)));
+  s += row('Periodo', (c, i) => td(c, i, c.h.wavePeriod ? c.h.wavePeriod.toFixed(0) : '–'));
   s += row('Marea', (c, i) => td(c, i, c.h.tide != null ? c.h.tide.toFixed(2) : '–'));
   s += row('Aire °C', (c, i) => td(c, i, c.h.temp != null ? Math.round(c.h.temp) : '–'));
   return s + '</tbody></table>';
@@ -1495,17 +1875,60 @@ async function refresh(force = false) {
   try {
     state.fc = await loadForecast({ force });
   } catch (e) {
-    view.insertAdjacentHTML('afterbegin', `<div class="banner">No se ha podido descargar la previsión (${esc(e.message)}). Revisa la conexión y vuelve a intentarlo.</div>`);
+    view.insertAdjacentHTML('afterbegin', `<div class="banner" id="error-banner" role="alert" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <span>No se ha podido descargar la previsión (${esc(e.message)}). Revisa la conexión y vuelve a intentarlo.</span>
+      <button type="button" class="btn" id="btn-reintentar" style="min-height:44px;min-width:44px;padding:8px 16px;cursor:pointer">Reintentar</button>
+    </div>`);
+    document.getElementById('btn-reintentar')?.addEventListener('click', () => {
+      document.getElementById('error-banner')?.remove();
+      refresh(true);
+    });
     return;
   } finally {
     await realtime;
   }
   aplicarNowcast(state.fc, state.realtime);
+  window.dispatchEvent(new CustomEvent('forecast:ready', { detail: state.fc }));
   route();
 }
 
 async function init() {
   window.addEventListener('hashchange', route);
+  const fab = $('#fab-assistant');
+  if (fab) {
+    const hideFab = () => { fab.style.display = (location.hash.startsWith('#/asistente') || location.hash.startsWith('#/mapa')) ? 'none' : ''; };
+    window.addEventListener('hashchange', hideFab);
+    hideFab();
+    if (store.get('visited_asistente', null)) fab.style.display = 'none';
+    fab.addEventListener('click', () => {
+      store.set('visited_asistente', '1');
+      location.hash = '#/asistente';
+    });
+  }
+  const proModal = $('#pro-modal');
+  if (proModal) {
+    $('#pro-dismiss-btn')?.addEventListener('click', hideProModal);
+    $('#pro-subscribe-btn')?.addEventListener('click', hideProModal);
+    proModal.addEventListener('click', (e) => {
+      if (e.target === proModal) hideProModal();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && proModal.style.display !== 'none') hideProModal();
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest?.('[data-pro], .pro-feature');
+    if (trigger) {
+      e.preventDefault();
+      showProModal(true);
+    }
+  });
+  window.addEventListener('forecast:ready', () => {
+    const sortMode = localStorage.getItem('sort_mode') || 'default';
+    if (sortMode === 'best_week' && (!location.hash || location.hash === '#/' || location.hash.startsWith('#/favoritos'))) {
+      renderHome();
+    }
+  });
   $('#refresh')?.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); });
   $('#theme')?.addEventListener('click', () => {
     const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

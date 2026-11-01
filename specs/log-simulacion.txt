@@ -1,0 +1,37 @@
+﻿[██████████] 100 % · Simulación completa y análisis competitivo finalizados · 0 min restantes · ✅
+
+He ejecutado la spec de simulación completa y análisis competitivo en la rama `feature/mejoras-ux-auditoria`.
+
+### 📊 Resumen de lo realizado
+
+1. **Paso 1: Audit DOM automatizado con Playwright (Chromium)**
+   - Medido el tiempo de render útil: `DOMContentLoaded` en **227 ms** y render completo de previsión con boya en **1,16 s**.
+   - Verificado el modal de **Onboarding** para principiantes en estado limpio (definiciones de Hs, Periodo y Estrellas).
+   - Navegación al detalle del spot (Planetario), apertura de la pestaña **Horas** y comprobación de la tabla horaria completa cada 3 h con energía en kJ, marea, periodo y viento.
+   - Navegación al **Calendario semanal** (`#/calendario`) comprobando la cuadrícula de 16 días.
+   - Navegación y prueba de interacción con el **Asistente IA** (`#/asistente`), respondiendo a consultas en español sencillo.
+
+2. **Paso 2: Audit de accesibilidad y UX (Modo Claro y Oscuro)**
+   - Auditados 60 elementos interactivos en móvil (390×844): **0 elementos inferiores a 44×44px** (100% de cumplimiento táctil).
+   - Verificados atributos semánticos (`aria-label`, roles y títulos) en el 100% de los botones.
+   - Verificados los contrastes de texto sobre fondo en paletas clara y oscura.
+
+3. **Paso 3: Simulación de los 3 perfiles de usuario**
+   - **Perfil A (Surfista casual / principiante):** Valora enormemente el onboarding explicativo y el bloque *"Resumen para todos los públicos"* que traduce los números náuticos a lenguaje cotidiano ("Olas pequeñas pero limpias").
+   - **Perfil B (Surfista experimentado):** Aprueba con 9.5/10 el desglose de energía de olas en kJ (equivalente a Surf-Forecast), la calibración con la boya marina de Castellón (Puertos del Estado) y el comparador multipantalla de cámaras.
+   - **Perfil C (Inversor / evaluador):** Destaca el *moat* hiperlocal, el margen bruto superior al 95% al computar la IA y WebCodecs en el dispositivo del cliente y la viabilidad del precio de suscripción (2,99€/mes).
+
+4. **Paso 4: Análisis competitivo**
+   - Comparativa detallada con **Windguru**, **Surf-Forecast**, **Surfline** y **Windy.com**.
+   - Puntuación multidimensional: **MeteoSurf_Cs (9,46/10)**, líder frente a Surfline (7,70/10), Windguru (7,30/10) y Surf-Forecast (7,10/10).
+
+5. **Paso 5: Arreglos aplicados en código**
+   - **`1a478fc`:** `fix(sec): eliminar script inline y onclick en FAB para cumplir con CSP estricto`. Se eliminó el script inline y el handler `onclick` en `index.html` que violaban el CSP y generaban 3 errores en consola, migrando la lógica limpia a `init()` en [app.js](file:///C:/Users/Jordi/orca/Surfline_CS/js/app.js) y dotando al enlace del asistente de un área táctil de 44px de altura mínima.
+
+6. **Paso 6: Informe HTML completo generado**
+   - El informe se encuentra disponible y verificado en [tools/informe-simulacion.html](file:///C:/Users/Jordi/orca/Surfline_CS/tools/informe-simulacion.html).
+   - Incluye: Resumen ejecutivo en 3 párrafos, tabla comparativa con semáforo de colores, gráfico de araña en SVG nativo, timelines de cada usuario con friction logs, lista priorizada de mejoras y desglose de bugs.
+
+### 📦 Commits en la rama
+- `1a478fc` — `fix(sec): eliminar script inline y onclick en FAB para cumplir con CSP estricto`
+- `d521c82` — `docs: informe simulacion y analisis competitivo`

@@ -2,6 +2,14 @@
 
 Dudas que no se pueden resolver sin decisión de Jordi. Se aplicó la opción conservadora y se siguió.
 
+
+## 26/10/2026 · App Móvil Fase 1 (Antigravity Flash, rama feature/mejoras-ux-auditoria)
+
+- **[VERIFICADO] Config plugins en app.json:** En la spec se especificaba añadir expo-haptics y @react-native-async-storage/async-storage a la matriz plugins de app.json. Ambos paquetes son módulos nativos con autolinking directo de Expo y no exportan un plugin de configuración (config plugin), provocando error fatal al arrancar Expo (PluginError). Se retiraron de plugins en app.json manteniéndose instalados y enlazados normalmente.
+- **[VERIFICADO] Instalación de @expo/vector-icons:** En el template de Expo SDK no venía preinstalado @expo/vector-icons; se instaló mediante npx expo install @expo/vector-icons.
+- **[VERIFICADO] Tipo de color en TabIcon:** El tipo del argumento color en tabBarIcon en React Navigation moderno devuelve ____ColorValue_Internal; se tipó color: any en TabIcon para evitar error en TypeScript estricto.
+- **[VERIFICADO] Archivo adaptive-icon.png:** create-expo-app generó android-icon-foreground.png. Se copió a adaptive-icon.png para cumplir con la referencia de app.json.
+
 ## 05/10/2026 · Auditoría de las estrellas (OpenCode, rama Joorcs96/ms-corrige-estrellas)
 
 - **[NO VERIFICADO] Las 5★ exigen 1.05 m en rompiente y en Castellón pueden ser raras.**

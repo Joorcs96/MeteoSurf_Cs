@@ -14,6 +14,7 @@
 ## ✅ FINALIZADAS
 | Fecha | Logro | Commit | Verificación |
 | --- | --- | --- | --- |
+| 2026-11-02 | Reparar webcam de Morro de Gos: asignar cámara HLS oficial Oropesa (prioridad 1) y política no-referrer para Skyline (prioridad 2) | pendiente | [VERIFICADO 73 tests Python test_rewind OK, 44 tests backend OK, 24/24 tests móvil simulacion_e2e OK] |
 | 2026-11-01 | Integración total: worktrees fusionados (mapa, auditoría usuarios, mercado surf, simulación 12M, mejoras UX web y app móvil) | 59e064e | [VERIFICADO 115 tests Python OK, 46 tests JS OK, simulacion_e2e móvil 24/24 OK, expo export bundles OK, verificar-resultados 12M OK] |
 | 2026-10-26 | App móvil Fases 2 a 5: Cámaras HLS, Física, GPS, Vigía y Exportación | a535f1a | [VERIFICADO simulacion_e2e.ts 24/24 pruebas ok, tsc 0 errores, expo export iOS/Android bundles generados] |
 | 2026-10-26 | App móvil Fase 1: estructura base React Native Expo | 8397512 | [VERIFICADO expo start arrancó en puerto 8081 y tsc --noEmit pasó con 0 errores] |

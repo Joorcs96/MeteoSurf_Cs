@@ -173,7 +173,8 @@ export const WEBCAMS_DATA: Webcam[] = [
     "name": "Comunitat Valenciana",
     "short": "Oropesa del Mar / La Concha",
     "spots": [
-      "Concha"
+      "Concha",
+      "MorroGos"
     ],
     "priority": 1,
     "embedType": "hls",
@@ -350,7 +351,7 @@ export const WEBCAMS_DATA: Webcam[] = [
     "spots": [
       "MorroGos"
     ],
-    "priority": 1,
+    "priority": 2,
     "embedType": "jpg",
     "embedUrl": "https://cdn.skylinewebcams.com/live2815.jpg",
     "pageUrl": "https://www.skylinewebcams.com/en/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",

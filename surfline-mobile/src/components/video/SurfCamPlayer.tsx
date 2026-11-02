@@ -24,7 +24,7 @@ export const SurfCamPlayer: React.FC<SurfCamPlayerProps> = ({
   const [status, setStatus] = useState<CamStatus>('buffer');
   const [hasError, setHasError] = useState(false);
 
-  const player = useVideoPlayer(streamUrl, (p) => {
+  const player = useVideoPlayer(isImageStream ? '' : streamUrl, (p) => {
     try {
       p.loop = true;
       p.muted = true;

@@ -222,13 +222,20 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     img.decoding = 'async';
     // Skyline y otros bloquean la imagen si llega con nuestra web como referencia.
     img.referrerPolicy = 'no-referrer';
+    img.setAttribute('referrerpolicy', 'no-referrer');
     const base = cam.embedUrl;
     const bust = () => base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
-    img.src = t === 'jpg' ? bust() : base;
     img.onerror = () => { if (sessions.get(el) !== session) return; stopCam(el); msg(el, 'Cámara sin señal', 'La imagen no se puede cargar ahora mismo.'); };
     el.appendChild(img);
+    img.src = t === 'jpg' ? bust() : base;
     let timer = null;
-    if (t === 'jpg') timer = setInterval(() => { const n = new Image(); n.onload = () => { if (sessions.get(el) === session) img.src = n.src; }; n.src = bust(); }, (cam.refreshSeconds || 30) * 1000);
+    if (t === 'jpg') timer = setInterval(() => {
+      const n = new Image();
+      n.referrerPolicy = 'no-referrer';
+      n.setAttribute?.('referrerpolicy', 'no-referrer');
+      n.onload = () => { if (sessions.get(el) === session) img.src = n.src; };
+      n.src = bust();
+    }, (cam.refreshSeconds || 30) * 1000);
     active.set(el, () => { clearInterval(timer); img.src = ''; });
   }
 }

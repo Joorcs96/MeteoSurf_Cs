@@ -123,7 +123,10 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       `<a class="cam-link-btn" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">Abrir cámara</a></div></div>`);
     return;
   }
-  const overlay = `<div class="cam-overlay"><span class="live-badge">${cam.embedType === 'jpg' ? 'FOTO' : 'EN DIRECTO'}</span></div>`;
+  const badgeTxt = cam.embedType === 'jpg'
+    ? (cam.pageUrl ? 'FOTO · Toca para directo' : 'FOTO')
+    : 'EN DIRECTO';
+  const overlay = `<div class="cam-overlay"><span class="live-badge">${badgeTxt}</span></div>`;
   el.insertAdjacentHTML('beforeend', overlay);
   const t = cam.embedType;
 
@@ -223,9 +226,25 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     // Skyline y otros bloquean la imagen si llega con nuestra web como referencia.
     img.referrerPolicy = 'no-referrer';
     img.setAttribute('referrerpolicy', 'no-referrer');
+    if (cam.pageUrl) {
+      img.style.cursor = 'pointer';
+      img.title = 'Toca para abrir la cámara en directo';
+      img.addEventListener('click', () => {
+        window.open(cam.pageUrl, '_blank', 'noopener,noreferrer');
+      });
+    }
     const base = cam.embedUrl;
     const bust = () => base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
-    img.onerror = () => { if (sessions.get(el) !== session) return; stopCam(el); msg(el, 'Cámara sin señal', 'La imagen no se puede cargar ahora mismo.'); };
+    img.onerror = () => {
+      if (sessions.get(el) !== session) return;
+      stopCam(el);
+      if (cam.pageUrl) {
+        el.insertAdjacentHTML('beforeend', `<div class="cam-msg cam-link"><div><b>${esc(cam.name)}</b>${esc(cam.notesShort) || 'Emisión en directo disponible en su web oficial.'}` +
+          `<a class="cam-link-btn" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">Abrir cámara en directo</a></div></div>`);
+      } else {
+        msg(el, 'Cámara sin señal', 'La imagen no se puede cargar ahora mismo.');
+      }
+    };
     el.appendChild(img);
     img.src = t === 'jpg' ? bust() : base;
     let timer = null;

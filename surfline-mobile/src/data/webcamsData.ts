@@ -173,8 +173,7 @@ export const WEBCAMS_DATA: Webcam[] = [
     "name": "Comunitat Valenciana",
     "short": "Oropesa del Mar / La Concha",
     "spots": [
-      "Concha",
-      "MorroGos"
+      "Concha"
     ],
     "priority": 1,
     "embedType": "hls",
@@ -346,16 +345,16 @@ export const WEBCAMS_DATA: Webcam[] = [
   },
   {
     "id": "skyline-jpg-morrogos",
-    "name": "SkylineWebcams",
-    "short": "Morro de Gos (Hotel Koral Beach)",
+    "name": "Hotel Servigroup Koral Beach",
+    "short": "Morro de Gos (Koral Beach)",
     "spots": [
       "MorroGos"
     ],
-    "priority": 2,
+    "priority": 1,
     "embedType": "jpg",
     "embedUrl": "https://cdn.skylinewebcams.com/live2815.jpg",
-    "pageUrl": "https://www.skylinewebcams.com/en/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
-    "credit": "SkylineWebcams / Hotel Servigroup Koral Beach",
+    "pageUrl": "https://www.servigroup.com/es/hotel-koral-beach-oropesa-del-mar/webcam-oropesa/",
+    "credit": "Hotel Servigroup Koral Beach / SkylineWebcams",
     "refreshSeconds": 90,
     "distanceKm": 0.2,
     "tokenRefresh": null,

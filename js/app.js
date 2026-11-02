@@ -1147,12 +1147,6 @@ function renderSpot(id) {
       nota.textContent = `${esc(estadoStream(cam).motivo)} El reproductor del club sigue disponible.`;
     } else nota.hidden = true;
     playCam(camEl, cam);
-    const extBtn = $('#cam-ext-btn');
-    if (extBtn) extBtn.remove();
-    if (cam?.embedType === 'jpg' && cam.pageUrl) {
-      view.querySelector('.cam-actions')?.insertAdjacentHTML('beforeend',
-        `<a id="cam-ext-btn" class="btn chip" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px"><span>🔴</span> Ver emisión oficial</a>`);
-    }
     $('#cam-source').innerHTML = cam
       ? `${esc(cam.name)}${cam.credit ? ` · Imagen: <a href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">${esc(cam.credit)}</a>` : ''}${cam.distanceKm ? ` · a ${cam.distanceKm} km del pico` : ''}`
       : '';

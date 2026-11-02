@@ -155,7 +155,8 @@
       "name": "Comunitat Valenciana",
       "short": "Oropesa del Mar / La Concha",
       "spots": [
-        "Concha"
+        "Concha",
+        "MorroGos"
       ],
       "priority": 1,
       "embedType": "hls",
@@ -163,10 +164,10 @@
       "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/orpesa-oropesa-del-mar/webcams/oropesa-del-mar-1",
       "credit": "Turisme Comunitat Valenciana",
       "refreshSeconds": 0,
-      "distanceKm": 0.3,
+      "distanceKm": 1.3,
       "tokenRefresh": null,
       "verified": true,
-      "notes": "Coordenadas de la cámara (40.0844/0.1415): zona del castillo y La Concha de Oropesa, así que es la cámara de La Concha. Antes se compartía con Morro de Gos y la Renegà (1,3 y 3 km): ya no. HLS con CORS * confirmado.",
+      "notes": "Coordenadas de la cámara (40.0844/0.1415, cerro del castillo): cubre la costa de Oropesa (La Concha a 0,3 km y Morro de Gos a 1,3 km). Emisión oficial HLS 1080p en directo con CORS *.",
       "enabled": true,
       "lastChecked": "2026-11-02T16:39:24.672297+00:00",
       "failCount": 0
@@ -332,7 +333,7 @@
       "spots": [
         "MorroGos"
       ],
-      "priority": 1,
+      "priority": 2,
       "embedType": "jpg",
       "embedUrl": "https://cdn.skylinewebcams.com/live2815.jpg",
       "pageUrl": "https://www.skylinewebcams.com/en/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
@@ -341,7 +342,7 @@
       "distanceKm": 0.2,
       "tokenRefresh": null,
       "verified": true,
-      "notes": "Hotel justo en la playa de Morro de Gos (más cerca que la cámara de CV) pero sólo foto fija cada ~18 min, sin vídeo, mismo bloqueo de iframe que el resto de Skyline. La imagen se carga sin referer (referrerPolicy no-referrer) porque con nuestra web como referencia Skyline la bloquea. Es la única cámara de Morro de Gos.",
+      "notes": "Hotel Servigroup Koral Beach en la playa de Morro de Gos (foto fija cada ~18 min). Como respaldo secundario.",
       "enabled": true,
       "lastChecked": "2026-11-02T16:39:24.672297+00:00",
       "failCount": 0

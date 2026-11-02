@@ -69,6 +69,7 @@ STREAMS_JSON_PATH = os.path.join(ROOT_DIR, "data", "streams.json")
 # navegador no puede resolverlo por su cuenta. Este script lo hace y publica el
 # resultado en data/streams.json para que la web pueda reproducir y grabar.
 RESOLVER_IPCAMLIVE = "ipcamlive"
+RESOLVER_SKYLINE = "skyline"
 HOST_IPCAMLIVE = "ipcamlive.com"
 STREAM_TTL_MIN = 45  # por encima de esto la web avisa en vez de intentar en balde
 
@@ -192,7 +193,7 @@ def procesar_camara(cam: Dict[str, Any], now_iso: str) -> None:
 
     # La URL real de estas cámaras está en data/streams.json y cambia sola; su
     # estado no se deduce de un embedUrl vacío. Las resuelve `resolver_streams`.
-    if cam.get("resolver") == RESOLVER_IPCAMLIVE:
+    if cam.get("resolver") in (RESOLVER_IPCAMLIVE, RESOLVER_SKYLINE):
         cam["lastChecked"] = now_iso
         return
 

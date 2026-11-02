@@ -70,6 +70,33 @@ export function urlStream(cam) {
   return est.ok && est.hls ? est.hls : cam?.embedUrl || '';
 }
 
+// Resuelve dinámicamente la URL HLS directa de SkylineWebcams (p. ej. Hotel Koral Beach / Morro de Gos).
+// La página web de Skyline envía Access-Control-Allow-Origin: * y expone la fuente livee.m3u8?a=<token>.
+// Convirtiendo a https://hd-auth.skylinewebcams.com/live.m3u8?a=<token> se obtiene la emisión HLS 1080p
+// pública reproducible directamente con hls.js en el reproductor nativo.
+export async function resolverSkyline(cam) {
+  if (cam?.hlsLive && cam?.hlsExp && Date.now() < cam.hlsExp) {
+    return cam.hlsLive;
+  }
+  const url = cam?.skylineUrl || 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html';
+  try {
+    const r = await fetch(url, { cache: 'no-cache' });
+    if (!r.ok) return null;
+    const text = await r.text();
+    const m = text.match(/source\s*:\s*['"](?:livee|live)\.m3u8\?a=([^'"]+)['"]/);
+    if (m && m[1]) {
+      const hls = `https://hd-auth.skylinewebcams.com/live.m3u8?a=${m[1]}`;
+      cam.hlsLive = hls;
+      cam.hlsExp = Date.now() + 3 * 60 * 1000;
+      return hls;
+    }
+  } catch (e) {
+    console.warn('Error resolviendo emisión Skyline:', e);
+  }
+  return null;
+}
+
+
 export function camsForSpot(spot) {
   const list = catalog || [];
   return list
@@ -123,9 +150,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       `<a class="cam-link-btn" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">Abrir cámara</a></div></div>`);
     return;
   }
-  const badgeTxt = cam.embedType === 'jpg'
-    ? (cam.pageUrl ? 'FOTO · Toca para directo' : 'FOTO')
-    : 'EN DIRECTO';
+  const badgeTxt = cam.embedType === 'jpg' ? 'FOTO' : 'EN DIRECTO';
   const overlay = `<div class="cam-overlay"><span class="live-badge">${badgeTxt}</span></div>`;
   el.insertAdjacentHTML('beforeend', overlay);
   const t = cam.embedType;
@@ -155,7 +180,15 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       msg(el, 'Emisión no disponible', `${esc(est.motivo)} Se puede ver la cámara del club en el reproductor del club.`);
       return;
     }
-    const fuente = urlStream(cam);
+    let fuente = urlStream(cam);
+    if (cam?.resolver === 'skyline' || (!fuente && cam?.resolver)) {
+      fuente = await resolverSkyline(cam);
+      if (!fuente) {
+        msg(el, 'Cámara sin señal', 'No se pudo conectar con la emisión en directo de la cámara. Prueba de nuevo en unos instantes.');
+        return;
+      }
+      if (sessions.get(el) !== session || !el.isConnected) return;
+    }
     const v = document.createElement('video');
     // Sin `crossOrigin` el vídeo marca el lienzo como "tainted" en cuanto se
     // mezcla con otra cosa, y `getImageData` lanza SecurityError: eso es lo que
@@ -211,7 +244,20 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
           hls = new Hls({ lowLatencyMode: true, backBufferLength: 6, maxBufferLength: 10, maxMaxBufferLength: 20, capLevelToPlayerSize: true });
           hls.loadSource(fuente);
           hls.attachMedia(v);
-          hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fail(); });
+          hls.on(Hls.Events.ERROR, async (_, d) => {
+            if (d.fatal) {
+              if (cam?.resolver === 'skyline' && d.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                cam.hlsLive = null;
+                cam.hlsExp = 0;
+                const nueva = await resolverSkyline(cam);
+                if (nueva && sessions.get(el) === session && el.isConnected) {
+                  hls.loadSource(nueva);
+                  return;
+                }
+              }
+              fail();
+            }
+          });
         }
       } catch { fail(); return; }
     }
@@ -226,24 +272,12 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     // Skyline y otros bloquean la imagen si llega con nuestra web como referencia.
     img.referrerPolicy = 'no-referrer';
     img.setAttribute('referrerpolicy', 'no-referrer');
-    if (cam.pageUrl) {
-      img.style.cursor = 'pointer';
-      img.title = 'Toca para abrir la cámara en directo';
-      img.addEventListener('click', () => {
-        window.open(cam.pageUrl, '_blank', 'noopener,noreferrer');
-      });
-    }
     const base = cam.embedUrl;
     const bust = () => base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
     img.onerror = () => {
       if (sessions.get(el) !== session) return;
       stopCam(el);
-      if (cam.pageUrl) {
-        el.insertAdjacentHTML('beforeend', `<div class="cam-msg cam-link"><div><b>${esc(cam.name)}</b>${esc(cam.notesShort) || 'Emisión en directo disponible en su web oficial.'}` +
-          `<a class="cam-link-btn" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">Abrir cámara en directo</a></div></div>`);
-      } else {
-        msg(el, 'Cámara sin señal', 'La imagen no se puede cargar ahora mismo.');
-      }
+      msg(el, 'Cámara sin señal', 'La imagen no se puede cargar ahora mismo.');
     };
     el.appendChild(img);
     img.src = t === 'jpg' ? bust() : base;

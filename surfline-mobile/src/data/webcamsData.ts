@@ -351,17 +351,19 @@ export const WEBCAMS_DATA: Webcam[] = [
       "MorroGos"
     ],
     "priority": 1,
-    "embedType": "jpg",
-    "embedUrl": "https://cdn.skylinewebcams.com/live2815.jpg",
+    "embedType": "hls",
+    "resolver": "skyline",
+    "skylineUrl": "https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
+    "embedUrl": "",
     "pageUrl": "https://www.servigroup.com/es/hotel-koral-beach-oropesa-del-mar/webcam-oropesa/",
     "credit": "Hotel Servigroup Koral Beach / SkylineWebcams",
-    "refreshSeconds": 90,
+    "refreshSeconds": 0,
     "distanceKm": 0.2,
     "tokenRefresh": null,
     "verified": true,
-    "notes": "Hotel justo en la playa de Morro de Gos (más cerca que la cámara de CV) pero sólo foto fija cada ~18 min, sin vídeo, mismo bloqueo de iframe que el resto de Skyline. La imagen se carga sin referer (referrerPolicy no-referrer) porque con nuestra web como referencia Skyline la bloquea. Es la única cámara de Morro de Gos.",
+    "notes": "Webcam oficial en directo de la Playa de Morro de Gos (Hotel Servigroup Koral Beach). Emisión HLS en directo embebida en el reproductor.",
     "enabled": true,
-    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "lastChecked": "2026-11-03T00:00:00.000000+00:00",
     "failCount": 0
   }
 ];

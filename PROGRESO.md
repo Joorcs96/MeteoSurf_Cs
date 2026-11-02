@@ -14,7 +14,7 @@
 ## ✅ FINALIZADAS
 | Fecha | Logro | Commit | Verificación |
 | --- | --- | --- | --- |
-| 2026-11-02 | Reparar webcam Morro de Gos: cámara oficial Hotel Servigroup Koral Beach (prioridad 1) con enlace directo a emisión, quitar La Concha de Morro de Gos | en curso | [VERIFICADO 73 tests Python test_rewind OK, 44 tests backend OK, 24/24 tests móvil simulacion_e2e OK] |
+| 2026-11-02 | Reparar webcam Morro de Gos: cámara oficial Hotel Servigroup Koral Beach (prioridad 1) con enlace directo a emisión, quitar La Concha de Morro de Gos | 4e219a5 | [VERIFICADO 73 tests Python test_rewind OK, 44 tests backend OK, 24/24 tests móvil simulacion_e2e OK] |
 | 2026-11-01 | Integración total: worktrees fusionados (mapa, auditoría usuarios, mercado surf, simulación 12M, mejoras UX web y app móvil) | 59e064e | [VERIFICADO 115 tests Python OK, 46 tests JS OK, simulacion_e2e móvil 24/24 OK, expo export bundles OK, verificar-resultados 12M OK] |
 | 2026-10-26 | App móvil Fases 2 a 5: Cámaras HLS, Física, GPS, Vigía y Exportación | a535f1a | [VERIFICADO simulacion_e2e.ts 24/24 pruebas ok, tsc 0 errores, expo export iOS/Android bundles generados] |
 | 2026-10-26 | App móvil Fase 1: estructura base React Native Expo | 8397512 | [VERIFICADO expo start arrancó en puerto 8081 y tsc --noEmit pasó con 0 errores] |

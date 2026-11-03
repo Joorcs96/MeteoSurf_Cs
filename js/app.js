@@ -711,7 +711,7 @@ function bindClips(spot, camEl, showCam) {
     status.textContent = '';
     playClip(camEl, clip);
     view.querySelectorAll('[data-clip]').forEach((x) => x.classList.toggle('on', x === b));
-    $('#live-cam').hidden = false; record.hidden = true;
+    $('#live-cam').hidden = false; record.hidden = true; $('#cam-ext-btn')?.remove();
     const info = $('#clip-info'), p = clip.prevision || {};
     info.hidden = false;
     info.innerHTML = `<b>Rewind · ${esc(new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</b><p>${esc(clip.camaraNombre || clip.camaraCorta || '')}</p><p>Previsión de ese momento: ${m(p.altura)} m · ${rnd(p.periodo)} s · ${esc(p.direccionTxt || 'Sin dirección')} · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')} · rachas ${kmh(p.vientoRacha)}</p><a href="${esc(clip.url)}" target="_blank" rel="noopener" download>Descargar</a>`;
@@ -727,7 +727,7 @@ function bindClips(spot, camEl, showCam) {
     status.textContent = '';
     playClip(camEl, clip);
     view.querySelectorAll('[data-clip]').forEach((x) => x.classList.remove('on'));
-    $('#live-cam').hidden = false; record.hidden = true;
+    $('#live-cam').hidden = false; record.hidden = true; $('#cam-ext-btn')?.remove();
     const info = $('#clip-info'), p = clip.prevision || {};
     info.hidden = false;
     info.innerHTML = `<b>Rewind histórico similar · ${esc(new Date(clip.hora).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</b><p>${esc(clip.camaraNombre || clip.camaraCorta || '')}</p><p>Condiciones de ese día: ${m(p.altura)} m · ${rnd(p.periodo)} s · ${esc(p.direccionTxt || 'Sin dirección')} · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')}</p><a href="${esc(clip.url)}" target="_blank" rel="noopener" download>Descargar</a>`;
@@ -1147,6 +1147,12 @@ function renderSpot(id) {
       nota.textContent = `${esc(estadoStream(cam).motivo)} El reproductor del club sigue disponible.`;
     } else nota.hidden = true;
     playCam(camEl, cam);
+    const extBtn = $('#cam-ext-btn');
+    if (extBtn) extBtn.remove();
+    if (cam?.embedType === 'jpg' && cam.pageUrl) {
+      view.querySelector('.cam-actions')?.insertAdjacentHTML('beforeend',
+        `<a id="cam-ext-btn" class="chip" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">Ver emisión oficial</a>`);
+    }
     $('#cam-source').innerHTML = cam
       ? `${esc(cam.name)}${cam.credit ? ` · Imagen: <a href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">${esc(cam.credit)}</a>` : ''}${cam.distanceKm ? ` · a ${cam.distanceKm} km del pico` : ''}`
       : '';

@@ -14,6 +14,7 @@
 ## ✅ FINALIZADAS
 | Fecha | Logro | Commit | Verificación |
 | --- | --- | --- | --- |
+| 2026-11-03 | Corregir webcam Morro de Gos: fotograma en directo JPG oficial de Koral Beach con auto-refresco, distintivo interactivo y enlace directo oficial (evita bloqueo anti-hotlinking de SkylineWebcams) | HEAD | [VERIFICADO Simulación E2E headless Chrome CDP OK, 73 tests rewind OK, 44 tests backend OK, 6 tests histórico OK, 24/24 móvil OK] |
 | 2026-11-03 | Reproductor nativo HLS embebido para webcam Morro de Gos (Hotel Servigroup Koral Beach) sin botones externos, resolución dinámica en cliente con hls.js y auto-recuperación de token | 2925002 | [VERIFICADO Simulación E2E headless Chrome CDP readyState=4 1920x1080 OK, 73 tests rewind OK, 44 tests backend OK, 24/24 móvil OK] |
 | 2026-11-02 | Reparar webcam Morro de Gos: cámara oficial Hotel Servigroup Koral Beach (prioridad 1) con enlace directo a emisión, quitar La Concha de Morro de Gos | 4e219a5 | [VERIFICADO 73 tests Python test_rewind OK, 44 tests backend OK, 24/24 tests móvil simulacion_e2e OK] |
 | 2026-11-01 | Integración total: worktrees fusionados (mapa, auditoría usuarios, mercado surf, simulación 12M, mejoras UX web y app móvil) | 59e064e | [VERIFICADO 115 tests Python OK, 46 tests JS OK, simulacion_e2e móvil 24/24 OK, expo export bundles OK, verificar-resultados 12M OK] |

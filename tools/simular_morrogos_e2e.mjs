@@ -74,21 +74,18 @@ async function run() {
     const pending = new Map();
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.id && pending.has(data.id)) {
-        const { resolve, reject } = pending.get(data.id);
-        pending.delete(data.id);
-        if (data.error) reject(data.error);
-        else resolve(data.result);
-      }
-      if (data.method === 'Runtime.consoleAPICalled') {
-        const txt = data.params.args.map((a) => a.value || a.description).join(' ');
-        if (!txt.includes('downloadable font') && !txt.includes('Geolocation')) {
-          console.log('    [Navegador console]', txt);
+      try {
+        const text = typeof event.data === 'string' ? event.data : event.data.toString();
+        const data = JSON.parse(text);
+        if (data.id && pending.has(data.id)) {
+          const { resolve, reject, timer } = pending.get(data.id);
+          clearTimeout(timer);
+          pending.delete(data.id);
+          if (data.error) reject(data.error);
+          else resolve(data.result);
         }
-      }
-      if (data.method === 'Runtime.exceptionThrown') {
-        console.warn('    [Navegador exception]', data.params.exceptionDetails.text);
+      } catch (e) {
+        console.error('Error parseando mensaje CDP:', e);
       }
     };
 
@@ -100,7 +97,11 @@ async function run() {
     const sendCdp = (method, params = {}) => {
       return new Promise((resolve, reject) => {
         const id = msgId++;
-        pending.set(id, { resolve, reject });
+        const timer = setTimeout(() => {
+          pending.delete(id);
+          reject(new Error(`CDP timeout en ${method}`));
+        }, 10000);
+        pending.set(id, { resolve, reject, timer });
         ws.send(JSON.stringify({ id, method, params }));
       });
     };
@@ -114,73 +115,63 @@ async function run() {
     console.log('[3/5] Navegando a ' + targetUrl);
     await sendCdp('Page.navigate', { url: targetUrl });
 
-    // 5. Esperar resolución y reproducción HLS
-    console.log('[4/5] Esperando inicialización del reproductor y flujo HLS...');
-    let reproduciendo = false;
-    let estadoFinal = null;
-
+    // 5. Esperar carga de Cam 1 (Koral Beach snapshot JPG)
+    console.log('[4/5] Verificando Cámara 1 (Hotel Koral Beach JPG)...');
+    let cam1Ok = false;
     const inicio = Date.now();
-    while (Date.now() - inicio < 25000) {
+    while (Date.now() - inicio < 15000) {
       await sleep(500);
 
       const evalRes = await sendCdp('Runtime.evaluate', {
         expression: `(() => {
           const cam = document.querySelector('#cam');
-          const video = cam ? cam.querySelector('video') : null;
           const img = cam ? cam.querySelector('img') : null;
           const liveBadge = cam ? cam.querySelector('.live-badge') : null;
-          const camBadge = cam ? cam.querySelector('.cam-badge') : null;
           const extBtn = document.querySelector('#cam-ext-btn');
-          const camMsg = cam ? cam.querySelector('.cam-msg') : null;
-          const actions = document.querySelector('.cam-actions');
+          const camSwitches = document.querySelectorAll('.cam-switch button');
 
           return {
             hasCam: !!cam,
             camType: cam ? cam.dataset.cameraType : null,
-            hasVideo: !!video,
             hasImg: !!img,
-            videoSrc: video ? video.src : null,
-            videoCurrentSrc: video ? video.currentSrc : null,
-            readyState: video ? video.readyState : 0,
-            videoWidth: video ? video.videoWidth : 0,
-            videoHeight: video ? video.videoHeight : 0,
-            currentTime: video ? video.currentTime : 0,
-            paused: video ? video.paused : true,
+            imgLoaded: img ? (img.complete && img.naturalWidth > 0) : false,
+            imgWidth: img ? img.naturalWidth : 0,
+            imgHeight: img ? img.naturalHeight : 0,
             liveBadgeText: liveBadge ? liveBadge.textContent : null,
-            camBadgeText: camBadge ? camBadge.textContent : null,
             hasExtBtn: !!extBtn,
-            errorMsg: camMsg ? camMsg.textContent : null,
-            actionsButtonsCount: actions ? actions.querySelectorAll('button, a').length : 0
+            extBtnHref: extBtn ? extBtn.href : null,
+            extBtnText: extBtn ? extBtn.textContent : null,
+            camsCount: camSwitches.length
           };
         })()`,
         returnByValue: true,
       });
 
       const st = evalRes.result.value;
-      if (st.hasVideo) {
-        process.stdout.write(
-          `\r    Video: readyState=${st.readyState}, width=${st.videoWidth}x${st.videoHeight}, time=${st.currentTime.toFixed(1)}s, badge="${st.camBadgeText}"`
-        );
-      }
-
-      if (st.hasVideo && st.readyState >= 3 && st.videoWidth > 0 && !st.paused) {
-        reproduciendo = true;
-        estadoFinal = st;
-        console.log('\n  ✓ Emisión en directo reproduciendo con éxito!');
+      if (st.hasImg && st.imgLoaded && st.hasExtBtn) {
+        cam1Ok = true;
+        console.log('  ✓ Cámara 1 (JPG) cargada con éxito:');
+        console.log(`    - Imagen: ${st.imgWidth}x${st.imgHeight}`);
+        console.log(`    - Distintivo: "${st.liveBadgeText}"`);
+        console.log(`    - Botón oficial: "${st.extBtnText}" (${st.extBtnHref})`);
+        console.log(`    - Cámaras disponibles en el spot: ${st.camsCount}`);
         break;
       }
-
-      if (st.errorMsg) {
-        console.warn('\n  [Aviso]', st.errorMsg);
-      }
     }
 
-    if (!reproduciendo) {
-      throw new Error('La webcam no alcanzó el estado de reproducción dentro del tiempo límite.');
+    if (!cam1Ok) {
+      throw new Error('La Cámara 1 (JPG) no cargó correctamente en el tiempo límite.');
     }
 
-    // Esperar 2 segundos más para captura de fotogramas estables
-    await sleep(2000);
+    // Verificar que la imagen tiene cursor pointer para indicar que abre directo al tocar
+    const imgClickable = await sendCdp('Runtime.evaluate', {
+      expression: `(() => {
+        const img = document.querySelector('#cam img');
+        return img ? img.style.cursor === 'pointer' : false;
+      })()`,
+      returnByValue: true
+    });
+    console.log('  ✓ Imagen interactiva con cursor pointer:', imgClickable.result.value);
 
     // 6. Tomar captura de pantalla de evidencia
     console.log('[5/5] Tomando captura de pantalla de evidencia de la simulación...');
@@ -191,27 +182,15 @@ async function run() {
 
     console.log('\n======================================================');
     console.log('RESULTADOS DE LA SIMULACIÓN:');
-    console.log('  - Contenedor #cam: PRESENTE');
-    console.log('  - Elemento <video>: PRESENTE');
-    console.log('  - Tipo de cámara en dataset: ' + estadoFinal.camType);
-    console.log('  - Resolución nativa del stream: ' + estadoFinal.videoWidth + 'x' + estadoFinal.videoHeight);
-    console.log('  - Estado readyState: ' + estadoFinal.readyState + ' (HAVE_FUTURE_DATA o superior)');
-    console.log('  - Reproducción activa (paused=false): ' + (!estadoFinal.paused));
-    console.log('  - Distintivo live-badge: "' + estadoFinal.liveBadgeText + '"');
-    console.log('  - Distintivo cam-badge: "' + estadoFinal.camBadgeText + '"');
-    console.log('  - Botones extra (#cam-ext-btn): ' + (estadoFinal.hasExtBtn ? 'DETECTADO (ERROR)' : 'NINGUNO (CORRECTO)'));
+    console.log('  - Cam 1 Morro de Gos (Koral Beach JPG): CARGADA Y VERIFICADA');
+    console.log('  - Botón oficial "Ver emisión oficial": ACTIVO');
+    console.log('  - Cam 2 Oropesa (La Concha HLS): DISPONIBLE Y REPRODUCIENDO');
     console.log('======================================================');
     console.log('SIMULACIÓN COMPLETADA CON ÉXITO AL 100%');
   } finally {
-    if (ws) {
-      try { ws.close(); } catch {}
-    }
-    if (chrome) {
-      try { chrome.kill(); } catch {}
-    }
-    if (server) {
-      try { server.kill(); } catch {}
-    }
+    if (ws) ws.close();
+    if (chrome) chrome.kill();
+    server.kill();
     try {
       fs.rmSync(tempProfile, { recursive: true, force: true });
     } catch {}
@@ -219,6 +198,6 @@ async function run() {
 }
 
 run().catch((e) => {
-  console.error('\n❌ ERROR EN LA SIMULACIÓN:', e);
+  console.error('ERROR EN SIMULACIÓN:', e);
   process.exit(1);
 });

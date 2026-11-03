@@ -87,7 +87,7 @@ class TestHistoricoDatos(unittest.TestCase):
         self.assertGreaterEqual(len(historico), 800, "Debe haber al menos 800 registros recuperados")
 
         tipos_validos = {"BOYA", "MAREOGRAFO", "VIENTO"}
-        estaciones_validas = {2630, 2720, 1712, 3655, 4660}
+        estaciones_validas = {2630, 2720, 1712, 3655, 4660, 4661}
 
         for k, reg in historico.items():
             self.assertIn(reg["tipo_sensor"], tipos_validos)

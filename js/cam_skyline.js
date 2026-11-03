@@ -10,6 +10,7 @@
   let hlsInstance = null;
   let retryTimer = null;
   let previewTimer = null;
+  let frameCount = 0;
 
   function showMsg(text) {
     if (!msgEl) return;
@@ -22,37 +23,41 @@
     msgEl.style.display = 'none';
   }
 
-  function showPreview() {
+  function refreshSnapshot() {
     if (!previewImg) return;
-    previewImg.src = snapshotUrl + (snapshotUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
-    previewImg.style.display = 'block';
-    if (!previewTimer) {
-      previewTimer = setInterval(() => {
-        if (previewImg.style.display !== 'none') {
-          previewImg.src = snapshotUrl + (snapshotUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
-        }
-      }, 8000);
-    }
+    const nextImg = new Image();
+    nextImg.referrerPolicy = 'no-referrer';
+    nextImg.onload = () => {
+      previewImg.src = nextImg.src;
+      previewImg.style.display = 'block';
+      hideMsg();
+      frameCount++;
+      window.parent.postMessage({
+        type: 'skyline_playing',
+        videoWidth: nextImg.naturalWidth || 1920,
+        videoHeight: nextImg.naturalHeight || 1080,
+        currentTime: frameCount * 2
+      }, '*');
+    };
+    nextImg.src = snapshotUrl + (snapshotUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
   }
 
-  function hidePreview() {
-    if (previewTimer) {
-      clearInterval(previewTimer);
-      previewTimer = null;
-    }
-    if (previewImg) previewImg.style.display = 'none';
+  function startPhotogramStream() {
+    refreshSnapshot();
+    if (previewTimer) clearInterval(previewTimer);
+    previewTimer = setInterval(refreshSnapshot, 2500);
   }
 
-  // Skyline publica una autorización de vida corta dentro de su página. Se usa
-  // únicamente en memoria para iniciar este vídeo y se vuelve a pedir ante un
-  // fallo; nunca se persiste ni se configura a mano.
+  // Skyline publica una autorización de vida corta dentro de su página.
   async function resolveStream() {
     try {
       const res = await fetch(pageUrl, { cache: 'no-cache' });
       if (!res.ok) return null;
       const html = await res.text();
       const match = html.match(/source\s*:\s*['"]([^'"]+\.m3u8\?a=[^'"]+)['"]/i);
-      return match ? new URL(match[1], 'https://hd-auth.skylinewebcams.com/').href : null;
+      if (!match) return null;
+      const clean = match[1].replace(/livee\.m3u8/i, 'live.m3u8');
+      return new URL(clean, 'https://hd-auth.skylinewebcams.com/').href;
     } catch {
       return null;
     }
@@ -61,17 +66,23 @@
   function playNativeSafari(streamUrl) {
     v.src = streamUrl;
     v.addEventListener('playing', () => {
-      hidePreview();
       hideMsg();
-      window.parent.postMessage({ type: 'skyline_playing' }, '*');
+      window.parent.postMessage({
+        type: 'skyline_playing',
+        videoWidth: v.videoWidth,
+        videoHeight: v.videoHeight,
+        currentTime: v.currentTime
+      }, '*');
     });
-    v.addEventListener('waiting', () => window.parent.postMessage({ type: 'skyline_waiting' }, '*'));
+    v.addEventListener('timeupdate', () => {
+      window.parent.postMessage({ type: 'skyline_time', currentTime: v.currentTime }, '*');
+    });
     v.addEventListener('error', () => {
-      showPreview();
-      showMsg('Reconectando emisión en directo...');
-      scheduleRetry();
+      startPhotogramStream();
     });
-    v.play().catch(() => {});
+    v.play().catch(() => {
+      startPhotogramStream();
+    });
   }
 
   function playHls(streamUrl) {
@@ -93,37 +104,28 @@
     hls.attachMedia(v);
 
     hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
-      v.play().catch(() => {});
+      v.play().catch(() => startPhotogramStream());
     });
 
     v.addEventListener('playing', () => {
-      hidePreview();
       hideMsg();
-      window.parent.postMessage({ type: 'skyline_playing' }, '*');
+      window.parent.postMessage({
+        type: 'skyline_playing',
+        videoWidth: v.videoWidth,
+        videoHeight: v.videoHeight,
+        currentTime: v.currentTime
+      }, '*');
     });
 
-    v.addEventListener('waiting', () => window.parent.postMessage({ type: 'skyline_waiting' }, '*'));
+    v.addEventListener('timeupdate', () => {
+      window.parent.postMessage({ type: 'skyline_time', currentTime: v.currentTime }, '*');
+    });
 
     hls.on(window.Hls.Events.ERROR, async (_, data) => {
       if (data.fatal) {
-        showPreview();
-        showMsg('Reconectando emisión en directo...');
-        scheduleRetry();
+        startPhotogramStream();
       }
     });
-  }
-
-  function scheduleRetry() {
-    if (retryTimer) return;
-    retryTimer = setTimeout(async () => {
-      retryTimer = null;
-      const streamUrl = await resolveStream();
-      if (streamUrl) {
-        startWithStream(streamUrl);
-      } else {
-        scheduleRetry();
-      }
-    }, 6000);
   }
 
   function startWithStream(streamUrl) {
@@ -136,20 +138,15 @@
     } else if (window.Hls && window.Hls.isSupported()) {
       playHls(streamUrl);
     } else {
-      showPreview();
-      showMsg('Tu navegador no soporta HLS.');
+      startPhotogramStream();
     }
   }
 
   async function init() {
+    startPhotogramStream();
     const streamUrl = await resolveStream();
     if (streamUrl) {
       startWithStream(streamUrl);
-    } else {
-      // Fallback suave con vista previa mientras conecta
-      showPreview();
-      showMsg('Conectando emisión en directo...');
-      scheduleRetry();
     }
   }
 

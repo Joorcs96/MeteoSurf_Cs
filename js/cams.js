@@ -157,7 +157,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     // cam_skyline.html es una página local controlada por MeteoSurf. Mantener
     // su origen permite comprobar su estado de vídeo; la webcam externa nunca
     // se incrusta como iframe y sigue sin poder acceder a la aplicación.
-    f.sandbox = 'allow-scripts allow-same-origin';
+    f.sandbox = 'allow-scripts';
     f.allow = 'autoplay; fullscreen; picture-in-picture';
     f.allowFullscreen = true;
     f.referrerPolicy = 'no-referrer';
@@ -194,7 +194,12 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       if (data.type === 'skyline_playing') {
         haReproducido = true;
         clearTimeout(signalTimer);
+        f.dataset.videoReady = 'true';
+        if (data.videoWidth) f.dataset.videoSize = `${data.videoWidth}x${data.videoHeight}`;
+        f.dataset.videoTime = String(data.currentTime || 1);
         setBadge('directo', '● En directo');
+      } else if (data.type === 'skyline_time') {
+        f.dataset.videoTime = String(data.currentTime || 0);
       } else if (data.type === 'skyline_waiting') {
         setBadge('buffer', '● Búfer');
       } else if (data.type === 'skyline_error') {
@@ -354,17 +359,29 @@ export function reproducirClip(el, clip, { onError } = {}) {
   Object.assign(video, { controls: true, playsInline: true, autoplay: true });
   video.setAttribute('playsinline', '');
   el.appendChild(video);
-  // Directo a la URL: el `fetch` + blob de antes lo cortaba la CSP (connect-src) y
-  // las releases no mandan CORS, así que siempre acababa en un aviso falso.
-  video.src = clip.url;
+  // Soporte universal para móvil y web: intento con fetch(clip.url) + Blob,
+  // con respaldo directo inmediato para URLs sin CORS o release directa.
+  let blobUrl = '';
+  if (typeof fetch === 'function' && !clip.url.startsWith('data:') && !clip.url.includes('github.com')) {
+    fetch(clip.url, { mode: 'cors' })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); })
+      .then((b) => {
+        if (!b.size) throw new Error('Blob vacío');
+        blobUrl = URL.createObjectURL(b);
+        video.src = blobUrl;
+      })
+      .catch(() => { video.src = clip.url; });
+  } else {
+    video.src = clip.url;
+  }
   active.set(el, () => {
     video.pause();
     video.removeAttribute('src');
     video.load();
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
   });
   return video;
 }
-
 export function playClip(el, clip) {
   stopCam(el);
   const session = sessions.get(el);

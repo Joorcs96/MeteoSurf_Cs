@@ -1072,19 +1072,136 @@ body.vista-camaras .quick-spots { display:none; }
 /* ==========================================================================
    Portada Ahora (Arquitectura Nativa y Consistente con el Sistema MeteoSurf)
    ========================================================================== */
-.hero-now-wrap { margin-bottom: 12px; }
-.hero-now-card { border-radius: 18px; box-shadow: 0 4px 18px rgba(10,15,20,.14); }
-.hero-now-link { min-height: 230px; padding: 18px 18px 18px 20px; }
-@media(min-width: 800px) { .hero-now-link { min-height: 290px; } }
-.hero-now-shade { background: linear-gradient(180deg, rgba(8,12,16,.45) 0%, rgba(8,12,16,.2) 40%, rgba(8,12,16,.88) 100%); }
-.hero-now-badge { position: absolute; z-index: 2; top: 12px; left: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: rgba(8,12,16,.65); backdrop-filter: blur(6px); font-size: 11.5px; font-weight: 700; color: #fff; border: 1px solid rgba(255,255,255,.18); }
+.hero-now-wrap { margin-bottom: 24px; }
+.hero-now-card {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(10,15,20,.16);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+}
+.hero-now-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 220px;
+  background: #0a0f14;
+  overflow: hidden;
+}
+@media (min-width: 800px) {
+  .hero-now-media { min-height: 320px; }
+}
+.hero-now-cam-box {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+.hero-now-cam-box iframe,
+.hero-now-cam-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+  display: block;
+}
+.hero-now-badge {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(8,12,16,.75);
+  backdrop-filter: blur(8px);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+  pointer-events: none;
+}
 .hero-now-badge .icon { width: 14px; height: 14px; }
-.hero-now-name { font-size: 30px; letter-spacing: -0.9px; line-height: 1.05; }
-@media(min-width: 800px) { .hero-now-name { font-size: 38px; } }
-.hero-now-zone { font-size: 13px; margin-top: 4px; }
-.hero-now-meta { font-size: 13px; margin-top: 8px; }
-.hero-now-cond .sc-h { font-size: 40px; }
-@media(min-width: 800px) { .hero-now-cond .sc-h { font-size: 46px; } }
+.hero-now-card .fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+}
+.hero-now-data-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface-1);
+  border-top: 1px solid var(--line);
+  transition: background .15s ease;
+}
+.hero-now-data-link:hover {
+  background: var(--surface-2);
+}
+.hero-now-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.hero-now-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.hero-now-name {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+@media (min-width: 800px) {
+  .hero-now-name { font-size: 28px; }
+}
+.hero-now-zone {
+  font-size: 13px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+.hero-now-meta {
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.hero-now-meta .sep {
+  color: var(--text-2);
+  opacity: .5;
+}
+.hero-now-cond-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  margin-left: 12px;
+}
+.hero-now-cond-side .sc-h {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+@media (min-width: 800px) {
+  .hero-now-cond-side .sc-h { font-size: 38px; }
+}
 
 .hero-now-panel { background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-top: 10px; display: flex; flex-direction: column; gap: 12px; }
 .hero-now-rec { font-size: 13.5px; line-height: 1.5; color: var(--text); }

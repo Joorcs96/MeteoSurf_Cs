@@ -330,23 +330,37 @@ function renderHeroNowCard(d) {
   return `
     <div class="hero-now-wrap">
       <div class="spot-card2 hero-now-card ${ratingCls}">
-        <a class="sc-link hero-now-link" href="#/spot/${encodeURIComponent(spot.id)}" aria-label="${esc(spot.name)}: ${surfRange} m, ${ratingLabel}">
-          ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="Playa y rompiente de ${esc(spot.name)}" loading="eager" fetchpriority="high" decoding="async">` : ''}
-          <span class="sc-shade hero-now-shade"></span>
+        <div class="hero-now-media">
+          ${cam ? `
+            <div id="hero-cam-target" class="hero-now-cam-box" data-camspot="${esc(spot.id)}"></div>
+          ` : `
+            ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="" aria-hidden="true" loading="eager" fetchpriority="high">` : ''}
+          `}
           <span class="hero-now-badge">${ICON.wave} Mejor opción local ahora</span>
-          ${cam ? `<span class="sc-cam" style="top:44px">${ICON.cam} Directo</span>` : ''}
-          <span class="sc-info hero-now-info">
-            <span class="sc-name hero-now-name">${esc(spot.name)}</span>
-            <span class="sc-zone hero-now-zone">${esc(spot.zoneName)}</span>
-            <span class="sc-meta hero-now-meta">${surfRange} m · ${period ? `${period} s` : '–'}${swellDir ? ` ${esc(swellDir)}` : ''} · ${windSpd} km/h ${esc(windDir)}${windType ? ` (${esc(windType)})` : ''}</span>
-          </span>
-          <span class="sc-cond hero-now-cond">
+          <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Favorito" title="Favorito">${ICON.star}</button>
+        </div>
+
+        <a class="hero-now-data-link" href="#/spot/${encodeURIComponent(spot.id)}" aria-label="${esc(spot.name)}: ${surfRange} m, ${ratingLabel}">
+          <div class="hero-now-info">
+            <div class="hero-now-title-row">
+              <h2 class="hero-now-name">${esc(spot.name)}</h2>
+              <span class="rating-pill ${ratingCls}">${ratingLabel}</span>
+            </div>
+            <div class="hero-now-zone">${esc(spot.zoneName)}</div>
+            <div class="hero-now-meta">
+              <span><strong>${surfRange} m</strong> de ola</span>
+              <span class="sep">·</span>
+              <span>${period ? `${period} s` : '–'}${swellDir ? ` ${esc(swellDir)}` : ''}</span>
+              <span class="sep">·</span>
+              <span>${windSpd} km/h ${esc(windDir)}${windType ? ` (${esc(windType)})` : ''}</span>
+            </div>
+          </div>
+          <div class="hero-now-cond-side">
             <span class="sc-h num">${surfRange}<small> m</small></span>
-            <span class="rating-pill ${ratingCls}">${ratingLabel}</span>
-          </span>
+          </div>
         </a>
-        <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Favorito" title="Favorito">${ICON.star}</button>
       </div>
+
       <div class="hero-now-panel">
         <div class="hero-now-rec">
           <strong>Recomendación:</strong> ${esc(recomendacion)}
@@ -372,7 +386,7 @@ function renderLocalCardNow(d) {
     <div class="spot-card-now-item">
       <div class="spot-card2 ${ratingCls}">
         <a class="sc-link" href="#/spot/${encodeURIComponent(spot.id)}" aria-label="${esc(spot.name)}: ${surfRange} m, ${ratingLabel}">
-          ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="Playa y rompiente de ${esc(spot.name)}" loading="lazy" decoding="async">` : ''}
+          ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ''}
           <span class="sc-shade"></span>
           ${cam ? `<span class="sc-cam" title="Cámara en directo">${ICON.cam} Directo</span>` : ''}
           <span class="sc-info">
@@ -405,7 +419,8 @@ function renderAhora() {
   document.title = 'MeteoSurf_Cs · ¿Dónde surfear ahora en Castellón?';
   const fc = state.fc;
 
-  const localSpotIds = ['Planetario', 'Voramar', 'MorroGos', 'Gurugu'];
+  // Spots locales de referencia requeridos por el usuario: Planetario, Morro de Gos, Voramar y Palaciet
+  const localSpotIds = ['Planetario', 'MorroGos', 'Voramar', 'Palaciet'];
   const localSpots = localSpotIds.map((id) => SPOTS.find((s) => s.id === id)).filter(Boolean);
   const nowLocal = localSpots.map((s) => getSpotNowData(s, fc)).sort((a, b) => b.score - a.score);
   const bestLocal = nowLocal[0];
@@ -444,14 +459,14 @@ function renderAhora() {
       <a href="#/prevision" class="chip btn" style="text-decoration:none;font-weight:600">${ICON.wave} Ver previsión completa</a>
     </div>
 
-    <!-- BLOQUE PRINCIPAL: MEJOR SPOT LOCAL (HERO) -->
+    <!-- BLOQUE PRINCIPAL: MEJOR SPOT LOCAL CON WEBCAM EN VIVO (HERO) -->
     <section class="now-hero-section" aria-label="Mejor opción local para surfear ahora">
       ${bestLocal ? renderHeroNowCard(bestLocal) : '<p class="muted">Cargando datos de condiciones...</p>'}
     </section>
 
     <!-- BLOQUE PRINCIPAL: OTRAS OPCIONES LOCALES (COMPACTAS) -->
     <section class="now-local-section" aria-label="Otras opciones locales en Castellón" style="margin-top:28px">
-      <div class="section-title">Otras opciones en Castellón <span class="faint">Planetario, Voramar, Morro de Gos y Gurugú</span></div>
+      <div class="section-title">Otras opciones en Castellón <span class="faint">Planetario, Voramar, Morro de Gos y El Palaciet</span></div>
       <div class="spot-grid">
         ${otherLocal.map(renderLocalCardNow).join('')}
       </div>
@@ -470,6 +485,15 @@ function renderAhora() {
 
     ${footer()}
   `;
+
+  // Montar la webcam en directo en la tarjeta Hero destacada si el spot tiene cámara
+  const heroCamTarget = view.querySelector('#hero-cam-target');
+  if (heroCamTarget && bestLocal) {
+    const cam = camsForSpot(bestLocal.spot)[0];
+    if (cam) {
+      playCam(heroCamTarget, cam, { autoplay: true });
+    }
+  }
 
   bindFavs();
   showOnboarding();

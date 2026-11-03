@@ -50,7 +50,8 @@
       "name": "Burriana (puerto / Playa del Arenal)",
       "short": "Burriana CV",
       "spots": [
-        "Burriana"
+        "Burriana",
+        "Palaciet"
       ],
       "priority": 1,
       "embedType": "hls",
@@ -145,7 +146,7 @@
       "distanceKm": 0.3,
       "tokenRefresh": null,
       "verified": true,
-      "notes": "Vídeo oficial en directo del Hotel Servigroup Trinimar. El reproductor obtiene y renueva la emisión pública de Skyline de forma automática, sin guardar credenciales ni requerir ninguna acción manual.",
+      "notes": "Emisión en directo de Playa Heliópolis (Hotel Servigroup Trinimar). Reproducción en streaming HLS directo de las olas.",
       "enabled": true,
       "lastChecked": "2026-11-03T19:40:19.342148+00:00",
       "failCount": 0
@@ -184,7 +185,7 @@
       "pageUrl": "https://www.granhotelpeniscola.com/en/webcam-and-meteorology/",
       "credit": "Gran Hotel Peñíscola / IPCamLive",
       "refreshSeconds": 0,
-      "distanceKm": 2.0,
+      "distanceKm": 2,
       "tokenRefresh": null,
       "verified": true,
       "notes": "Así la incrusta oficialmente el propio Gran Hotel Peñíscola en su web (mismo alias, sin token en la URL). Vista desde la azotea del hotel hacia la playa Norte y el castillo de Papa Luna. Sin X-Frame-Options en la respuesta -> incrustable de verdad. Se verificó con una captura nocturna con la fecha/hora quemada en la imagen (27-09-2026 23:25) coincidiendo con la hora real de la petición.",
@@ -205,7 +206,7 @@
       "pageUrl": "https://www.granhotelpeniscola.com/en/webcam-and-meteorology/",
       "credit": "Gran Hotel Peñíscola / IPCamLive",
       "refreshSeconds": 0,
-      "distanceKm": 2.0,
+      "distanceKm": 2,
       "tokenRefresh": null,
       "verified": false,
       "notes": "Misma cámara que la fila anterior pero jugando directamente el HLS (CORS *, sin token) con hls.js, sin marca de IPCamLive ni iframe. Más control, pero el streamId/servidor (s29, 1dcj5orke9msb6jxq) podría cambiar si la cámara se reconecta con otros parámetros; el iframe con alias es la opción que IPCamLive garantiza estable a largo plazo. Recomendado como mejora opcional, no como única opción.",
@@ -327,7 +328,7 @@
     },
     {
       "id": "skyline-jpg-morrogos",
-      "name": "Hotel Servigroup Koral Beach",
+      "name": "Hotel Servigroup Koral Beach (Morro de Gos)",
       "short": "Morro de Gos (Koral Beach)",
       "spots": [
         "MorroGos"
@@ -342,7 +343,7 @@
       "distanceKm": 0.2,
       "tokenRefresh": null,
       "verified": true,
-      "notes": "Vídeo oficial en directo de Playa de Morro de Gos (Hotel Servigroup Koral Beach). El reproductor obtiene y renueva la emisión pública de Skyline de forma automática, sin guardar credenciales ni requerir ninguna acción manual.",
+      "notes": "Emisión en directo de Playa de Morro de Gos (Hotel Servigroup Koral Beach). Reproducción en streaming HLS directo de las olas.",
       "enabled": true,
       "lastChecked": "2026-11-03T19:40:19.342148+00:00",
       "failCount": 0

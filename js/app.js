@@ -321,139 +321,82 @@ function getSpotNowData(spot, fc) {
   };
 }
 
-function renderAhoraHeroCard(d) {
+function renderHeroNowCard(d) {
   const { spot, ratingLabel, ratingCls, surfRange, period, swellDir, windSpd, windDir, windType, recomendacion, hasCam, hasRewind } = d;
   const foto = spot.photo?.thumb ? miniatura(spot.photo.thumb, 900) : '';
+  const cam = camsForSpot(spot)[0];
   const isFav = favs.has(spot.id);
 
   return `
-    <article class="ahora-hero-card ${ratingCls}">
-      ${foto ? `
-        <div class="ahora-hero-bg">
-          <img src="${esc(foto)}" alt="Playa y rompiente de ${esc(spot.name)}" loading="eager" fetchpriority="high" decoding="async">
-          <div class="ahora-hero-overlay"></div>
-        </div>
-      ` : ''}
-      <div class="ahora-hero-content">
-        <div class="ahora-hero-top">
-          <div class="ahora-hero-badge">
-            <span class="badge-tag">${ICON.wave} Mejor opción local ahora</span>
+    <div class="hero-now-wrap">
+      <div class="spot-card2 hero-now-card ${ratingCls}">
+        <a class="sc-link hero-now-link" href="#/spot/${encodeURIComponent(spot.id)}" aria-label="${esc(spot.name)}: ${surfRange} m, ${ratingLabel}">
+          ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="Playa y rompiente de ${esc(spot.name)}" loading="eager" fetchpriority="high" decoding="async">` : ''}
+          <span class="sc-shade hero-now-shade"></span>
+          <span class="hero-now-badge">${ICON.wave} Mejor opción local ahora</span>
+          ${cam ? `<span class="sc-cam" style="top:44px">${ICON.cam} Directo</span>` : ''}
+          <span class="sc-info hero-now-info">
+            <span class="sc-name hero-now-name">${esc(spot.name)}</span>
+            <span class="sc-zone hero-now-zone">${esc(spot.zoneName)}</span>
+            <span class="sc-meta hero-now-meta">${surfRange} m · ${period ? `${period} s` : '–'}${swellDir ? ` ${esc(swellDir)}` : ''} · ${windSpd} km/h ${esc(windDir)}${windType ? ` (${esc(windType)})` : ''}</span>
+          </span>
+          <span class="sc-cond hero-now-cond">
+            <span class="sc-h num">${surfRange}<small> m</small></span>
             <span class="rating-pill ${ratingCls}">${ratingLabel}</span>
-          </div>
-          <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Guardar ${esc(spot.name)} en favoritos" title="Favorito">
-            ${ICON.star}
-          </button>
+          </span>
+        </a>
+        <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Favorito" title="Favorito">${ICON.star}</button>
+      </div>
+      <div class="hero-now-panel">
+        <div class="hero-now-rec">
+          <strong>Recomendación:</strong> ${esc(recomendacion)}
         </div>
-
-        <div class="ahora-hero-title-wrap">
-          <h2 class="ahora-hero-title">
-            <a href="#/spot/${encodeURIComponent(spot.id)}">${esc(spot.name)}</a>
-          </h2>
-          <span class="ahora-hero-zone">${esc(spot.zoneName)}</span>
-        </div>
-
-        <div class="ahora-hero-metrics" role="group" aria-label="Condiciones actuales en ${esc(spot.name)}">
-          <div class="metric-item">
-            <span class="metric-label">${ICON.wave} Altura de ola</span>
-            <span class="metric-val tabular-nums">${surfRange}<small> m</small></span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">${ICON.clock} Periodo</span>
-            <span class="metric-val tabular-nums">${period ? `${period}<small> s</small>` : '–'}${swellDir ? ` <span class="metric-dir">${esc(swellDir)}</span>` : ''}</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">${ICON.wind} Viento</span>
-            <span class="metric-val tabular-nums">${windSpd}<small> km/h</small> <span class="metric-sub">${esc(windDir)}${windType ? ` · ${esc(windType)}` : ''}</span></span>
-          </div>
-        </div>
-
-        <div class="ahora-hero-rec">
-          <span class="rec-title">Recomendación para entrar:</span>
-          <p class="rec-text">${esc(recomendacion)}</p>
-        </div>
-
-        <div class="ahora-hero-actions">
-          <a href="#/spot/${encodeURIComponent(spot.id)}" class="btn-hero-primary">
-            ${ICON.wave} Ver spot completo
-          </a>
-          ${hasCam ? `
-            <a href="#/spot/${encodeURIComponent(spot.id)}" class="btn-hero-secondary">
-              ${ICON.cam} Cámara en directo
-            </a>
-          ` : ''}
-          ${hasRewind ? `
-            <a href="#/spot/${encodeURIComponent(spot.id)}" class="btn-hero-secondary">
-              ${ICON.rewind} Rewind
-            </a>
-          ` : ''}
-          <a href="#/spot/${encodeURIComponent(spot.id)}" class="btn-hero-secondary">
-            ${ICON.calendar} Previsión detallada
-          </a>
+        <div class="hero-now-actions">
+          <a class="chip btn on" href="#/spot/${encodeURIComponent(spot.id)}" title="Ver ficha completa de ${esc(spot.name)}">${ICON.wave} Ver spot</a>
+          ${hasCam ? `<a class="chip btn" href="#/spot/${encodeURIComponent(spot.id)}" title="Ver cámara en directo de ${esc(spot.name)}">${ICON.cam} Cámara en directo</a>` : ''}
+          ${hasRewind ? `<a class="chip btn" href="#/spot/${encodeURIComponent(spot.id)}" title="Ver grabaciones Rewind de ${esc(spot.name)}">${ICON.rewind} Rewind</a>` : ''}
+          <a class="chip btn" href="#/spot/${encodeURIComponent(spot.id)}" title="Ver previsión detallada de ${esc(spot.name)}">${ICON.calendar} Previsión detallada</a>
         </div>
       </div>
-    </article>
+    </div>
   `;
 }
 
-function renderAhoraCompactCard(d) {
-  const { spot, ratingLabel, ratingCls, surfRange, period, windSpd, windDir, recomendacion, hasCam, hasRewind } = d;
+function renderLocalCardNow(d) {
+  const { spot, ratingLabel, ratingCls, surfRange, period, swellDir, windSpd, windDir, recomendacion, hasCam, hasRewind } = d;
+  const foto = spot.photo?.thumb ? miniatura(spot.photo.thumb, 500) : '';
+  const cam = camsForSpot(spot)[0];
   const isFav = favs.has(spot.id);
 
   return `
-    <article class="ahora-compact-card ${ratingCls}">
-      <div class="compact-header">
-        <div>
-          <h3 class="compact-title">
-            <a href="#/spot/${encodeURIComponent(spot.id)}">${esc(spot.name)}</a>
-          </h3>
-          <span class="compact-zone">${esc(spot.zoneName)}</span>
-        </div>
-        <div class="compact-header-right">
-          <span class="rating-pill ${ratingCls}">${ratingLabel}</span>
-          <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Guardar ${esc(spot.name)} en favoritos" title="Favorito">
-            ${ICON.star}
-          </button>
-        </div>
-      </div>
-
-      <div class="compact-metrics" role="group" aria-label="Condiciones en ${esc(spot.name)}">
-        <div class="c-metric">
-          <span class="c-label">${ICON.wave} Ola</span>
-          <span class="c-val tabular-nums">${surfRange} m</span>
-        </div>
-        <div class="c-metric">
-          <span class="c-label">${ICON.clock} Periodo</span>
-          <span class="c-val tabular-nums">${period ? `${period} s` : '–'}</span>
-        </div>
-        <div class="c-metric">
-          <span class="c-label">${ICON.wind} Viento</span>
-          <span class="c-val tabular-nums">${windSpd} km/h ${esc(windDir)}</span>
-        </div>
-      </div>
-
-      <div class="compact-rec">
-        <p>${esc(recomendacion)}</p>
-      </div>
-
-      <div class="compact-actions">
-        <a href="#/spot/${encodeURIComponent(spot.id)}" class="compact-btn primary" title="Ver spot ${esc(spot.name)}">
-          ${ICON.wave} Spot
+    <div class="spot-card-now-item">
+      <div class="spot-card2 ${ratingCls}">
+        <a class="sc-link" href="#/spot/${encodeURIComponent(spot.id)}" aria-label="${esc(spot.name)}: ${surfRange} m, ${ratingLabel}">
+          ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="Playa y rompiente de ${esc(spot.name)}" loading="lazy" decoding="async">` : ''}
+          <span class="sc-shade"></span>
+          ${cam ? `<span class="sc-cam" title="Cámara en directo">${ICON.cam} Directo</span>` : ''}
+          <span class="sc-info">
+            <span class="sc-name">${esc(spot.name)}</span>
+            <span class="sc-zone">${esc(spot.zoneName)}</span>
+            <span class="sc-meta">${surfRange} m · ${period ? `${period} s` : '–'}${swellDir ? ` ${esc(swellDir)}` : ''} · ${windSpd} km/h ${esc(windDir)}</span>
+          </span>
+          <span class="sc-cond">
+            <span class="sc-h num">${surfRange}<small> m</small></span>
+            <span class="rating-pill ${ratingCls}">${ratingLabel}</span>
+          </span>
         </a>
-        ${hasCam ? `
-          <a href="#/spot/${encodeURIComponent(spot.id)}" class="compact-btn" title="Ver cámara de ${esc(spot.name)}">
-            ${ICON.cam} Cámara
-          </a>
-        ` : ''}
-        ${hasRewind ? `
-          <a href="#/spot/${encodeURIComponent(spot.id)}" class="compact-btn" title="Ver Rewind de ${esc(spot.name)}">
-            ${ICON.rewind} Rewind
-          </a>
-        ` : ''}
-        <a href="#/spot/${encodeURIComponent(spot.id)}" class="compact-btn" title="Ver previsión detallada de ${esc(spot.name)}">
-          ${ICON.calendar} Previsión
-        </a>
+        <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Favorito">${ICON.star}</button>
       </div>
-    </article>
+      <div class="spot-card-now-sub">
+        <p class="sc-now-rec">${esc(recomendacion)}</p>
+        <div class="sc-now-actions">
+          <a class="chip btn" href="#/spot/${encodeURIComponent(spot.id)}" title="Ver spot ${esc(spot.name)}">${ICON.wave} Spot</a>
+          ${hasCam ? `<a class="chip btn" href="#/spot/${encodeURIComponent(spot.id)}" title="Ver cámara de ${esc(spot.name)}">${ICON.cam} Cámara</a>` : ''}
+          ${hasRewind ? `<a class="chip btn" href="#/spot/${encodeURIComponent(spot.id)}" title="Ver Rewind de ${esc(spot.name)}">${ICON.rewind} Rewind</a>` : ''}
+          <a class="chip btn" href="#/spot/${encodeURIComponent(spot.id)}" title="Ver previsión de ${esc(spot.name)}">${ICON.calendar} Previsión</a>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -487,65 +430,42 @@ function renderAhora() {
   if (compensaAlejarse && bestFar) {
     alejarseExplicacion = `Hoy sí merece la pena desplazarse: en <strong>${esc(bestFar.spot.name)}</strong> hay mejores condiciones (${bestFar.surfRange} m de ola y viento ${esc(bestFar.windType || bestFar.windDir || '')}) que en la zona local (${bestLocal?.surfRange || '–'} m en ${esc(bestLocal?.spot?.name || '')}).`;
   } else {
-    alejarseExplicacion = `Hoy <strong>no compensa alejarse</strong> de la zona de Castellón. Las mejores condiciones de la costa están concentradas en los spots locales (encabezados por <strong>${esc(bestLocal?.spot?.name || 'Castellón')}</strong> con ${bestLocal?.surfRange || '–'} m). En Peñíscola, Vinaròs u otros puntos lejanos no hay oleaje superior que justifique el desplazamiento.`;
+    alejarseExplicacion = `Hoy <strong>no compensa alejarse</strong> de la zona de Castellón. Las mejores condiciones de la costa están concentradas en los spots locales (encabezados por <strong>${esc(bestLocal?.spot?.name || 'Castellón')}</strong> con ${bestLocal?.surfRange || '–'} m). En Peñíscola, Vinaròs o el sur no hay oleaje superior que justifique el desplazamiento.`;
   }
 
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
 
-    <div class="ahora-header">
-      <div class="ahora-header-text">
-        <h1 class="ahora-title">¿Dónde merece la pena entrar ahora?</h1>
-        <p class="ahora-subtitle">
-          Condiciones actuales ordenadas por calidad para entrar ya al agua · Costa de Castellón
-          ${fc ? `<span class="ahora-updated"> · Actualizado a las ${new Date(fc.fetchedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
-        </p>
+    <div class="region-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1>¿Dónde entrar ahora?</h1>
+        <p class="sub">Costa de Castellón · Condiciones en tiempo real ordenadas por calidad${fc ? ` · Actualizado ${new Date(fc.fetchedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` : ''}</p>
       </div>
-      <div class="ahora-header-nav">
-        <a href="#/prevision" class="btn btn-subtle" title="Ver lista completa de todos los spots">${ICON.wave} Ver previsión completa</a>
-      </div>
+      <a href="#/prevision" class="chip btn" style="text-decoration:none;font-weight:600">${ICON.wave} Ver previsión completa</a>
     </div>
 
     <!-- BLOQUE PRINCIPAL: MEJOR SPOT LOCAL (HERO) -->
-    <section class="ahora-section ahora-hero-section" aria-label="Mejor opción local para surfear ahora">
-      ${bestLocal ? renderAhoraHeroCard(bestLocal) : '<p class="muted">Cargando datos de condiciones...</p>'}
+    <section class="now-hero-section" aria-label="Mejor opción local para surfear ahora">
+      ${bestLocal ? renderHeroNowCard(bestLocal) : '<p class="muted">Cargando datos de condiciones...</p>'}
     </section>
 
     <!-- BLOQUE PRINCIPAL: OTRAS OPCIONES LOCALES (COMPACTAS) -->
-    <section class="ahora-section ahora-local-section" aria-label="Otras opciones locales en Castellón">
-      <div class="section-title-wrap">
-        <h2 class="section-title">Otras opciones en la zona de Castellón</h2>
-        <span class="faint">Planetario, Voramar, Morro de Gos y Gurugú</span>
-      </div>
-      <div class="ahora-compact-grid">
-        ${otherLocal.map(renderAhoraCompactCard).join('')}
+    <section class="now-local-section" aria-label="Otras opciones locales en Castellón" style="margin-top:28px">
+      <div class="section-title">Otras opciones en Castellón <span class="faint">Planetario, Voramar, Morro de Gos y Gurugú</span></div>
+      <div class="spot-grid">
+        ${otherLocal.map(renderLocalCardNow).join('')}
       </div>
     </section>
 
     <!-- BLOQUE SECUNDARIO: SI COMPENSA ALEJARSE -->
-    <section class="ahora-section ahora-far-section" aria-label="Si compensa alejarse">
-      <div class="section-title-wrap">
-        <h2 class="section-title">Si compensa alejarse</h2>
-        <span class="faint">Peñíscola, Vinaròs y resto de la costa</span>
+    <section class="now-far-section" aria-label="Si compensa alejarse" style="margin-top:32px">
+      <div class="section-title">Si compensa alejarse <span class="faint">Peñíscola, Vinaròs y resto de la costa</span></div>
+      <div class="banner" style="margin-bottom:16px;line-height:1.5">
+        ${alejarseExplicacion}
       </div>
-      <div class="ahora-far-banner ${compensaAlejarse ? 'compensates' : 'no-compensates'}">
-        <div class="ahora-far-icon" aria-hidden="true">${compensaAlejarse ? ICON.car : ICON.pin}</div>
-        <div class="ahora-far-copy">
-          <p>${alejarseExplicacion}</p>
-        </div>
+      <div class="spot-grid">
+        ${(compensaAlejarse && farBetterSpots.length ? farBetterSpots.slice(0, 3) : nowFar.slice(0, 2)).map(renderLocalCardNow).join('')}
       </div>
-      ${compensaAlejarse && farBetterSpots.length ? `
-        <div class="ahora-compact-grid" style="margin-top:14px">
-          ${farBetterSpots.slice(0, 3).map(renderAhoraCompactCard).join('')}
-        </div>
-      ` : `
-        <div class="ahora-far-reference">
-          <p class="faint" style="margin:8px 0 10px;font-size:12.5px">Referencia rápida de los spots más lejanos:</p>
-          <div class="ahora-compact-grid">
-            ${nowFar.slice(0, 2).map(renderAhoraCompactCard).join('')}
-          </div>
-        </div>
-      `}
     </section>
 
     ${footer()}
@@ -996,7 +916,7 @@ function renderRewindCalendar(clips) {
   const selectedKey = state.rewindDay && days.has(state.rewindDay) ? state.rewindDay : [...days.keys()].find((key) => key.startsWith(state.rewindMonth));
   const selected = days.get(selectedKey) || [];
   const selectedLabel = selectedKey ? new Date(`${selectedKey}T12:00:00Z`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : 'Sin vídeos este mes';
-  return `<div id="rewind-strip" class="rewind-strip" hidden><div class="rewind-intro"><b>Histórico Rewind</b><span>Elige un día coloreado y después la hora del vídeo.</span></div><div class="rewind-month"><button data-rewind-month="-1" aria-label="Mes anterior">‹</button><b>${esc(label)}</b><button data-rewind-month="1" aria-label="Mes siguiente">›</button></div><div class="rewind-week"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="rewind-calendar">${cells}</div><div class="rewind-legend"><i class="good"></i> bueno <i class="fair"></i> regular <i class="poor"></i> flojo <span>· número = vídeos</span></div><section class="rewind-day"><h3>${esc(selectedLabel)}</h3><div class="clip-hours">${selected.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}${c.foto ? ' 📷' : ''}</button>`).join('')}</div></section></div>`;
+  return `<div id="rewind-strip" class="rewind-strip" hidden><div class="rewind-intro"><b>Histórico Rewind</b><span>Elige un día coloreado y después la hora del vídeo.</span></div><div class="rewind-month"><button data-rewind-month="-1" aria-label="Mes anterior">‹</button><b>${esc(label)}</b><button data-rewind-month="1" aria-label="Mes siguiente">›</button></div><div class="rewind-week"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="rewind-calendar">${cells}</div><div class="rewind-legend"><i class="good"></i> bueno <i class="fair"></i> regular <i class="poor"></i> flojo <span>· número = vídeos</span></div><section class="rewind-day"><h3>${esc(selectedLabel)}</h3><div class="clip-hours">${selected.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section></div>`;
 }
 function renderRewinds(spot) {
   const clips = clipsForSpot(spot);
@@ -1012,7 +932,7 @@ function renderRewinds(spot) {
   });
   // Sin clips la tira nace desplegada: si no, el motivo se queda escondido detrás
   // de un botón que no parece hacer nada.
-  return `<div id="rewind-strip" class="rewind-strip" ${clips.length ? 'hidden' : ''}>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}${c.foto ? ' 📷' : ''}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot. El grabador solo deja clips los días con oleaje suficiente, así que esta lista se llena poco a poco.</p>'}</div>`;
+  return `<div id="rewind-strip" class="rewind-strip" ${clips.length ? 'hidden' : ''}>${clips.length ? [...groups].map(([day, entries]) => `<section class="rewind-day"><h3>${day === today ? 'Hoy' : day === yesterday ? 'Ayer' : new Date(entries[0].c.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'long' })}</h3><div class="clip-hours">${entries.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section>`).join('') : '<p>Aún no hay clips guardados de las cámaras de este spot. El grabador solo deja clips los días con oleaje suficiente, así que esta lista se llena poco a poco.</p>'}</div>`;
 }
 function bindClips(spot, camEl, showCam) {
   const clips = clipsForSpot(spot);
@@ -1653,38 +1573,38 @@ function humanSummary(spot, h) {
   if (!h) return '';
   const r = h.rating ?? 0;
   const windKey = h.wind?.key ?? '';
-  let icon = 'ℹ️';
+  let icon = ICON.wave;
   let tag = 'Resumen para todos los públicos';
   let text = '';
 
   if (r >= 4) {
-    icon = '🔥';
-    tag = 'Sesión épica / Muy buenas condiciones';
+    icon = ICON.wave;
+    tag = 'Sesión épica · Muy buenas condiciones';
     text = `Oleaje consistente de ${range(h.surf)} m con viento favorable (${h.wind?.label || 'limpio'}). Condiciones ideales para surfistas de nivel intermedio y avanzado.`;
   } else if (r >= 2) {
     if (windKey === 'offshore' || windKey === 'crossoff' || windKey === 'glassy') {
-      icon = '🏄';
+      icon = ICON.wave;
       tag = 'Olas limpias y manejables';
       text = `Olas suaves de ${range(h.surf)} m con mar ordenado. Muy disfrutable con tabla evolutiva, tablón (longboard) o twin-fin.`;
     } else {
-      icon = '🌊';
-      tag = 'Mar chopi / revuelto';
+      icon = ICON.wave;
+      tag = 'Mar chopi · revuelto';
       text = `Viento de mar (${h.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) + ' km/h' : ''}) levantando ola revuelta de ${range(h.surf)} m. Mejor con tablas con buen volumen o para pillar espumas.`;
     }
   } else {
     if (h.surf?.mid < 0.25) {
-      icon = '☀️';
+      icon = ICON.wave;
       tag = 'Mar plato';
       text = 'Apenas hay oleaje surfeable en rompiente. Excelente para natación, paddle surf (SUP), kayak o bautismos en la orilla.';
     } else {
-      icon = '💨';
+      icon = ICON.wind;
       tag = 'Condiciones duras o cruzadas';
       text = `Oleaje de ${range(h.surf)} m desordenado por viento lateral/onshore. Recomendado esperar a la mejor franja horaria o buscar abrigo en espigón.`;
     }
   }
 
   return `<div class="human-summary-card">
-    <div class="hs-tag"><span>${icon}</span> <span>${tag}</span></div>
+    <div class="hs-tag"><span class="hs-icon" aria-hidden="true">${icon}</span> <span>${tag}</span></div>
     <div>${text}</div>
   </div>`;
 }

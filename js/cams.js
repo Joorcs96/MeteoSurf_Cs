@@ -152,6 +152,61 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     return;
   }
 
+  if (t === 'skyline') {
+    const f = document.createElement('iframe');
+    f.sandbox = 'allow-scripts';
+    f.allow = 'autoplay; fullscreen; picture-in-picture';
+    f.allowFullscreen = true;
+    f.referrerPolicy = 'no-referrer';
+    f.loading = 'lazy';
+    f.title = cam.name;
+    const skylinePage = cam.embedUrl || 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html';
+    f.src = `cam_skyline.html?page=${encodeURIComponent(skylinePage)}`;
+    el.appendChild(f);
+
+    const badge = document.createElement('span');
+    badge.className = 'cam-badge cam-badge-buffer';
+    badge.textContent = '● Búfer';
+    el.appendChild(badge);
+
+    const setBadge = (tipo, texto) => {
+      badge.className = `cam-badge cam-badge-${tipo} ${tipo}`;
+      badge.textContent = texto;
+    };
+
+    let haReproducido = false;
+    let signalTimer = setTimeout(() => {
+      if (!haReproducido && sessions.get(el) === session) {
+        setBadge('sin-senal', '● Sin señal');
+      }
+    }, 10000);
+
+    const onMessage = (event) => {
+      if (sessions.get(el) !== session) return;
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'skyline_playing') {
+        haReproducido = true;
+        clearTimeout(signalTimer);
+        setBadge('directo', '● En directo');
+      } else if (data.type === 'skyline_waiting') {
+        setBadge('buffer', '● Búfer');
+      } else if (data.type === 'skyline_error') {
+        clearTimeout(signalTimer);
+        setBadge('sin-senal', '● Sin señal');
+      }
+    };
+
+    window.addEventListener('message', onMessage);
+    active.set(el, () => {
+      clearTimeout(signalTimer);
+      window.removeEventListener('message', onMessage);
+      f.src = 'about:blank';
+      f.remove();
+    });
+    return;
+  }
+
   if (t === 'hls') {
     const est = estadoStream(cam);
     if (!est.ok) {
@@ -971,6 +1026,7 @@ export function camThumb(cam) {
   if (!cam) return null;
   if (cam.thumbUrl) return cam.thumbUrl;
   if (cam.embedType === 'jpg') return cam.embedUrl;
+  if (cam.embedType === 'skyline') return 'https://cdn.skylinewebcams.com/live2815.jpg';
   const id = cam.embedType === 'youtube' && cam.embedUrl.match(/(?:v=|youtu\.be\/|embed\/|live\/)([\w-]{11})/)?.[1];
   return id ? `https://i.ytimg.com/vi/${id}/hqdefault_live.jpg` : null;
 }

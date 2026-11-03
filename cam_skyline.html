@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Skyline Stream</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; background:#000; overflow:hidden; }
+    video, #preview { width:100%; height:100%; object-fit:contain; display:block; background:#000; }
+    #preview { position:absolute; inset:0; z-index:2; display:none; }
+    #msg { display:none; position:absolute; bottom:12px; left:12px; right:12px; align-items:center; justify-content:center; color:#fff; font-family:system-ui,-apple-system,sans-serif; font-size:12px; text-align:center; padding:8px 12px; background:rgba(0,0,0,0.75); border-radius:6px; z-index:10; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+</head>
+<body>
+  <video id="v" autoplay muted playsinline controls></video>
+  <img id="preview" alt="En directo" referrerpolicy="no-referrer">
+  <div id="msg"></div>
+  <script src="js/cam_skyline.js"></script>
+</body>
+</html>

@@ -6,7 +6,7 @@ export interface ResolvedStream {
   short: string;
   spotId: string;
   priority: number;
-  type: 'hls' | 'mjpeg' | 'jpg' | 'iframe';
+  type: 'hls' | 'mjpeg' | 'jpg' | 'iframe' | 'skyline';
   streamUrl: string;
   fallbackUrl?: string;
   credit?: string;
@@ -49,7 +49,7 @@ export function getStreamsForSpot(spotId: string): ResolvedStream[] {
       streamUrl: url,
       fallbackUrl,
       credit: cam.credit,
-      isDirect: cam.embedType === 'hls',
+      isDirect: cam.embedType === 'hls' || cam.embedType === 'skyline',
       distanceKm: cam.distanceKm,
     });
   }

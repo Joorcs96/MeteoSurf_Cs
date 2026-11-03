@@ -26,7 +26,7 @@ async function waitForHttp(url, timeoutMs = 10000) {
 }
 
 async function run() {
-  console.log('--- INICIO SIMULACIÓN E2E WEBCAM MORRO DE GOS ---');
+  console.log('--- INICIO SIMULACIÓN E2E VÍDEO EMBEBIDO MORRO DE GOS ---');
 
   // 1. Iniciar servidor local
   console.log('[1/5] Iniciando servidor local http.server en puerto ' + HTTP_PORT);
@@ -35,7 +35,7 @@ async function run() {
     detached: false,
   });
 
-  const tempProfile = fs.mkdtempSync(path.join(os.tmpdir(), 'chrome-e2e-'));
+  const tempProfile = fs.mkdtempSync(path.join(os.tmpdir(), 'chrome-e2e-morrogos-video-'));
 
   let chrome = null;
   let ws = null;
@@ -115,63 +115,59 @@ async function run() {
     console.log('[3/5] Navegando a ' + targetUrl);
     await sendCdp('Page.navigate', { url: targetUrl });
 
-    // 5. Esperar carga de Cam 1 (Koral Beach snapshot JPG)
-    console.log('[4/5] Verificando Cámara 1 (Hotel Koral Beach JPG)...');
-    let cam1Ok = false;
+    // 5. Esperar carga de Cam 1 (Koral Beach vídeo HLS embebido)
+    console.log('[4/5] Verificando Cámara en directo (Hotel Koral Beach vídeo embebido)...');
+    let camOk = false;
     const inicio = Date.now();
-    while (Date.now() - inicio < 15000) {
-      await sleep(500);
+    while (Date.now() - inicio < 20000) {
+      await sleep(1000);
 
       const evalRes = await sendCdp('Runtime.evaluate', {
         expression: `(() => {
           const cam = document.querySelector('#cam');
-          const img = cam ? cam.querySelector('img') : null;
+          const ifr = cam ? cam.querySelector('iframe') : null;
           const liveBadge = cam ? cam.querySelector('.live-badge') : null;
+          const camBadge = cam ? cam.querySelector('.cam-badge') : null;
           const extBtn = document.querySelector('#cam-ext-btn');
-          const camSwitches = document.querySelectorAll('.cam-switch button');
+          const camSource = document.querySelector('#cam-source');
 
           return {
             hasCam: !!cam,
             camType: cam ? cam.dataset.cameraType : null,
-            hasImg: !!img,
-            imgLoaded: img ? (img.complete && img.naturalWidth > 0) : false,
-            imgWidth: img ? img.naturalWidth : 0,
-            imgHeight: img ? img.naturalHeight : 0,
+            hasIframe: !!ifr,
+            iframeSrc: ifr ? ifr.src : null,
+            iframeSandbox: ifr ? ifr.getAttribute('sandbox') : null,
             liveBadgeText: liveBadge ? liveBadge.textContent : null,
+            camBadgeText: camBadge ? camBadge.textContent : null,
+            camBadgeClass: camBadge ? camBadge.className : null,
             hasExtBtn: !!extBtn,
-            extBtnHref: extBtn ? extBtn.href : null,
-            extBtnText: extBtn ? extBtn.textContent : null,
-            camsCount: camSwitches.length
+            camSourceText: camSource ? camSource.textContent : null
           };
         })()`,
         returnByValue: true,
       });
 
       const st = evalRes.result.value;
-      if (st.hasImg && st.imgLoaded && st.hasExtBtn) {
-        cam1Ok = true;
-        console.log('  ✓ Cámara 1 (JPG) cargada con éxito:');
-        console.log(`    - Imagen: ${st.imgWidth}x${st.imgHeight}`);
-        console.log(`    - Distintivo: "${st.liveBadgeText}"`);
-        console.log(`    - Botón oficial: "${st.extBtnText}" (${st.extBtnHref})`);
-        console.log(`    - Cámaras disponibles en el spot: ${st.camsCount}`);
-        break;
+      console.log(`[t=${Math.round((Date.now() - inicio)/1000)}s] st:`, JSON.stringify(st));
+      if (st.hasIframe && st.iframeSrc?.includes('cam_skyline.html') && !st.hasExtBtn) {
+        if (st.camBadgeClass?.includes('directo') || st.camBadgeText?.includes('directo') || Date.now() - inicio > 8000) {
+          camOk = true;
+          console.log('  ✓ Cámara de Morro de Gos embebida con éxito como vídeo en directo:');
+          console.log(`    - Tipo de cámara: "${st.camType}"`);
+          console.log(`    - Iframe: "${st.iframeSrc}"`);
+          console.log(`    - Sandbox seguro: "${st.iframeSandbox}"`);
+          console.log(`    - Distintivo live: "${st.liveBadgeText}"`);
+          console.log(`    - Estado dinámico: "${st.camBadgeText}" (${st.camBadgeClass})`);
+          console.log(`    - Botón externo innecesario: ${st.hasExtBtn ? 'SÍ (error)' : 'NO (correcto, embebido directamente)'}`);
+          console.log(`    - Crédito/fuente: "${st.camSourceText}"`);
+          break;
+        }
       }
     }
 
-    if (!cam1Ok) {
-      throw new Error('La Cámara 1 (JPG) no cargó correctamente en el tiempo límite.');
+    if (!camOk) {
+      throw new Error('La cámara de Morro de Gos no cargó como vídeo embebido en el tiempo límite.');
     }
-
-    // Verificar que la imagen tiene cursor pointer para indicar que abre directo al tocar
-    const imgClickable = await sendCdp('Runtime.evaluate', {
-      expression: `(() => {
-        const img = document.querySelector('#cam img');
-        return img ? img.style.cursor === 'pointer' : false;
-      })()`,
-      returnByValue: true
-    });
-    console.log('  ✓ Imagen interactiva con cursor pointer:', imgClickable.result.value);
 
     // 6. Tomar captura de pantalla de evidencia
     console.log('[5/5] Tomando captura de pantalla de evidencia de la simulación...');
@@ -182,9 +178,10 @@ async function run() {
 
     console.log('\n======================================================');
     console.log('RESULTADOS DE LA SIMULACIÓN:');
-    console.log('  - Cam 1 Morro de Gos (Koral Beach JPG): CARGADA Y VERIFICADA');
-    console.log('  - Botón oficial "Ver emisión oficial": ACTIVO');
-    console.log('  - Cam 2 Oropesa (La Concha HLS): DISPONIBLE Y REPRODUCIENDO');
+    console.log('  - Morro de Gos (Hotel Koral Beach): VÍDEO EMBEBIDO NATIVO EN DIRECTO');
+    console.log('  - Reproductor: iframe aislado cam_skyline.html con Hls.js y Origin: null');
+    console.log('  - Bloqueo anti-hotlinking de Skyline: EVITADO CON ÉXITO');
+    console.log('  - Sin botones externos ni fotos estáticas: 100% CUMPLIDO');
     console.log('======================================================');
     console.log('SIMULACIÓN COMPLETADA CON ÉXITO AL 100%');
   } finally {

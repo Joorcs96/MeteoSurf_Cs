@@ -43,13 +43,16 @@
     if (previewImg) previewImg.style.display = 'none';
   }
 
-  async function resolveToken() {
+  // Skyline publica una autorización de vida corta dentro de su página. Se usa
+  // únicamente en memoria para iniciar este vídeo y se vuelve a pedir ante un
+  // fallo; nunca se persiste ni se configura a mano.
+  async function resolveStream() {
     try {
       const res = await fetch(pageUrl, { cache: 'no-cache' });
       if (!res.ok) return null;
       const html = await res.text();
-      const match = html.match(/source\s*:\s*['"](?:livee|live)\.m3u8\?a=([^'"]+)['"]/);
-      return match ? match[1] : null;
+      const match = html.match(/source\s*:\s*['"]([^'"]+\.m3u8\?a=[^'"]+)['"]/i);
+      return match ? new URL(match[1], 'https://hd-auth.skylinewebcams.com/').href : null;
     } catch {
       return null;
     }
@@ -114,17 +117,16 @@
     if (retryTimer) return;
     retryTimer = setTimeout(async () => {
       retryTimer = null;
-      const token = await resolveToken();
-      if (token) {
-        startWithToken(token);
+      const streamUrl = await resolveStream();
+      if (streamUrl) {
+        startWithStream(streamUrl);
       } else {
         scheduleRetry();
       }
     }, 6000);
   }
 
-  function startWithToken(token) {
-    const streamUrl = 'https://hd-auth.skylinewebcams.com/live.m3u8?a=' + encodeURIComponent(token);
+  function startWithStream(streamUrl) {
     const isApple = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
       (/Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Android/.test(navigator.userAgent));
@@ -140,13 +142,9 @@
   }
 
   async function init() {
-    let token = params.get('token');
-    if (!token) {
-      token = await resolveToken();
-    }
-
-    if (token) {
-      startWithToken(token);
+    const streamUrl = await resolveStream();
+    if (streamUrl) {
+      startWithStream(streamUrl);
     } else {
       // Fallback suave con vista previa mientras conecta
       showPreview();

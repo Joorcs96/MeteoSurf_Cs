@@ -7,8 +7,8 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 const HTTP_PORT = 8765;
 const CDP_PORT = 9222;
 const caso = process.argv[2] === 'trinimar'
-  ? { spot: 'Heliopolis', cam: 1, nombre: 'Hotel Trinimar', imagen: 'live2816.jpg' }
-  : { spot: 'MorroGos', cam: 0, nombre: 'Hotel Koral Beach', imagen: 'live2815.jpg' };
+  ? { spot: 'Heliopolis', cam: 1, nombre: 'Hotel Trinimar', tipo: 'skyline', fuente: 'benicasim.html?w=2816' }
+  : { spot: 'MorroGos', cam: 0, nombre: 'Hotel Koral Beach', tipo: 'jpg', fuente: 'live2815.jpg' };
 
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -134,9 +134,11 @@ async function run() {
       await sendCdp('Runtime.evaluate', { expression: `document.querySelector('[data-cam="${caso.cam}"]')?.click()` });
     }
 
-    // 5. Esperar la imagen directa. No usa token, iframe ni URL temporal.
-    console.log('[4/5] Verificando imagen directa de ' + caso.nombre + '...');
+    // 5. Esperar la señal. Para Trinimar se comprueba que el vídeo ya tiene
+    // píxeles: que exista el iframe no cuenta como señal reproducida.
+    console.log('[4/5] Verificando señal en directo de ' + caso.nombre + '...');
     let camOk = false;
+    let ultimoTiempoVideo = null;
     const inicio = Date.now();
     while (Date.now() - inicio < 20000) {
       await sleep(1000);
@@ -145,6 +147,8 @@ async function run() {
         expression: `(() => {
           const cam = document.querySelector('#cam');
           const imagen = cam ? cam.querySelector('img') : null;
+          const iframe = cam ? cam.querySelector('iframe') : null;
+          const video = iframe?.contentDocument?.querySelector('video') || null;
           const liveBadge = cam ? cam.querySelector('.live-badge') : null;
           const camBadge = cam ? cam.querySelector('.cam-badge') : null;
           const extBtn = document.querySelector('#cam-ext-btn');
@@ -155,6 +159,10 @@ async function run() {
             camType: cam ? cam.dataset.cameraType : null,
             imageSrc: imagen ? imagen.currentSrc || imagen.src : null,
             imageLoaded: !!(imagen && imagen.complete && imagen.naturalWidth > 0),
+            iframeSrc: iframe ? iframe.src : null,
+            videoReady: !!(video && video.videoWidth > 0 && video.videoHeight > 0 && !video.paused),
+            videoSize: video ? video.videoWidth + 'x' + video.videoHeight : null,
+            videoTime: video ? video.currentTime : null,
             liveBadgeText: liveBadge ? liveBadge.textContent : null,
             camBadgeText: camBadge ? camBadge.textContent : null,
             camBadgeClass: camBadge ? camBadge.className : null,
@@ -167,11 +175,18 @@ async function run() {
 
       const st = evalRes.result.value;
       console.log(`[t=${Math.round((Date.now() - inicio)/1000)}s] st:`, JSON.stringify(st));
-      if (st.camType === 'jpg' && st.imageLoaded && st.imageSrc?.includes(caso.imagen)) {
+      const correcta = caso.tipo === 'jpg'
+        ? st.camType === 'jpg' && st.imageLoaded && st.imageSrc?.includes(caso.fuente)
+        : st.camType === 'skyline' && st.iframeSrc?.includes('cam_skyline.html') && st.videoReady
+          && ultimoTiempoVideo !== null && st.videoTime > ultimoTiempoVideo + 0.5;
+      ultimoTiempoVideo = st.videoTime;
+      if (correcta) {
           camOk = true;
-          console.log('  ✓ Imagen de ' + caso.nombre + ' cargada sin token ni iframe:');
+          console.log('  ✓ Vídeo de ' + caso.nombre + ' reproduciéndose:');
           console.log(`    - Tipo de cámara: "${st.camType}"`);
-          console.log(`    - Imagen: "${st.imageSrc}"`);
+          console.log(`    - Fuente: "${st.imageSrc || st.iframeSrc}"`);
+          console.log(`    - Tamaño de vídeo: "${st.videoSize}"`);
+          console.log(`    - Tiempo de reproducción: "${st.videoTime.toFixed(1)} s"`);
           console.log(`    - Distintivo live: "${st.liveBadgeText}"`);
           console.log(`    - Crédito/fuente: "${st.camSourceText}"`);
           break;
@@ -179,8 +194,11 @@ async function run() {
     }
 
     if (!camOk) {
-      throw new Error('La imagen directa de ' + caso.nombre + ' no cargó en el tiempo límite.');
+      throw new Error('La señal en directo de ' + caso.nombre + ' no se reprodujo en el tiempo límite.');
     }
+    if (caso.tipo === 'skyline') await sleep(5000);
+    const camShot = await sendCdp('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(path.resolve('simulacion_camara_ok.png'), Buffer.from(camShot.data, 'base64'));
 
     // 6. El mapa debe cargar teselas y no quedarse bloqueado si falla su CDN.
     console.log('[5/6] Verificando carga del mapa...');
@@ -211,8 +229,12 @@ async function run() {
 
     console.log('\n======================================================');
     console.log('RESULTADOS DE LA SIMULACIÓN:');
-    console.log('  - Morro de Gos (Hotel Koral Beach): IMAGEN DIRECTA ACTUALIZADA');
-    console.log('  - Sin token, iframe ni URL temporal');
+    console.log(caso.tipo === 'skyline'
+      ? '  - Hotel Trinimar: VÍDEO EN DIRECTO, REPRODUCCIÓN VERIFICADA'
+      : '  - Morro de Gos (Hotel Koral Beach): IMAGEN DIRECTA ACTUALIZADA');
+    console.log(caso.tipo === 'skyline'
+      ? '  - Autorización efímera resuelta y renovada automáticamente'
+      : '  - Sin token, iframe ni URL temporal');
     console.log('  - Reintento automático ante un error de red');
     console.log('  - Mapa cargado con teselas y reserva automática');
     console.log('======================================================');

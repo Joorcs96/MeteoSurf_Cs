@@ -154,7 +154,10 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
 
   if (t === 'skyline') {
     const f = document.createElement('iframe');
-    f.sandbox = 'allow-scripts';
+    // cam_skyline.html es una página local controlada por MeteoSurf. Mantener
+    // su origen permite comprobar su estado de vídeo; la webcam externa nunca
+    // se incrusta como iframe y sigue sin poder acceder a la aplicación.
+    f.sandbox = 'allow-scripts allow-same-origin';
     f.allow = 'autoplay; fullscreen; picture-in-picture';
     f.allowFullscreen = true;
     f.referrerPolicy = 'no-referrer';

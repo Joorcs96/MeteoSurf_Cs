@@ -42,8 +42,8 @@ h3 { font-size:16px; }
 .fav-btn.on .icon { fill:var(--text); }
 .topnav { display:none; }
 #view { max-width:1180px; margin:0 auto; padding:24px 20px 154px; min-height:75vh; }
-.tabbar { position:fixed; z-index:1000; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); padding:0 4px env(safe-area-inset-bottom); }
-.tabbar a { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; min-height:60px; color:var(--text-2); font-size:10px; font-weight:500; border-top:2px solid transparent; }
+.tabbar { position:fixed; z-index:1000; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(6,1fr); padding:0 4px env(safe-area-inset-bottom); }
+.tabbar a { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; min-height:56px; color:var(--text-2); font-size:9.5px; padding:2px 1px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; border-top:2px solid transparent; }
 .tabbar a.active { border-color:var(--text); color:var(--text); font-weight:700; }
 .quick-spots { position:fixed; z-index:1000; bottom:calc(60px + env(safe-area-inset-bottom)); left:0; right:0; display:flex; overflow-x:auto; background:var(--surface); border-top:1px solid var(--line); padding:0 8px; }
 .quick-spot { display:flex; align-items:center; justify-content:center; min-height:48px; flex:1 0 auto; padding:0 8px; font-size:13px; font-weight:600; border-bottom:2px solid transparent; }
@@ -1067,4 +1067,477 @@ body.vista-camaras .quick-spots { display:none; }
   min-height: 38px;
   cursor: pointer;
   white-space: nowrap;
+}
+
+/* ==========================================================================
+   Página Ahora: Portada Principal Independiente
+   ========================================================================== */
+.ahora-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.ahora-title {
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+.ahora-subtitle {
+  font-size: 13.5px;
+  color: var(--text-2);
+  margin: 0;
+  line-height: 1.4;
+}
+.ahora-updated {
+  display: inline-block;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.btn-subtle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 6px);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  touch-action: manipulation;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-subtle:hover, .btn-subtle:focus-visible {
+  background: var(--surface);
+  border-color: var(--text);
+}
+
+.ahora-section {
+  margin-bottom: 36px;
+}
+.section-title-wrap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.section-title-wrap .section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.section-title-wrap .faint {
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+/* Hero Card (Mejor opción local) */
+.ahora-hero-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ahora-hero-card:hover {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+}
+.ahora-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.ahora-hero-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.65) saturate(1.1);
+  transform: scale(1.02);
+  transition: transform 0.4s ease;
+}
+.ahora-hero-card:hover .ahora-hero-bg img {
+  transform: scale(1.05);
+}
+.ahora-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.85) 55%, rgba(15, 23, 42, 0.98) 100%);
+}
+.ahora-hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #fff;
+}
+.ahora-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.ahora-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(37, 99, 235, 0.9);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+.ahora-hero-content .rating-pill {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.ahora-hero-content .fav-btn {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: #fff;
+}
+.ahora-hero-content .fav-btn:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+.ahora-hero-content .fav-btn.on {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #111827;
+}
+.ahora-hero-title-wrap {
+  margin-top: 4px;
+}
+.ahora-hero-title {
+  margin: 0;
+  font-size: clamp(24px, 5vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1.15;
+}
+.ahora-hero-title a {
+  color: #fff;
+  text-decoration: none;
+}
+.ahora-hero-title a:hover, .ahora-hero-title a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.ahora-hero-zone {
+  display: inline-block;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.ahora-hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+}
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+.metric-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+.metric-val small {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+}
+.metric-dir {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+.metric-sub {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.ahora-hero-rec {
+  background: rgba(0, 0, 0, 0.35);
+  border-left: 3px solid #38bdf8;
+  padding: 12px 14px;
+  border-radius: 4px;
+}
+.rec-title {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #38bdf8;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.rec-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.ahora-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+.btn-hero-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 20px;
+  background: #0284c7;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 6px;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+  touch-action: manipulation;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.btn-hero-primary:hover, .btn-hero-primary:focus-visible {
+  background: #0369a1;
+  transform: translateY(-1px);
+}
+.btn-hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 48px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  touch-action: manipulation;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-hero-secondary:hover, .btn-hero-secondary:focus-visible {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Rejilla de Opciones Compactas */
+.ahora-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.ahora-compact-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ahora-compact-card:hover {
+  border-color: var(--text-2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+.compact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.compact-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.compact-title a {
+  color: var(--text);
+  text-decoration: none;
+}
+.compact-title a:hover, .compact-title a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.compact-zone {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 1px;
+}
+.compact-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.compact-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.c-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.c-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  font-weight: 600;
+}
+.c-val {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.compact-rec {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.4;
+  flex-grow: 1;
+}
+.compact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+.compact-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  touch-action: manipulation;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.compact-btn:hover, .compact-btn:focus-visible {
+  background: var(--surface);
+  border-color: var(--text);
+}
+.compact-btn.primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+.compact-btn.primary:hover, .compact-btn.primary:focus-visible {
+  opacity: 0.9;
+}
+
+/* Banner Si compensa alejarse */
+.ahora-far-banner {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+.ahora-far-banner.compensates {
+  border-left: 4px solid #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+.ahora-far-banner.no-compensates {
+  border-left: 4px solid #64748b;
+  background: var(--surface-2);
+}
+.ahora-far-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+  color: var(--text);
+}
+.ahora-far-copy p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.ahora-far-copy strong {
+  font-weight: 700;
 }

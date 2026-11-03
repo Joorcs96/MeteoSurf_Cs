@@ -144,6 +144,11 @@ const ICON = {
   cam: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>',
   rewind: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/></svg>',
   search: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  clock: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  calendar: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  arrowRight: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+  car: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px" aria-hidden="true"><rect x="3" y="11" width="18" height="8" rx="2"/><path d="M5 11l2-5h10l2 5"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></svg>',
+  chat: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   pin: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
 };
 
@@ -232,11 +237,18 @@ function route() {
   const h = location.hash.replace(/^#\/?/, '');
   const [page, arg] = h.split('/');
   if (page !== 'spot') state.spotId = null;
+  const isAhora = !page || page === 'ahora';
+  if (!page) {
+    history.replaceState(null, '', '#/ahora');
+  }
   document.body.classList.toggle('vista-mapa', page === 'mapa');
-  document.body.classList.toggle('vista-home', !page || page === 'favoritos');
+  document.body.classList.toggle('vista-ahora', isAhora);
+  document.body.classList.toggle('vista-prevision', page === 'prevision' || (!isAhora && page === 'favoritos'));
+  document.body.classList.toggle('vista-home', isAhora);
   document.body.classList.toggle('vista-camaras', page === 'camaras');
   document.body.classList.toggle('vista-calendario', page === 'calendario');
-  document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === (page || 'hoy')));
+  const activeNav = isAhora ? 'ahora' : page;
+  document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === activeNav));
   renderQuickSpots();
   const savedClip = $('#save-clip');
   if (savedClip?.dataset.url) URL.revokeObjectURL(savedClip.dataset.url);
@@ -247,13 +259,304 @@ function route() {
   if (page === 'asistente') return renderAssistant();
   if (page === 'calendario') return renderCalendario();
   if (page === 'pro') return renderPro();
-  if (page === 'favoritos') { state.zone = 'fav'; return renderHome(); }
-  if (state.zone === 'fav' && page !== 'favoritos') state.zone = 'all';
-  return renderHome();
+  if (page === 'favoritos') { state.zone = 'fav'; return renderPrevision(); }
+  if (page === 'prevision') {
+    if (state.zone === 'fav') state.zone = 'all';
+    return renderPrevision();
+  }
+  return renderAhora();
 }
 
-// ---------- Portada: lista regional ----------
-function renderHome() {
+// Datos calculados para la portada Ahora
+function getSpotNowData(spot, fc) {
+  const spotFc = fc?.spots?.[spot.id];
+  const hours = spotFc?.hours || [];
+  const idx = nowIndex(hours);
+  const h = hours[idx] || null;
+  const rating = h?.rating ?? 0;
+  const surfMid = h?.surf?.mid ?? (h?.surfMin != null && h?.surfMax != null ? (h.surfMin + h.surfMax) / 2 : 0);
+  const surfRange = h?.surf ? range(h.surf) : (surfMid ? `${surfMid.toFixed(1)} m` : '–');
+  const sw = h?.swells?.[0];
+  const period = sw?.t ? Math.round(sw.t) : (h?.period ? Math.round(h.period) : null);
+  const swellDir = sw?.dir != null ? compass(sw.dir) : '';
+  const windSpd = h?.windSpeed != null && !isNaN(h.windSpeed) ? Math.round(h.windSpeed) : 0;
+  const windDir = h?.windDirTxt || (h?.wind?.direction != null ? compass(h.wind.direction) : '');
+  const windType = h?.wind?.txt || WIND_SHORT[h?.wind?.key] || (h?.wind?.key === 'offshore' ? 'Terral' : h?.wind?.key === 'onshore' ? 'Mar adentro' : h?.wind?.key === 'glassy' ? 'Calma' : '');
+  const score = rating * 100 + surfMid;
+
+  let recomendacion = '';
+  if (rating >= 6) {
+    recomendacion = '¡Momento excelente! Ola muy bien formada y viento idóneo. Sesión recomendada de referencia hoy.';
+  } else if (rating >= 4) {
+    recomendacion = 'Buenas condiciones para entrar. Olas bien formadas y viento favorable en este punto.';
+  } else if (rating >= 3) {
+    recomendacion = 'Baño entretenido con tablón o corcho. Rompiente con fuerza suficiente para surfear.';
+  } else if (surfMid >= 0.4) {
+    recomendacion = 'Ola pequeña o viento algo lateral. Mejor con tabla de volumen o buscando el punto de marea.';
+  } else {
+    recomendacion = 'Mar prácticamente plato ahora mismo. Conviene esperar un repunte de periodo o terral.';
+  }
+
+  const cams = camsForSpot(spot);
+  const clips = clipsForSpot(spot);
+
+  return {
+    spot,
+    h,
+    rating,
+    ratingLabel: ratingLabel(rating),
+    ratingCls: ratingCls(rating),
+    surfMid,
+    surfRange,
+    period,
+    swellDir,
+    windSpd,
+    windDir,
+    windType,
+    score,
+    recomendacion,
+    hasCam: cams.length > 0,
+    hasRewind: clips.length > 0,
+    camId: cams[0]?.id || null
+  };
+}
+
+function renderAhoraHeroCard(d) {
+  const { spot, ratingLabel, ratingCls, surfRange, period, swellDir, windSpd, windDir, windType, recomendacion, hasCam, hasRewind } = d;
+  const foto = spot.photo?.thumb ? miniatura(spot.photo.thumb, 900) : '';
+  const isFav = favs.has(spot.id);
+
+  return `
+    <article class="ahora-hero-card ${ratingCls}">
+      ${foto ? `
+        <div class="ahora-hero-bg">
+          <img src="${esc(foto)}" alt="Playa y rompiente de ${esc(spot.name)}" loading="eager" fetchpriority="high" decoding="async">
+          <div class="ahora-hero-overlay"></div>
+        </div>
+      ` : ''}
+      <div class="ahora-hero-content">
+        <div class="ahora-hero-top">
+          <div class="ahora-hero-badge">
+            <span class="badge-tag">${ICON.wave} Mejor opción local ahora</span>
+            <span class="rating-pill ${ratingCls}">${ratingLabel}</span>
+          </div>
+          <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Guardar ${esc(spot.name)} en favoritos" title="Favorito">
+            ${ICON.star}
+          </button>
+        </div>
+
+        <div class="ahora-hero-title-wrap">
+          <h2 class="ahora-hero-title">
+            <a href="#/spot/${encodeURIComponent(spot.id)}">${esc(spot.name)}</a>
+          </h2>
+          <span class="ahora-hero-zone">${esc(spot.zoneName)}</span>
+        </div>
+
+        <div class="ahora-hero-metrics" role="group" aria-label="Condiciones actuales en ${esc(spot.name)}">
+          <div class="metric-item">
+            <span class="metric-label">${ICON.wave} Altura de ola</span>
+            <span class="metric-val tabular-nums">${surfRange}<small> m</small></span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">${ICON.clock} Periodo</span>
+            <span class="metric-val tabular-nums">${period ? `${period}<small> s</small>` : '–'}${swellDir ? ` <span class="metric-dir">${esc(swellDir)}</span>` : ''}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">${ICON.wind} Viento</span>
+            <span class="metric-val tabular-nums">${windSpd}<small> km/h</small> <span class="metric-sub">${esc(windDir)}${windType ? ` · ${esc(windType)}` : ''}</span></span>
+          </div>
+        </div>
+
+        <div class="ahora-hero-rec">
+          <span class="rec-title">Recomendación para entrar:</span>
+          <p class="rec-text">${esc(recomendacion)}</p>
+        </div>
+
+        <div class="ahora-hero-actions">
+          <a href="#/spot/${encodeURIComponent(spot.id)}" class="btn-hero-primary">
+            ${ICON.wave} Ver spot completo
+          </a>
+          ${hasCam ? `
+            <a href="#/spot/${encodeURIComponent(spot.id)}" class="btn-hero-secondary">
+              ${ICON.cam} Cámara en directo
+            </a>
+          ` : ''}
+          ${hasRewind ? `
+            <a href="#/spot/${encodeURIComponent(spot.id)}" class="btn-hero-secondary">
+              ${ICON.rewind} Rewind
+            </a>
+          ` : ''}
+          <a href="#/spot/${encodeURIComponent(spot.id)}" class="btn-hero-secondary">
+            ${ICON.calendar} Previsión detallada
+          </a>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderAhoraCompactCard(d) {
+  const { spot, ratingLabel, ratingCls, surfRange, period, windSpd, windDir, recomendacion, hasCam, hasRewind } = d;
+  const isFav = favs.has(spot.id);
+
+  return `
+    <article class="ahora-compact-card ${ratingCls}">
+      <div class="compact-header">
+        <div>
+          <h3 class="compact-title">
+            <a href="#/spot/${encodeURIComponent(spot.id)}">${esc(spot.name)}</a>
+          </h3>
+          <span class="compact-zone">${esc(spot.zoneName)}</span>
+        </div>
+        <div class="compact-header-right">
+          <span class="rating-pill ${ratingCls}">${ratingLabel}</span>
+          <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Guardar ${esc(spot.name)} en favoritos" title="Favorito">
+            ${ICON.star}
+          </button>
+        </div>
+      </div>
+
+      <div class="compact-metrics" role="group" aria-label="Condiciones en ${esc(spot.name)}">
+        <div class="c-metric">
+          <span class="c-label">${ICON.wave} Ola</span>
+          <span class="c-val tabular-nums">${surfRange} m</span>
+        </div>
+        <div class="c-metric">
+          <span class="c-label">${ICON.clock} Periodo</span>
+          <span class="c-val tabular-nums">${period ? `${period} s` : '–'}</span>
+        </div>
+        <div class="c-metric">
+          <span class="c-label">${ICON.wind} Viento</span>
+          <span class="c-val tabular-nums">${windSpd} km/h ${esc(windDir)}</span>
+        </div>
+      </div>
+
+      <div class="compact-rec">
+        <p>${esc(recomendacion)}</p>
+      </div>
+
+      <div class="compact-actions">
+        <a href="#/spot/${encodeURIComponent(spot.id)}" class="compact-btn primary" title="Ver spot ${esc(spot.name)}">
+          ${ICON.wave} Spot
+        </a>
+        ${hasCam ? `
+          <a href="#/spot/${encodeURIComponent(spot.id)}" class="compact-btn" title="Ver cámara de ${esc(spot.name)}">
+            ${ICON.cam} Cámara
+          </a>
+        ` : ''}
+        ${hasRewind ? `
+          <a href="#/spot/${encodeURIComponent(spot.id)}" class="compact-btn" title="Ver Rewind de ${esc(spot.name)}">
+            ${ICON.rewind} Rewind
+          </a>
+        ` : ''}
+        <a href="#/spot/${encodeURIComponent(spot.id)}" class="compact-btn" title="Ver previsión detallada de ${esc(spot.name)}">
+          ${ICON.calendar} Previsión
+        </a>
+      </div>
+    </article>
+  `;
+}
+
+// ---------- Portada Principal: Ahora ----------
+function renderAhora() {
+  document.title = 'MeteoSurf_Cs · ¿Dónde surfear ahora en Castellón?';
+  const fc = state.fc;
+
+  const localSpotIds = ['Planetario', 'Voramar', 'MorroGos', 'Gurugu'];
+  const localSpots = localSpotIds.map((id) => SPOTS.find((s) => s.id === id)).filter(Boolean);
+  const nowLocal = localSpots.map((s) => getSpotNowData(s, fc)).sort((a, b) => b.score - a.score);
+  const bestLocal = nowLocal[0];
+  const otherLocal = nowLocal.slice(1);
+
+  const farCandidates = SPOTS.filter((s) => !localSpotIds.includes(s.id));
+  const nowFar = farCandidates.map((s) => getSpotNowData(s, fc)).sort((a, b) => b.score - a.score);
+  const bestFar = nowFar[0];
+
+  const compensaAlejarse = bestFar && bestLocal && (
+    bestFar.rating > bestLocal.rating ||
+    (bestFar.rating === bestLocal.rating && (bestFar.surfMid >= bestLocal.surfMid + 0.25)) ||
+    (bestLocal.surfMid < 0.35 && bestFar.surfMid >= 0.5 && bestFar.rating >= 3)
+  );
+
+  const farBetterSpots = nowFar.filter((f) =>
+    f.rating > (bestLocal?.rating || 0) ||
+    (f.rating === (bestLocal?.rating || 0) && f.surfMid > (bestLocal?.surfMid || 0) + 0.15)
+  );
+
+  let alejarseExplicacion = '';
+  if (compensaAlejarse && bestFar) {
+    alejarseExplicacion = `Hoy sí merece la pena desplazarse: en <strong>${esc(bestFar.spot.name)}</strong> hay mejores condiciones (${bestFar.surfRange} m de ola y viento ${esc(bestFar.windType || bestFar.windDir || '')}) que en la zona local (${bestLocal?.surfRange || '–'} m en ${esc(bestLocal?.spot?.name || '')}).`;
+  } else {
+    alejarseExplicacion = `Hoy <strong>no compensa alejarse</strong> de la zona de Castellón. Las mejores condiciones de la costa están concentradas en los spots locales (encabezados por <strong>${esc(bestLocal?.spot?.name || 'Castellón')}</strong> con ${bestLocal?.surfRange || '–'} m). En Peñíscola, Vinaròs u otros puntos lejanos no hay oleaje superior que justifique el desplazamiento.`;
+  }
+
+  view.innerHTML = `
+    ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
+
+    <div class="ahora-header">
+      <div class="ahora-header-text">
+        <h1 class="ahora-title">¿Dónde merece la pena entrar ahora?</h1>
+        <p class="ahora-subtitle">
+          Condiciones actuales ordenadas por calidad para entrar ya al agua · Costa de Castellón
+          ${fc ? `<span class="ahora-updated"> · Actualizado a las ${new Date(fc.fetchedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
+        </p>
+      </div>
+      <div class="ahora-header-nav">
+        <a href="#/prevision" class="btn btn-subtle" title="Ver lista completa de todos los spots">${ICON.wave} Ver previsión completa</a>
+      </div>
+    </div>
+
+    <!-- BLOQUE PRINCIPAL: MEJOR SPOT LOCAL (HERO) -->
+    <section class="ahora-section ahora-hero-section" aria-label="Mejor opción local para surfear ahora">
+      ${bestLocal ? renderAhoraHeroCard(bestLocal) : '<p class="muted">Cargando datos de condiciones...</p>'}
+    </section>
+
+    <!-- BLOQUE PRINCIPAL: OTRAS OPCIONES LOCALES (COMPACTAS) -->
+    <section class="ahora-section ahora-local-section" aria-label="Otras opciones locales en Castellón">
+      <div class="section-title-wrap">
+        <h2 class="section-title">Otras opciones en la zona de Castellón</h2>
+        <span class="faint">Planetario, Voramar, Morro de Gos y Gurugú</span>
+      </div>
+      <div class="ahora-compact-grid">
+        ${otherLocal.map(renderAhoraCompactCard).join('')}
+      </div>
+    </section>
+
+    <!-- BLOQUE SECUNDARIO: SI COMPENSA ALEJARSE -->
+    <section class="ahora-section ahora-far-section" aria-label="Si compensa alejarse">
+      <div class="section-title-wrap">
+        <h2 class="section-title">Si compensa alejarse</h2>
+        <span class="faint">Peñíscola, Vinaròs y resto de la costa</span>
+      </div>
+      <div class="ahora-far-banner ${compensaAlejarse ? 'compensates' : 'no-compensates'}">
+        <div class="ahora-far-icon" aria-hidden="true">${compensaAlejarse ? ICON.car : ICON.pin}</div>
+        <div class="ahora-far-copy">
+          <p>${alejarseExplicacion}</p>
+        </div>
+      </div>
+      ${compensaAlejarse && farBetterSpots.length ? `
+        <div class="ahora-compact-grid" style="margin-top:14px">
+          ${farBetterSpots.slice(0, 3).map(renderAhoraCompactCard).join('')}
+        </div>
+      ` : `
+        <div class="ahora-far-reference">
+          <p class="faint" style="margin:8px 0 10px;font-size:12.5px">Referencia rápida de los spots más lejanos:</p>
+          <div class="ahora-compact-grid">
+            ${nowFar.slice(0, 2).map(renderAhoraCompactCard).join('')}
+          </div>
+        </div>
+      `}
+    </section>
+
+    ${footer()}
+  `;
+
+  bindFavs();
+  showOnboarding();
+}
+
+// ---------- Sección Previsión: lista regional ----------
+function renderPrevision() {
   document.title = 'MeteoSurf_Cs · Previsión de surf en Castellón';
   const fc = state.fc;
   const zones = [['all', 'Todos'], ['fav', 'Favoritos'], ['cams', 'Con cámara'], ['offshore', 'Terral ahora'], ...ZONES.map((z) => [z.id, z.name])];
@@ -270,32 +573,17 @@ function renderHome() {
     }
     return s.zone === state.zone;
   });
-  const scoreNow = (s) => {
-    const h = fc?.spots[s.id]?.hours?.[nowIndex(fc.spots[s.id].hours || [])];
-    return (h?.rating ?? -1) * 100 + (h?.surf?.mid ?? 0);
-  };
-  const localIds = new Set(['Planetario', 'Voramar', 'MorroGos', 'Gurugu']);
-  const nowLocal = SPOTS.filter((s) => localIds.has(s.id)).sort((a, b) => scoreNow(b) - scoreNow(a));
-  const nowFar = SPOTS.filter((s) => !localIds.has(s.id)).sort((a, b) => scoreNow(b) - scoreNow(a)).slice(0, 4);
 
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
     <div class="region-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
       <div>
-        <h1>Costa de Castellón</h1>
+        <h1>Costa de Castellón · Previsión</h1>
         <p>${fc ? `Actualizado ${new Date(fc.fetchedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · ` : ''}${SPOTS.length} spots · previsión a 16 días</p>
       </div>
-      <a href="#/calendario" class="chip btn" style="text-decoration:none;font-weight:600">📅 Ver semana</a>
+      <a href="#/calendario" class="chip btn" style="text-decoration:none;font-weight:600">${ICON.calendar} Ver semana</a>
     </div>
 
-    <section class="now-home" aria-label="Mejores spots para surfear ahora">
-      <div class="section-title" style="margin-top:0">Para salir ya · zona Castellón</div>
-      <p class="faint now-home-copy">Primero los spots de referencia: Planetario, Voramar, Morro de Gos y Gurugú.</p>
-      <div class="spot-grid now-home-grid">${nowLocal.map(spotCard).join('')}</div>
-      <div class="section-title">Si compensa alejarse</div>
-      <p class="faint now-home-copy">Las mejores alternativas del resto de la costa, ordenadas por las condiciones actuales.</p>
-      <div class="spot-grid now-home-grid">${nowFar.map(spotCard).join('')}</div>
-    </section>
     ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
     <div class="home-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
       <div class="chips" role="tablist" style="margin:0">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
@@ -333,11 +621,11 @@ function renderHome() {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-            renderHome();
+            renderPrevision();
           },
           () => {
             toast('No se pudo acceder a la ubicación.');
-            renderHome();
+            renderPrevision();
           },
           { timeout: 7000, maximumAge: 60000 }
         );
@@ -345,20 +633,24 @@ function renderHome() {
         toast('Geolocalización no disponible.');
       }
     }
-    renderHome();
+    renderPrevision();
   });
 
   view.querySelectorAll('[data-zone]').forEach((b) => b.addEventListener('click', () => {
     state.zone = b.dataset.zone;
-    if (location.hash.startsWith('#/favoritos') && state.zone !== 'fav') history.replaceState(null, '', '#/');
-    renderHome();
+    if (location.hash.startsWith('#/favoritos') && state.zone !== 'fav') history.replaceState(null, '', '#/prevision');
+    renderPrevision();
   }));
   bindFavs();
-  if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p style="margin-top:10px"><a class="chip btn" href="#/asistente" style="display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;text-decoration:none;font-weight:600">🤙 Preguntar al asistente</a></p>'); })
+  if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p style="margin-top:10px"><a class="chip btn" href="#/asistente" style="display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;text-decoration:none;font-weight:600">' + ICON.chat + ' Preguntar al asistente</a></p>'); })
     .catch(() => $('#region-report')?.remove());
   else $('#region-report')?.remove();
   showOnboarding();
 }
+
+// Compatibilidad
+const renderHome = renderAhora;
+
 
 // ---------- Vista: Calendario semanal de previsión ----------
 function renderCalendario() {
@@ -658,7 +950,7 @@ function bindFavs() {
     toggleFav(b.dataset.fav);
     b.classList.toggle('on', favs.has(b.dataset.fav));
     toast(favs.has(b.dataset.fav) ? 'Añadido a favoritos' : 'Quitado de favoritos');
-    if (state.zone === 'fav' && !location.hash.startsWith('#/spot')) renderHome();
+    if (state.zone === 'fav' && !location.hash.startsWith('#/spot')) renderPrevision();
   }));
 }
 

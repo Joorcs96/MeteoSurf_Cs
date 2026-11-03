@@ -25,13 +25,13 @@
 <body>
   <header class="topbar">
     <!-- Icono Waves de Lucide, licencia ISC: https://lucide.dev/license -->
-    <a class="logo" href="#/" aria-label="MeteoSurf_Cs, inicio">
+    <a class="logo" href="#/ahora" aria-label="MeteoSurf_Cs, portada Ahora">
       <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>
       <span>MeteoSurf<small>Cs</small></span>
     </a>
-    <nav class="topnav" aria-label="Secciones">
-      <a href="#/" data-nav="hoy">Previsión</a>
-      <a href="#/calendario" data-nav="calendario">Semana</a>
+        <nav class="topnav" aria-label="Secciones">
+      <a href="#/ahora" data-nav="ahora">Ahora</a>
+      <a href="#/prevision" data-nav="prevision">Previsión</a>
       <a href="#/mapa" data-nav="mapa">Mapa</a>
       <a href="#/camaras" data-nav="camaras">Cámaras</a>
       <a href="#/asistente" data-nav="asistente">Asistente</a>
@@ -54,15 +54,16 @@
     <a href="data/MeteoSurf_Historico_Calibracion.xlsx" download>Descargar histórico de boyas y previsiones (Excel)</a>
   </aside>
 
-  <nav class="tabbar" aria-label="Secciones">
-    <a href="#/" data-nav="hoy"><svg class="icon" viewBox="0 0 24 24"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>Previsión</a>
-    <a href="#/mapa" data-nav="mapa"><svg class="icon" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>Mapa</a>
-    <a href="#/camaras" data-nav="camaras"><svg class="icon" viewBox="0 0 24 24"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>Cámaras</a>
-    <a href="#/asistente" data-nav="asistente"><svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg>Asistente</a>
-    <a href="#/favoritos" data-nav="favoritos"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Favoritos</a>
+    <nav class="tabbar" aria-label="Secciones">
+    <a href="#/ahora" data-nav="ahora"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/></svg>Ahora</a>
+    <a href="#/prevision" data-nav="prevision"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>Previsión</a>
+    <a href="#/mapa" data-nav="mapa"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>Mapa</a>
+    <a href="#/camaras" data-nav="camaras"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>Cámaras</a>
+    <a href="#/asistente" data-nav="asistente"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg>Asistente</a>
+    <a href="#/favoritos" data-nav="favoritos"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Favoritos</a>
   </nav>
 
-  <button class="fab-assistant" id="fab-assistant" aria-label="Preguntar al asistente" title="Preguntar al asistente">🤙</button>
+    <button class="fab-assistant" id="fab-assistant" aria-label="Preguntar al asistente" title="Preguntar al asistente"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
 
   <div class="onboard-overlay" id="onboard-overlay" role="dialog" aria-modal="true" aria-labelledby="onboard-title" style="display:none">
     <div class="onboard-card">

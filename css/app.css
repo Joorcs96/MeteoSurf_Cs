@@ -36,6 +36,7 @@ h3 { font-size:16px; }
 .topbar { height:64px; padding:0 20px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--line); background:var(--surface); }
 .logo { min-height:44px; display:flex; align-items:center; font-size:23px; font-weight:800; letter-spacing:-1px; }
 .logo small { font-size:12px; margin-left:5px; letter-spacing:0; font-weight:500; }
+.logo-mark { width:30px; height:30px; margin-right:9px; fill:none; stroke:var(--brand); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
 .icon-btn,.fav-btn { width:44px; height:44px; display:inline-grid; place-items:center; flex-shrink:0; }
 .icon-btn:hover,.fav-btn:hover { background:var(--surface-2); }
 .fav-btn.on .icon { fill:var(--text); }
@@ -876,28 +877,6 @@ body.vista-camaras .quick-spots { display:none; }
   border: 1px solid var(--line);
   border-radius: var(--radius, 4px);
   cursor: pointer;
-}
-
-/* MEJ-02: Filtro principiantes en calendario */
-.cal-chip-beginner.on {
-  background: #10b981;
-  color: #ffffff;
-  border-color: #10b981;
-}
-.cal-cell.cal-beginner {
-  box-shadow: inset 0 0 0 2px #10b981;
-  background: color-mix(in srgb, #10b981 25%, var(--surface)) !important;
-  position: relative;
-}
-.cal-cell.cal-beginner .cal-height {
-  color: #10b981;
-}
-.cal-cell.cal-beginner::after {
-  content: '🤙';
-  position: absolute;
-  top: 2px;
-  right: 3px;
-  font-size: 10px;
 }
 
 /* MEJ-01: Modal y Banner de Ventajas Pro */

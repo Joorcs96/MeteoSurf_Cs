@@ -103,6 +103,26 @@ h3 { font-size:16px; }
 .rewind-day h3 { margin:0 0 8px; font-size:13px; }
 .clip-hours { display:flex; overflow-x:auto; gap:8px; }
 .clip-hours button { background:var(--surface); }
+.rewind-intro { display:flex; flex-direction:column; gap:3px; margin-bottom:14px; font-size:12px; color:var(--text-2); }
+.rewind-intro b { color:var(--text); font-size:14px; }
+.rewind-month { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; text-transform:capitalize; }
+.rewind-month button { width:36px; height:36px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-size:24px; line-height:1; }
+.rewind-week,.rewind-calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; text-align:center; }
+.rewind-week { margin-bottom:4px; font-size:10px; color:var(--text-2); font-weight:700; }
+.rewind-cal-empty,.rewind-cal-day { min-height:38px; display:grid; place-items:center; font-size:12px; border-radius:5px; }
+.rewind-cal-day { position:relative; border:1px solid transparent; background:transparent; color:var(--text-2); }
+button.rewind-cal-day { color:var(--text); cursor:pointer; }
+.rewind-cal-day small { position:absolute; right:3px; bottom:2px; font-size:9px; font-weight:700; }
+.rewind-cal-day.good { background:color-mix(in srgb, var(--r-good) 22%, transparent); border-color:var(--r-good); }
+.rewind-cal-day.fair { background:color-mix(in srgb, var(--r-fair) 22%, transparent); border-color:var(--r-fair); }
+.rewind-cal-day.poor { background:color-mix(in srgb, var(--r-poor) 22%, transparent); border-color:var(--r-poor); }
+.rewind-cal-day.on { outline:2px solid var(--text); outline-offset:1px; }
+.rewind-legend { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:12px 0 16px; font-size:11px; color:var(--text-2); }
+.rewind-legend i { width:9px; height:9px; border-radius:50%; background:var(--r-fair); }.rewind-legend i.good { background:var(--r-good); }.rewind-legend i.poor { background:var(--r-poor); }
+.now-home { margin-bottom:28px; }.now-home-copy { margin:-10px 0 10px; font-size:12px; }.now-home-grid { margin-bottom:18px; }
+.forecast-rewind { border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:14px 0; margin:14px 0; display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text-2); }
+.forecast-rewind b { color:var(--text); font-size:14px; }.forecast-rewind-items { display:flex; gap:8px; overflow-x:auto; padding-top:3px; }
+.forecast-rewind-items button { min-height:40px; white-space:nowrap; padding:7px 10px; color:var(--text); background:var(--surface-2); border:1px solid var(--line); font-size:12px; font-weight:600; }
 .clip-info { border-top:1px solid var(--line); padding-top:12px; font-size:13px; }
 .clip-info p { margin:8px 0; }
 .clip-info a { margin:4px 8px 4px 0; }

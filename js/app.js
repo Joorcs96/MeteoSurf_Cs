@@ -40,7 +40,7 @@ export function hideProModal() {
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
-const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null };
+const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null, rewindMonth: null, rewindDay: null };
 
 // Asistente de previsión (se carga aparte para no retrasar el primer pintado)
 let aiMod = null;
@@ -270,6 +270,13 @@ function renderHome() {
     }
     return s.zone === state.zone;
   });
+  const scoreNow = (s) => {
+    const h = fc?.spots[s.id]?.hours?.[nowIndex(fc.spots[s.id].hours || [])];
+    return (h?.rating ?? -1) * 100 + (h?.surf?.mid ?? 0);
+  };
+  const localIds = new Set(['Planetario', 'Voramar', 'MorroGos', 'Gurugu']);
+  const nowLocal = SPOTS.filter((s) => localIds.has(s.id)).sort((a, b) => scoreNow(b) - scoreNow(a));
+  const nowFar = SPOTS.filter((s) => !localIds.has(s.id)).sort((a, b) => scoreNow(b) - scoreNow(a)).slice(0, 4);
 
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
@@ -281,6 +288,14 @@ function renderHome() {
       <a href="#/calendario" class="chip btn" style="text-decoration:none;font-weight:600">📅 Ver semana</a>
     </div>
 
+    <section class="now-home" aria-label="Mejores spots para surfear ahora">
+      <div class="section-title" style="margin-top:0">Para salir ya · zona Castellón</div>
+      <p class="faint now-home-copy">Primero los spots de referencia: Planetario, Voramar, Morro de Gos y Gurugú.</p>
+      <div class="spot-grid now-home-grid">${nowLocal.map(spotCard).join('')}</div>
+      <div class="section-title">Si compensa alejarse</div>
+      <p class="faint now-home-copy">Las mejores alternativas del resto de la costa, ordenadas por las condiciones actuales.</p>
+      <div class="spot-grid now-home-grid">${nowFar.map(spotCard).join('')}</div>
+    </section>
     ${state.zone === 'fav' ? '' : '<div id="region-report" style="margin-bottom:14px"><div class="skeleton" style="height:64px"></div></div>'}
     <div class="home-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
       <div class="chips" role="tablist" style="margin:0">${zones.map(([id, n]) => `<button class="chip btn ${state.zone === id ? 'on' : ''}" data-zone="${id}">${n}</button>`).join('')}</div>
@@ -684,8 +699,39 @@ function clipsForSpot(spot) {
 }
 const madridDate = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 const clipTime = (date) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(date);
+function renderRewindCalendar(clips) {
+  if (!clips.length) return '<div id="rewind-strip" class="rewind-strip"><p>Aún no hay vídeos guardados de las cámaras de este spot.</p></div>';
+  const days = new Map();
+  clips.forEach((c, i) => {
+    const key = madridDate(new Date(c.hora));
+    if (!days.has(key)) days.set(key, []);
+    days.get(key).push({ c, i });
+  });
+  const newest = [...days.keys()].sort().at(-1);
+  if (!state.rewindMonth) { state.rewindDay = newest; state.rewindMonth = newest.slice(0, 7); }
+  const [year, month] = state.rewindMonth.split('-').map(Number);
+  const first = new Date(Date.UTC(year, month - 1, 1));
+  const offset = (first.getUTCDay() + 6) % 7;
+  const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const label = first.toLocaleDateString('es-ES', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const cells = Array.from({ length: offset + count }, (_, i) => {
+    if (i < offset) return '<span class="rewind-cal-empty"></span>';
+    const key = `${state.rewindMonth}-${String(i - offset + 1).padStart(2, '0')}`;
+    const entries = days.get(key);
+    if (!entries) return `<span class="rewind-cal-day muted">${i - offset + 1}</span>`;
+    const avg = entries.reduce((sum, e) => sum + Number(e.c.prevision?.altura || 0), 0) / entries.length;
+    const quality = avg >= 0.65 ? 'good' : avg >= 0.35 ? 'fair' : 'poor';
+    return `<button class="rewind-cal-day ${quality} ${key === state.rewindDay ? 'on' : ''}" data-rewind-day="${key}" title="${entries.length} vídeo(s) grabados">${i - offset + 1}<small>${entries.length}</small></button>`;
+  }).join('');
+  const selectedKey = state.rewindDay && days.has(state.rewindDay) ? state.rewindDay : [...days.keys()].find((key) => key.startsWith(state.rewindMonth));
+  const selected = days.get(selectedKey) || [];
+  const selectedLabel = selectedKey ? new Date(`${selectedKey}T12:00:00Z`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : 'Sin vídeos este mes';
+  return `<div id="rewind-strip" class="rewind-strip" hidden><div class="rewind-intro"><b>Histórico Rewind</b><span>Elige un día coloreado y después la hora del vídeo.</span></div><div class="rewind-month"><button data-rewind-month="-1" aria-label="Mes anterior">‹</button><b>${esc(label)}</b><button data-rewind-month="1" aria-label="Mes siguiente">›</button></div><div class="rewind-week"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="rewind-calendar">${cells}</div><div class="rewind-legend"><i class="good"></i> bueno <i class="fair"></i> regular <i class="poor"></i> flojo <span>· número = vídeos</span></div><section class="rewind-day"><h3>${esc(selectedLabel)}</h3><div class="clip-hours">${selected.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}${c.foto ? ' 📷' : ''}</button>`).join('')}</div></section></div>`;
+}
 function renderRewinds(spot) {
   const clips = clipsForSpot(spot);
+  // La prueba de regresión carga esta función sola; en la web usa el calendario.
+  if (typeof renderRewindCalendar === 'function') return renderRewindCalendar(clips);
   const today = madridDate(new Date());
   const yesterday = madridDate(new Date(Date.parse(today + 'T12:00:00Z') - 86400000));
   const groups = new Map();
@@ -705,6 +751,22 @@ function bindClips(spot, camEl, showCam) {
     const strip = $('#rewind-strip'); strip.hidden = !strip.hidden;
     e.currentTarget.setAttribute('aria-expanded', String(!strip.hidden));
   });
+  view.querySelectorAll('[data-rewind-day]').forEach((b) => b.addEventListener('click', () => {
+    state.rewindDay = b.dataset.rewindDay;
+    state.rewindMonth = state.rewindDay.slice(0, 7);
+    renderSpot(spot.id);
+    $('#rewind-strip').hidden = false;
+    $('#rewind-toggle').setAttribute('aria-expanded', 'true');
+  }));
+  view.querySelectorAll('[data-rewind-month]').forEach((b) => b.addEventListener('click', () => {
+    const [y, m] = state.rewindMonth.split('-').map(Number);
+    const next = new Date(Date.UTC(y, m - 1 + Number(b.dataset.rewindMonth), 1));
+    state.rewindMonth = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`;
+    state.rewindDay = null;
+    renderSpot(spot.id);
+    $('#rewind-strip').hidden = false;
+    $('#rewind-toggle').setAttribute('aria-expanded', 'true');
+  }));
   $('#live-cam').addEventListener('click', showCam);
   view.querySelectorAll('[data-clip]').forEach((b) => b.addEventListener('click', () => {
     const clip = clips[Number(b.dataset.clip)];
@@ -970,6 +1032,15 @@ function renderSimilarConditions(spot, h) {
     </div>`;
 }
 
+function renderForecastRewind(spot, day) {
+  const best = day?.best || day?.hours?.reduce((a, h) => !a || h.rating > a.rating ? h : a, null);
+  if (!best) return '';
+  const matches = findSimilarConditions(spot, best).slice(0, 2);
+  const target = `${range(best.surf)} m · ${best.swells?.[0]?.t ? Math.round(best.swells[0].t) + ' s' : '–'} · viento ${kmh(best.windSpeed)}`;
+  if (!matches.length) return `<div class="forecast-rewind"><b>Rewind para este día</b><span>Previsión: ${target}. Aún no hay vídeo de este spot con unas condiciones suficientemente parecidas.</span></div>`;
+  return `<div class="forecast-rewind"><b>Rewind para este día</b><span>Previsión: ${target}. Así rompió un día parecido:</span><div class="forecast-rewind-items">${matches.map(({ clip }) => `<button data-forecast-clip="${esc(clip.id)}">${new Date(clip.hora).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short' })} · ${clipTime(new Date(clip.hora))} · ver vídeo</button>`).join('')}</div></div>`;
+}
+
 function renderSessionEvidence(spot, h) {
   const currentSurf = h?.surf?.mid ?? h?.surfMin ?? 0;
   return `
@@ -990,7 +1061,7 @@ function renderSessionEvidence(spot, h) {
 function renderSpot(id) {
   const spot = SPOTS.find((s) => s.id === id);
   if (!spot) { location.hash = '#/'; return; }
-  if (state.spotId !== id) { state.dayIdx = 0; state.camIdx = 0; state.spotId = id; state.tab = 'ahora'; }
+  if (state.spotId !== id) { state.dayIdx = 0; state.camIdx = 0; state.spotId = id; state.tab = 'ahora'; state.rewindMonth = null; state.rewindDay = null; }
   renderQuickSpots();
   document.title = `${spot.name} · MeteoSurf_Cs`;
   const f = state.fc?.spots[id];
@@ -1047,6 +1118,7 @@ function renderSpot(id) {
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
             <b id="chart-title"></b><span class="faint" style="font-size:12px">Altura en rompiente (m) · color = calidad · flechas = viento</span></div>
           <div id="chart"></div>
+          <div id="forecast-rewind"></div>
         </div>
         <h3>Viento por horas · km/h</h3><div id="wind-chart"></div><h3>Marea · nivel del mar</h3><div class="tide" id="tide"></div>
         <div class="section-title" style="margin-top:24px">Tabla horaria detallada</div>
@@ -1381,6 +1453,23 @@ function drawDay(spot, f) {
   $('#ftable').innerHTML = hourlyTable(f, state.dayIdx);
   const tideEl = $('#tide');
   if (tideEl) tideEl.innerHTML = tideChart(day);
+  const rewindEl = $('#forecast-rewind');
+  if (rewindEl) {
+    rewindEl.innerHTML = renderForecastRewind(spot, day);
+    rewindEl.querySelectorAll('[data-forecast-clip]').forEach((b) => b.addEventListener('click', () => {
+      const clip = (state.rewinds?.rewinds || []).find((c) => c.id === b.dataset.forecastClip);
+      if (!clip) return;
+      playClip($('#cam'), clip);
+      state.tab = 'ahora';
+      view.querySelectorAll('[data-panel]').forEach((el) => el.classList.toggle('en-tab', el.dataset.panel === 'ahora'));
+      view.querySelectorAll('.tabs [data-tab]').forEach((tab) => tab.classList.toggle('on', tab.dataset.tab === 'ahora'));
+      $('#live-cam').hidden = false;
+      const info = $('#clip-info'), p = clip.prevision || {};
+      info.hidden = false;
+      info.innerHTML = `<b>Rewind histórico similar</b><p>${m(p.altura)} m · ${rnd(p.periodo)} s · viento ${kmh(p.viento)} ${esc(p.vientoDireccionTxt || '')}</p><a href="${esc(clip.url)}" target="_blank" rel="noopener" download>Descargar vídeo</a>`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }));
+  }
   // Centrar la columna de la hora actual sin mover la página
   const wrap = $('#ftable'), nowCell = wrap.querySelector('.nowc');
   wrap.scrollLeft = nowCell ? Math.max(0, nowCell.offsetLeft - 120) : 0;

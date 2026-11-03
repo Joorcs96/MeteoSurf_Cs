@@ -1663,10 +1663,26 @@ async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
   view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map3d" hidden></div><div id="map-capas" class="mapa-ui"></div><div id="map-capas-3d" class="mapa-ui"></div><button type="button" id="btn-3d" class="mapa-3d" aria-pressed="false" aria-label="Cambiar entre mapa plano y relieve en 3D">3D</button><button type="button" id="btn-base" class="mapa-3d mapa-base" aria-pressed="false" aria-label="Cambiar entre mapa de calles y satélite" hidden>Sat</button></div>';
   if (!window.L) {
-    await new Promise((res) => {
-      const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l);
-      const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'; s.onload = res; document.head.appendChild(s);
-    });
+    const cdns = [
+      'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet',
+      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet',
+    ];
+    for (const base of cdns) {
+      try {
+        await new Promise((ok, fallo) => {
+          const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `${base}.css`; document.head.appendChild(l);
+          const s = document.createElement('script'); s.src = `${base}.js`;
+          s.onload = () => window.L ? ok() : fallo(new Error('Leaflet no se inició'));
+          s.onerror = () => fallo(new Error('CDN no disponible'));
+          document.head.appendChild(s);
+        });
+        break;
+      } catch { /* probar el siguiente CDN */ }
+    }
+    if (!window.L) {
+      $('#map').textContent = 'El mapa no se ha podido iniciar. Vuelve a cargar la página.';
+      return;
+    }
   }
   cerrarHojaSpot();
   capas3d?.destruir(); capas3d = null;
@@ -1676,10 +1692,19 @@ async function renderMap() {
   leaflet = L.map('map', { zoomControl: false });
   L.control.zoom({ position: 'topright', zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(leaflet);
   const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
+  const osmReserva = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19, subdomains: 'abcd' });
   const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagen © Esri', maxZoom: 19 });
   osm.addTo(leaflet);
+  let fallosTeselas = 0;
+  osm.on('tileerror', () => {
+    fallosTeselas += 1;
+    if (fallosTeselas >= 3 && leaflet.hasLayer(osm)) {
+      leaflet.removeLayer(osm);
+      osmReserva.addTo(leaflet);
+    }
+  });
   leaflet.attributionControl.setPrefix('Leaflet');
-  L.control.layers({ 'Satélite': sat, 'Mapa': osm }, null, { position: 'topright' }).addTo(leaflet);
+  L.control.layers({ 'Satélite': sat, 'Mapa': osm, 'Mapa (reserva)': osmReserva }, null, { position: 'topright' }).addTo(leaflet);
   leaflet.attributionControl.setPosition('bottomleft');
   const bounds = [];
   SPOTS.forEach((s) => {

@@ -115,8 +115,8 @@ async function run() {
     console.log('[3/5] Navegando a ' + targetUrl);
     await sendCdp('Page.navigate', { url: targetUrl });
 
-    // 5. Esperar carga de Cam 1 (Koral Beach vídeo HLS embebido)
-    console.log('[4/5] Verificando Cámara en directo (Hotel Koral Beach vídeo embebido)...');
+    // 5. Esperar la imagen directa. No usa token, iframe ni URL temporal.
+    console.log('[4/5] Verificando imagen directa de Hotel Koral Beach...');
     let camOk = false;
     const inicio = Date.now();
     while (Date.now() - inicio < 20000) {
@@ -125,7 +125,7 @@ async function run() {
       const evalRes = await sendCdp('Runtime.evaluate', {
         expression: `(() => {
           const cam = document.querySelector('#cam');
-          const ifr = cam ? cam.querySelector('iframe') : null;
+          const imagen = cam ? cam.querySelector('img') : null;
           const liveBadge = cam ? cam.querySelector('.live-badge') : null;
           const camBadge = cam ? cam.querySelector('.cam-badge') : null;
           const extBtn = document.querySelector('#cam-ext-btn');
@@ -134,9 +134,8 @@ async function run() {
           return {
             hasCam: !!cam,
             camType: cam ? cam.dataset.cameraType : null,
-            hasIframe: !!ifr,
-            iframeSrc: ifr ? ifr.src : null,
-            iframeSandbox: ifr ? ifr.getAttribute('sandbox') : null,
+            imageSrc: imagen ? imagen.currentSrc || imagen.src : null,
+            imageLoaded: !!(imagen && imagen.complete && imagen.naturalWidth > 0),
             liveBadgeText: liveBadge ? liveBadge.textContent : null,
             camBadgeText: camBadge ? camBadge.textContent : null,
             camBadgeClass: camBadge ? camBadge.className : null,
@@ -149,28 +148,43 @@ async function run() {
 
       const st = evalRes.result.value;
       console.log(`[t=${Math.round((Date.now() - inicio)/1000)}s] st:`, JSON.stringify(st));
-      if (st.hasIframe && st.iframeSrc?.includes('cam_skyline.html') && !st.hasExtBtn) {
-        if (st.camBadgeClass?.includes('directo') || st.camBadgeText?.includes('directo') || Date.now() - inicio > 8000) {
+      if (st.camType === 'jpg' && st.imageLoaded && st.imageSrc?.includes('cdn.skylinewebcams.com/live2815.jpg')) {
           camOk = true;
-          console.log('  ✓ Cámara de Morro de Gos embebida con éxito como vídeo en directo:');
+          console.log('  ✓ Imagen de Morro de Gos cargada sin token ni iframe:');
           console.log(`    - Tipo de cámara: "${st.camType}"`);
-          console.log(`    - Iframe: "${st.iframeSrc}"`);
-          console.log(`    - Sandbox seguro: "${st.iframeSandbox}"`);
+          console.log(`    - Imagen: "${st.imageSrc}"`);
           console.log(`    - Distintivo live: "${st.liveBadgeText}"`);
-          console.log(`    - Estado dinámico: "${st.camBadgeText}" (${st.camBadgeClass})`);
-          console.log(`    - Botón externo innecesario: ${st.hasExtBtn ? 'SÍ (error)' : 'NO (correcto, embebido directamente)'}`);
           console.log(`    - Crédito/fuente: "${st.camSourceText}"`);
           break;
-        }
       }
     }
 
     if (!camOk) {
-      throw new Error('La cámara de Morro de Gos no cargó como vídeo embebido en el tiempo límite.');
+      throw new Error('La imagen directa de Morro de Gos no cargó en el tiempo límite.');
     }
 
-    // 6. Tomar captura de pantalla de evidencia
-    console.log('[5/5] Tomando captura de pantalla de evidencia de la simulación...');
+    // 6. El mapa debe cargar teselas y no quedarse bloqueado si falla su CDN.
+    console.log('[5/6] Verificando carga del mapa...');
+    await sendCdp('Page.navigate', { url: `http://127.0.0.1:${HTTP_PORT}/#/mapa` });
+    let mapaOk = false;
+    const inicioMapa = Date.now();
+    while (Date.now() - inicioMapa < 15000) {
+      await sleep(1000);
+      const estadoMapa = await sendCdp('Runtime.evaluate', {
+        expression: `(() => {
+          const mapa = document.querySelector('#map');
+          const teselas = [...document.querySelectorAll('#map img.leaflet-tile')];
+          return { existe: !!mapa, texto: mapa?.textContent || '', cargadas: teselas.filter((x) => x.complete && x.naturalWidth > 0).length };
+        })()`, returnByValue: true,
+      });
+      const stMapa = estadoMapa.result.value;
+      console.log(`[mapa t=${Math.round((Date.now() - inicioMapa) / 1000)}s]`, JSON.stringify(stMapa));
+      if (stMapa.existe && stMapa.cargadas > 0) { mapaOk = true; break; }
+    }
+    if (!mapaOk) throw new Error('El mapa no cargó ninguna tesela en el tiempo límite.');
+
+    // 7. Tomar captura de pantalla de evidencia
+    console.log('[6/6] Tomando captura de pantalla de evidencia de la simulación...');
     const shot = await sendCdp('Page.captureScreenshot', { format: 'png' });
     const shotPath = path.resolve('simulacion_morrogos_ok.png');
     fs.writeFileSync(shotPath, Buffer.from(shot.data, 'base64'));
@@ -178,10 +192,10 @@ async function run() {
 
     console.log('\n======================================================');
     console.log('RESULTADOS DE LA SIMULACIÓN:');
-    console.log('  - Morro de Gos (Hotel Koral Beach): VÍDEO EMBEBIDO NATIVO EN DIRECTO');
-    console.log('  - Reproductor: iframe aislado cam_skyline.html con Hls.js y Origin: null');
-    console.log('  - Bloqueo anti-hotlinking de Skyline: EVITADO CON ÉXITO');
-    console.log('  - Sin botones externos ni fotos estáticas: 100% CUMPLIDO');
+    console.log('  - Morro de Gos (Hotel Koral Beach): IMAGEN DIRECTA ACTUALIZADA');
+    console.log('  - Sin token, iframe ni URL temporal');
+    console.log('  - Reintento automático ante un error de red');
+    console.log('  - Mapa cargado con teselas y reserva automática');
     console.log('======================================================');
     console.log('SIMULACIÓN COMPLETADA CON ÉXITO AL 100%');
   } finally {

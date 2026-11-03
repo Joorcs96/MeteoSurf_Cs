@@ -299,24 +299,43 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
         window.open(cam.pageUrl, '_blank', 'noopener,noreferrer');
       });
     }
-    const base = cam.embedUrl;
-    const bust = () => base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
-    img.onerror = () => {
-      if (sessions.get(el) !== session) return;
-      stopCam(el);
-      msg(el, 'Cámara sin señal', 'La imagen no se puede cargar ahora mismo.');
+    // Una foto remota no debe hacer desaparecer la cámara por un fallo puntual:
+    // se precarga cada actualización, se conserva la última imagen correcta y
+    // se reintenta sola. Así no dependemos de tokens ni de URLs temporales.
+    const fuentes = [cam.embedUrl, ...(cam.fallbackUrls || [])].filter(Boolean);
+    let fuente = 0;
+    let reintento = null;
+    let haCargado = false;
+    const bust = (base) => base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
+    const programarReintento = () => {
+      clearTimeout(reintento);
+      reintento = setTimeout(cargar, 15000);
+    };
+    const cargar = () => {
+      if (sessions.get(el) !== session || !el.isConnected) return;
+      const prueba = new Image();
+      prueba.referrerPolicy = 'no-referrer';
+      prueba.setAttribute?.('referrerpolicy', 'no-referrer');
+      prueba.onload = () => {
+        if (sessions.get(el) !== session) return;
+        haCargado = true;
+        img.src = prueba.src;
+      };
+      prueba.onerror = () => {
+        if (sessions.get(el) !== session) return;
+        fuente = (fuente + 1) % fuentes.length;
+        if (!haCargado) img.alt = `${cam.name}: reconectando imagen…`;
+        programarReintento();
+      };
+      prueba.src = bust(fuentes[fuente]);
     };
     el.appendChild(img);
-    img.src = t === 'jpg' ? bust() : base;
+    cargar();
     let timer = null;
     if (t === 'jpg') timer = setInterval(() => {
-      const n = new Image();
-      n.referrerPolicy = 'no-referrer';
-      n.setAttribute?.('referrerpolicy', 'no-referrer');
-      n.onload = () => { if (sessions.get(el) === session) img.src = n.src; };
-      n.src = bust();
+      cargar();
     }, (cam.refreshSeconds || 30) * 1000);
-    active.set(el, () => { clearInterval(timer); img.src = ''; });
+    active.set(el, () => { clearInterval(timer); clearTimeout(reintento); img.src = ''; });
   }
 }
 

@@ -7,8 +7,8 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 const HTTP_PORT = 8765;
 const CDP_PORT = 9222;
 const caso = process.argv[2] === 'trinimar'
-  ? { spot: 'Heliopolis', cam: 1, nombre: 'Hotel Trinimar', tipo: 'jpg', fuente: 'live2816.jpg' }
-  : { spot: 'MorroGos', cam: 0, nombre: 'Hotel Koral Beach', tipo: 'jpg', fuente: 'live2815.jpg' };
+  ? { spot: 'Heliopolis', cam: 1, nombre: 'Hotel Trinimar', tipo: 'skyline', fuente: 'benicasim.html' }
+  : { spot: 'MorroGos', cam: 0, nombre: 'Hotel Koral Beach', tipo: 'skyline', fuente: 'oropesa-del-mar.html' };
 
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -229,9 +229,7 @@ async function run() {
 
     console.log('\n======================================================');
     console.log('RESULTADOS DE LA SIMULACIÓN:');
-    console.log(caso.tipo === 'skyline'
-      ? '  - Hotel Trinimar: VÍDEO EN DIRECTO, REPRODUCCIÓN VERIFICADA'
-      : '  - Morro de Gos (Hotel Koral Beach): IMAGEN DIRECTA ACTUALIZADA');
+    console.log(`  - ${caso.nombre}: VÍDEO EN DIRECTO, REPRODUCCIÓN VERIFICADA`);
     console.log(caso.tipo === 'skyline'
       ? '  - Autorización efímera resuelta y renovada automáticamente'
       : '  - Sin token, iframe ni URL temporal');

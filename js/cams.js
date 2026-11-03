@@ -164,7 +164,10 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     f.loading = 'lazy';
     f.title = cam.name;
     const skylinePage = cam.embedUrl || 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html';
-    f.src = `cam_skyline.html?page=${encodeURIComponent(skylinePage)}`;
+    const snapshot = skylinePage.includes('benicasim')
+      ? 'https://cdn.skylinewebcams.com/live2816.jpg'
+      : 'https://cdn.skylinewebcams.com/live2815.jpg';
+    f.src = `cam_skyline.html?page=${encodeURIComponent(skylinePage)}&snapshot=${encodeURIComponent(snapshot)}`;
     el.appendChild(f);
 
     const badge = document.createElement('span');

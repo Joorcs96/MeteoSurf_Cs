@@ -8,9 +8,38 @@ import { FLECHA } from './mapa-capas.js';
 import { geometriaOrientacion } from './orientaciones-mapa.js';
 
 const VERSION = '4.7.1';
-const BASE = `https://cdn.jsdelivr.net/npm/maplibre-gl@${VERSION}/dist/`;
+const BASES = [
+  `https://cdn.jsdelivr.net/npm/maplibre-gl@${VERSION}/dist/`,
+  `https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/${VERSION}/`,
+];
+let cargaMapLibre = null;
+const BASE = BASES[0];
 
 function cargarMapLibre() {
+  if (window.maplibregl) return Promise.resolve(window.maplibregl);
+  if (cargaMapLibre) return cargaMapLibre;
+  cargaMapLibre = cargarMapLibrePrincipal().catch(() => cargarMapLibreDesdeReserva()).catch((error) => {
+    cargaMapLibre = null;
+    throw error;
+  });
+  return cargaMapLibre;
+}
+
+function cargarMapLibreDesdeReserva() {
+  const base = BASES[1];
+  return new Promise((ok, fallo) => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = base + 'maplibre-gl.css';
+    document.head.appendChild(css);
+    const js = document.createElement('script');
+    js.src = base + 'maplibre-gl.js';
+    js.onload = () => (window.maplibregl ? ok(window.maplibregl) : fallo(new Error('MapLibre no se inicio')));
+    js.onerror = () => fallo(new Error('No se pudo descargar el mapa 3D'));
+    document.head.appendChild(js);
+  });
+}
+
+function cargarMapLibrePrincipal() {
   if (window.maplibregl) return Promise.resolve(window.maplibregl);
   return new Promise((ok, fallo) => {
     const css = document.createElement('link');

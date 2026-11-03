@@ -131,21 +131,21 @@
     },
     {
       "id": "skyline-jpg-heliopolis",
-      "name": "SkylineWebcams",
+      "name": "Hotel Servigroup Trinimar",
       "short": "Heliópolis (Hotel Trinimar)",
       "spots": [
         "Heliopolis"
       ],
       "priority": 2,
-      "embedType": "skyline",
-      "embedUrl": "https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/benicasim.html?w=2816",
+      "embedType": "jpg",
+      "embedUrl": "https://cdn.skylinewebcams.com/live2816.jpg",
       "pageUrl": "https://www.servigroup.com/es/hotel-trinimar-benicasim/webcam-benicasim/",
-      "credit": "SkylineWebcams / Hotel Servigroup Trinimar",
-      "refreshSeconds": 0,
+      "credit": "Hotel Servigroup Trinimar",
+      "refreshSeconds": 10,
       "distanceKm": 0.3,
       "tokenRefresh": null,
       "verified": true,
-      "notes": "Vídeo en directo oficial del Hotel Servigroup Trinimar. Al abrirla, el navegador obtiene una autorización efímera directamente de Skyline y la renueva solo si caduca: MeteoSurf no guarda tokens ni requiere agentes ni intervención manual.",
+      "notes": "Señal oficial del Hotel Servigroup Trinimar, renovada cada 10 segundos directamente desde la cámara. Se evita el reproductor de Skyline porque muestra una cortinilla de marca en lugar de la playa. Sin tokens, consentimiento ni intervención manual.",
       "enabled": true,
       "lastChecked": "2026-11-03T12:08:01.671731+00:00",
       "failCount": 0

@@ -7,7 +7,7 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 const HTTP_PORT = 8765;
 const CDP_PORT = 9222;
 const caso = process.argv[2] === 'trinimar'
-  ? { spot: 'Heliopolis', cam: 1, nombre: 'Hotel Trinimar', tipo: 'skyline', fuente: 'benicasim.html?w=2816' }
+  ? { spot: 'Heliopolis', cam: 1, nombre: 'Hotel Trinimar', tipo: 'jpg', fuente: 'live2816.jpg' }
   : { spot: 'MorroGos', cam: 0, nombre: 'Hotel Koral Beach', tipo: 'jpg', fuente: 'live2815.jpg' };
 
 async function sleep(ms) {
@@ -186,7 +186,7 @@ async function run() {
           console.log(`    - Tipo de cámara: "${st.camType}"`);
           console.log(`    - Fuente: "${st.imageSrc || st.iframeSrc}"`);
           console.log(`    - Tamaño de vídeo: "${st.videoSize}"`);
-          console.log(`    - Tiempo de reproducción: "${st.videoTime.toFixed(1)} s"`);
+          console.log(`    - Tiempo de reproducción: "${st.videoTime == null ? 'imagen renovable' : st.videoTime.toFixed(1) + ' s'}"`);
           console.log(`    - Distintivo live: "${st.liveBadgeText}"`);
           console.log(`    - Crédito/fuente: "${st.camSourceText}"`);
           break;

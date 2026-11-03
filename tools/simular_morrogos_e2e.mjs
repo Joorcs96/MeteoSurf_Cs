@@ -6,6 +6,9 @@ import path from 'node:path';
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const HTTP_PORT = 8765;
 const CDP_PORT = 9222;
+const caso = process.argv[2] === 'trinimar'
+  ? { spot: 'Heliopolis', cam: 1, nombre: 'Hotel Trinimar', imagen: 'live2816.jpg' }
+  : { spot: 'MorroGos', cam: 0, nombre: 'Hotel Koral Beach', imagen: 'live2815.jpg' };
 
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -110,13 +113,29 @@ async function run() {
     await sendCdp('Runtime.enable');
     await sendCdp('Network.enable');
 
-    // 4. Navegar al spot Morro de Gos
-    const targetUrl = `http://127.0.0.1:${HTTP_PORT}/#/spot/MorroGos`;
+    // 4. Navegar al spot y, si procede, elegir la cámara concreta.
+    const targetUrl = `http://127.0.0.1:${HTTP_PORT}/#/spot/${caso.spot}`;
     console.log('[3/5] Navegando a ' + targetUrl);
     await sendCdp('Page.navigate', { url: targetUrl });
+    if (caso.cam > 0) {
+      const limiteSelector = Date.now() + 10000;
+      let seleccionado = false;
+      while (Date.now() < limiteSelector && !seleccionado) {
+        await sleep(250);
+        const click = await sendCdp('Runtime.evaluate', {
+          expression: `(() => { const b = document.querySelector('[data-cam="${caso.cam}"]'); if (!b) return false; b.click(); return true; })()`,
+          returnByValue: true,
+        });
+        seleccionado = click.result.value === true;
+      }
+      if (!seleccionado) throw new Error('No apareció el selector de ' + caso.nombre + '.');
+      // El botón aparece antes de que termine de enlazarse su evento en una carga lenta.
+      await sleep(1200);
+      await sendCdp('Runtime.evaluate', { expression: `document.querySelector('[data-cam="${caso.cam}"]')?.click()` });
+    }
 
     // 5. Esperar la imagen directa. No usa token, iframe ni URL temporal.
-    console.log('[4/5] Verificando imagen directa de Hotel Koral Beach...');
+    console.log('[4/5] Verificando imagen directa de ' + caso.nombre + '...');
     let camOk = false;
     const inicio = Date.now();
     while (Date.now() - inicio < 20000) {
@@ -148,9 +167,9 @@ async function run() {
 
       const st = evalRes.result.value;
       console.log(`[t=${Math.round((Date.now() - inicio)/1000)}s] st:`, JSON.stringify(st));
-      if (st.camType === 'jpg' && st.imageLoaded && st.imageSrc?.includes('cdn.skylinewebcams.com/live2815.jpg')) {
+      if (st.camType === 'jpg' && st.imageLoaded && st.imageSrc?.includes(caso.imagen)) {
           camOk = true;
-          console.log('  ✓ Imagen de Morro de Gos cargada sin token ni iframe:');
+          console.log('  ✓ Imagen de ' + caso.nombre + ' cargada sin token ni iframe:');
           console.log(`    - Tipo de cámara: "${st.camType}"`);
           console.log(`    - Imagen: "${st.imageSrc}"`);
           console.log(`    - Distintivo live: "${st.liveBadgeText}"`);
@@ -160,7 +179,7 @@ async function run() {
     }
 
     if (!camOk) {
-      throw new Error('La imagen directa de Morro de Gos no cargó en el tiempo límite.');
+      throw new Error('La imagen directa de ' + caso.nombre + ' no cargó en el tiempo límite.');
     }
 
     // 6. El mapa debe cargar teselas y no quedarse bloqueado si falla su CDN.

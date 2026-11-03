@@ -126,9 +126,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       `<a class="cam-link-btn" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">Abrir cámara</a></div></div>`);
     return;
   }
-  const badgeTxt = cam.embedType === 'jpg'
-    ? (cam.pageUrl ? 'FOTO · Toca para directo' : 'FOTO')
-    : 'EN DIRECTO';
+  const badgeTxt = cam.embedType === 'jpg' ? 'FOTO' : 'CÁMARA';
   const overlay = `<div class="cam-overlay"><span class="live-badge">${badgeTxt}</span></div>`;
   el.insertAdjacentHTML('beforeend', overlay);
   const t = cam.embedType;
@@ -164,10 +162,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     f.loading = 'lazy';
     f.title = cam.name;
     const skylinePage = cam.embedUrl || 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html';
-    const snapshot = skylinePage.includes('benicasim')
-      ? 'https://cdn.skylinewebcams.com/live2816.jpg'
-      : 'https://cdn.skylinewebcams.com/live2815.jpg';
-    f.src = `cam_skyline.html?page=${encodeURIComponent(skylinePage)}&snapshot=${encodeURIComponent(snapshot)}`;
+    f.src = `cam_skyline.html?page=${encodeURIComponent(skylinePage)}`;
     el.appendChild(f);
 
     const badge = document.createElement('span');
@@ -181,29 +176,40 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     };
 
     let haReproducido = false;
+    let tiempoInicial = null;
     let signalTimer = setTimeout(() => {
       if (!haReproducido && sessions.get(el) === session) {
         setBadge('sin-senal', '● Sin señal');
       }
-    }, 10000);
+    }, 20000);
 
     const onMessage = (event) => {
       if (sessions.get(el) !== session) return;
       const data = event.data;
-      if (!data || typeof data !== 'object') return;
-      if (data.type === 'skyline_playing') {
-        haReproducido = true;
-        clearTimeout(signalTimer);
-        f.dataset.videoReady = 'true';
-        if (data.videoWidth) f.dataset.videoSize = `${data.videoWidth}x${data.videoHeight}`;
-        f.dataset.videoTime = String(data.currentTime || 1);
-        setBadge('directo', '● En directo');
-      } else if (data.type === 'skyline_time') {
-        f.dataset.videoTime = String(data.currentTime || 0);
+      if (!data || typeof data !== 'object' || event.source !== f.contentWindow) return;
+      if (data.type === 'skyline_playing' || data.type === 'skyline_time') {
+        const t = Number(data.currentTime);
+        if (data.videoWidth > 0 && data.videoHeight > 0 && Number.isFinite(t)) {
+          if (tiempoInicial == null) tiempoInicial = t;
+          f.dataset.videoTime = String(t);
+          if (t - tiempoInicial >= 1) {
+            haReproducido = true;
+            clearTimeout(signalTimer);
+            f.dataset.videoReady = 'true';
+            f.dataset.videoSize = `${data.videoWidth}x${data.videoHeight}`;
+            setBadge('directo', '● En directo');
+          }
+        }
       } else if (data.type === 'skyline_waiting') {
+        haReproducido = false;
+        tiempoInicial = null;
+        delete f.dataset.videoReady;
         setBadge('buffer', '● Búfer');
       } else if (data.type === 'skyline_error') {
         clearTimeout(signalTimer);
+        haReproducido = false;
+        tiempoInicial = null;
+        delete f.dataset.videoReady;
         setBadge('sin-senal', '● Sin señal');
       }
     };
@@ -250,13 +256,23 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     };
 
     let haReproducido = false;
+    let tiempoInicial = null;
+    let ultimoTiempo = -1;
+    let ultimoAvance = performance.now();
     let signalTimer = setTimeout(() => {
-      if (!haReproducido && sessions.get(el) === session) {
-        setBadge('sin-senal', '● Sin señal');
+      if (autoplay && !haReproducido && sessions.get(el) === session) {
+        fail();
       }
-    }, 8000);
+    }, 20000);
 
-    const onPlaying = () => {
+    const onTimeUpdate = () => {
+      if (!v.videoWidth || !v.videoHeight) return;
+      if (v.currentTime > ultimoTiempo + 0.1) {
+        ultimoTiempo = v.currentTime;
+        ultimoAvance = performance.now();
+      }
+      if (tiempoInicial == null) tiempoInicial = v.currentTime;
+      if (v.currentTime - tiempoInicial < 1) return;
       haReproducido = true;
       clearTimeout(signalTimer);
       setBadge('directo', '● En directo');
@@ -265,12 +281,22 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       setBadge('buffer', '● Búfer');
     };
 
-    v.addEventListener('playing', onPlaying);
+    v.addEventListener('timeupdate', onTimeUpdate);
     v.addEventListener('waiting', onWaiting);
     v.addEventListener('stalled', onWaiting);
     let hls = null;
-    const fail = () => { clearTimeout(signalTimer); setBadge('sin-senal', '● Sin señal'); if (sessions.get(el) !== session) return; stopCam(el); msg(el, 'Cámara sin señal', 'La emisión no responde ahora mismo. Prueba otra cámara o vuelve en un rato.'); };
-    active.set(el, () => { clearTimeout(signalTimer); v.removeEventListener('playing', onPlaying); v.removeEventListener('waiting', onWaiting); v.removeEventListener('stalled', onWaiting); hls?.destroy(); v.pause(); v.removeAttribute('src'); v.load(); });
+    const fail = () => {
+      if (sessions.get(el) !== session) return;
+      stopCam(el);
+      msg(el, 'Cámara sin señal', 'La emisión no responde ahora mismo. Se volverá a conectar automáticamente.');
+      const intento = sessions.get(el);
+      setTimeout(() => { if (el.isConnected && sessions.get(el) === intento) playCam(el, cam, { autoplay }); }, 30000);
+    };
+    const watchdog = setInterval(() => {
+      if (v.paused && (haReproducido || !autoplay)) { ultimoAvance = performance.now(); return; }
+      if (sessions.get(el) === session && performance.now() - ultimoAvance > 20000) fail();
+    }, 5000);
+    active.set(el, () => { clearTimeout(signalTimer); clearInterval(watchdog); v.removeEventListener('timeupdate', onTimeUpdate); v.removeEventListener('waiting', onWaiting); v.removeEventListener('stalled', onWaiting); hls?.destroy(); v.pause(); v.removeAttribute('src'); v.load(); });
     if (isApple() && v.canPlayType('application/vnd.apple.mpegurl')) {
       v.src = fuente;
       v.addEventListener('error', fail, { once: true });
@@ -1068,7 +1094,9 @@ export function camThumb(cam) {
   if (!cam) return null;
   if (cam.thumbUrl) return cam.thumbUrl;
   if (cam.embedType === 'jpg') return cam.embedUrl;
-  if (cam.embedType === 'skyline') return 'https://cdn.skylinewebcams.com/live2815.jpg';
+  if (cam.embedType === 'skyline') return cam.embedUrl?.includes('benicasim')
+    ? 'https://cdn.skylinewebcams.com/live2816.jpg'
+    : 'https://cdn.skylinewebcams.com/live2815.jpg';
   const id = cam.embedType === 'youtube' && cam.embedUrl.match(/(?:v=|youtu\.be\/|embed\/|live\/)([\w-]{11})/)?.[1];
   return id ? `https://i.ytimg.com/vi/${id}/hqdefault_live.jpg` : null;
 }

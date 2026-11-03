@@ -14,6 +14,7 @@
 ## ✅ FINALIZADAS
 | Fecha | Logro | Commit | Verificación |
 | --- | --- | --- | --- |
+| 2026-11-04 | Vídeo real de Morro de Gos y Trinimar, recuperación automática de señal, mapa 2D inicial, indicadores compactos y sectores de oleaje de los 14 spots contrastados con la costa | En este commit | E2E Chrome: vídeo 1920×1080 con fotogramas cambiantes en ambas playas; mapa móvil con datos; 14 orientaciones y previsión comprobadas |
 | 2026-11-03 | Reproductor de vídeo en directo embebido para webcam de Morro de Gos (Hotel Servigroup Koral Beach) en iframe aislado con sandbox (Origin: null), Hls.js y evasión de bloqueo anti-hotlinking de Skyline sin enlaces externos | PENDIENTE | [VERIFICADO Simulación E2E headless Chrome CDP OK, 73 tests rewind OK, 44 tests backend OK, 6 tests histórico OK, tsc móvil 0 errores] |
 | 2026-11-03 | Corregir webcam Morro de Gos: fotograma en directo JPG oficial de Koral Beach con auto-refresco, distintivo interactivo y enlace directo oficial (evita bloqueo anti-hotlinking de SkylineWebcams) | 47ad452 | [VERIFICADO Simulación E2E headless Chrome CDP OK, 73 tests rewind OK, 44 tests backend OK, 6 tests histórico OK, 24/24 móvil OK] |
 | 2026-11-03 | Reproductor nativo HLS embebido para webcam Morro de Gos (Hotel Servigroup Koral Beach) sin botones externos, resolución dinámica en cliente con hls.js y auto-recuperación de token | 2925002 | [VERIFICADO Simulación E2E headless Chrome CDP readyState=4 1920x1080 OK, 73 tests rewind OK, 44 tests backend OK, 24/24 móvil OK] |

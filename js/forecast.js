@@ -189,7 +189,7 @@ function breakingHeight(h, t) {
 // y casi 0 si viene de fuera de la ventana útil (sombra de puerto/cabo o de tierra).
 function exposure(spot, dir) {
   if (dir == null) return 0;
-  if (!inWindow(dir, spot.swellWindow)) return 0.08;
+  if (!inWindow(dir, spot.swellWindow)) return 0;
   const d = angDiff(dir, spot.facing);
   return Math.max(0.15, Math.pow(Math.cos((Math.min(d, 85) * Math.PI) / 180), 0.6));
 }
@@ -204,7 +204,7 @@ function surfFromTrains(spot, trains) {
   let e = 0;
   for (const tr of trains) {
     const hb = v3
-      ? (tr.h || 0) * factorOleaje(spot.id, tr.dir, tr.t)
+      ? (inWindow(tr.dir, spot.swellWindow) ? (tr.h || 0) * factorOleaje(spot.id, tr.dir, tr.t) : 0)
       : breakingHeight(tr.h, tr.t) * exposure(spot, tr.dir) * spot.exposureFactor;
     e += hb * hb;
   }

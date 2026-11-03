@@ -116,7 +116,7 @@
       "spots": [
         "Heliopolis"
       ],
-      "priority": 1,
+      "priority": 2,
       "embedType": "hls",
       "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/BenicassimVela/playlist.m3u8",
       "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/benicassim-benicasim/webcams/benicassim-vela",
@@ -137,7 +137,7 @@
       "spots": [
         "Heliopolis"
       ],
-      "priority": 2,
+      "priority": 1,
       "embedType": "skyline",
       "embedUrl": "https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/benicasim.html",
       "pageUrl": "https://www.servigroup.com/es/hotel-trinimar-benicasim/webcam-benicasim/",
@@ -252,7 +252,7 @@
       "tokenRefresh": null,
       "verified": true,
       "notes": "El propio Hotel Papa Luna incrusta la página de Skyline en un iframe, pero NO funciona en un navegador real por el X-Frame-Options SAMEORIGIN de skylinewebcams.com (confirmado con curl). Sólo sirve la miniatura JPG fija, de refuerzo/último recurso.",
-      "enabled": true,
+      "enabled": false,
       "lastChecked": "2026-11-03T19:40:19.342148+00:00",
       "failCount": 0
     },

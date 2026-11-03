@@ -252,12 +252,14 @@ body.vista-mapa #view { position:fixed; z-index:1; top:0; left:0; right:0; botto
 .capas-hora input { flex:1; min-width:0; accent-color:var(--text); }
 .capas-hora output { min-width:86px; font-size:13px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
 .capas-play { flex:none; width:40px; height:40px; border:0; border-radius:50%; background:var(--text); color:var(--bg); font-size:14px; cursor:pointer; }
-.capas-leyenda { display:flex; align-items:center; margin-top:8px; font-size:11px; font-weight:600; border-radius:6px; overflow:hidden; }
-.capas-leyenda span { flex:1; padding:3px 0; color:#0a0f14; text-align:center; }
-.capas-leyenda span:first-child { flex:none; padding:3px 8px; color:var(--text-2); background:transparent; }
+.capas-leyenda { margin-top:10px; font-size:12px; font-weight:600; }
+.capas-leyenda strong { display:block; margin-bottom:5px; }
+.capas-escala { height:10px; border-radius:999px; border:1px solid rgba(255,255,255,.25); }
+.capas-valores { display:flex; justify-content:space-between; margin-top:3px; color:var(--text-2); font-variant-numeric:tabular-nums; }
 .capas-estado { margin:8px 0 0; font-size:13px; color:var(--text-2); }
-.capa-punto { display:flex; flex-direction:column; align-items:center; justify-content:center; width:40px; height:40px; pointer-events:none; }
-.capa-punto b { font-size:11px; line-height:1; text-shadow:0 0 3px #0a0f14, 0 0 3px #0a0f14; }
+.capa-punto { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; width:44px; height:38px; pointer-events:none; }
+.capa-punto svg { flex:none; filter:drop-shadow(0 1px 2px rgba(0,0,0,.7)); }
+.capa-punto b { display:block; min-width:29px; padding:3px 5px; border-radius:7px; background:rgba(11,23,32,.78); box-shadow:0 1px 4px rgba(0,0,0,.3); color:#fff; font-size:11px; font-weight:700; line-height:1; text-align:center; font-variant-numeric:tabular-nums; }
 .capas-canvas { position:absolute; inset:0; z-index:450; pointer-events:none; }
 .capas-pop { font-size:13px; line-height:1.5; }
 .capas-pop div span { display:inline-block; min-width:56px; color:#677680; }

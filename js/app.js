@@ -1893,8 +1893,6 @@ async function alternar3D(btn, { silencioso = false } = {}) {
   return on;
 }
 
-const hayWebGL = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } };
-
 // Ventana interactiva del mapa: previsión del spot (día, hora, mar, viento, marea) sin salir del mapa.
 function cerrarHojaSpot() {
   hojaSpot?.remove(); hojaSpot = null;
@@ -2030,8 +2028,7 @@ async function renderMap() {
   leaflet.on('click', cerrarHojaSpot);
   $('#btn-3d').addEventListener('click', (e) => alternar3D(e.currentTarget));
   $('#btn-base').addEventListener('click', () => mapa3d?.alternarBase());
-  // Por defecto, relieve en 3D (si el móvil lo soporta); el botón 2D vuelve al mapa plano.
-  if (hayWebGL()) alternar3D($('#btn-3d'), { silencioso: true });
+  // El mapa plano es el predeterminado; el relieve 3D se abre al tocar su botón.
   setTimeout(() => { leaflet.invalidateSize(); leaflet.fitBounds(bounds, { padding: [60, 60] }); }, 50);
 }
 
@@ -2145,7 +2142,7 @@ function renderCams() {
           <div class="cam cam-card-video" data-camspot="${esc(s.id)}">
             <button class="cam-placeholder" aria-label="Reproducir cámara de ${esc(s.name)}">
               <div class="cam-placeholder-overlay">
-                <span class="cam-live-badge">EN DIRECTO</span>
+                <span class="cam-live-badge">CÁMARA</span>
                 ${PLAY_SVG}
                 <span class="cam-short-name">${esc(c.short || c.name)}</span>
               </div>

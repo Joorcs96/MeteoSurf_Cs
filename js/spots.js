@@ -29,7 +29,7 @@ const S = (o) => {
 export const SPOTS = [
   S({
     id: 'Vinaros', name: 'Vinaròs', zone: 'norte', zoneName: 'Vinaròs · El Fortí',
-    lat: 40.46877, lon: 0.47904, facing: 106,
+    lat: 40.46877, lon: 0.47904, facing: 106, swellWindow: [50, 175],
     bottom: 'Arena y escollera', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO flojo',
     level: 'Intermedio', desc: 'Playa urbana junto al puerto. Picos definidos cerca del dique con mar del Este.',
     photo: {
@@ -44,7 +44,7 @@ export const SPOTS = [
   }),
   S({
     id: 'Peniscola', name: 'Peñíscola Norte', zone: 'norte', zoneName: 'Peñíscola',
-    lat: 40.3806, lon: 0.41021, facing: 106, swellWindow: [32, 162],
+    lat: 40.3806, lon: 0.41021, facing: 106, swellWindow: [35, 160],
     bottom: 'Arena', bestTide: 'Media a alta', bestSwell: 'NE a E', bestWind: 'O y NO',
     desc: 'Playa Norte, larga y abierta al Gregal. Funciona con temporales del NE y E; con viento de poniente queda limpia.',
     photo: {
@@ -74,9 +74,9 @@ export const SPOTS = [
   }),
   S({
     // Jordi, 18/10/2026: Playa de la Concha (Oropesa), punto del enlace de Google Maps compartido.
-    // Orientación y ventana estimadas a partir de la bahía (resguardada del N por el cabo y el castillo); sin medir con OSM.
+    // Ventana contrastada con la costa OSM: el cabo bloquea los rumbos de mar del NE.
     id: 'Concha', name: 'La Concha', zone: 'oropesa', zoneName: 'Oropesa del Mar · La Concha',
-    lat: 40.08046, lon: 0.13854, facing: 140, exposureFactor: 1, swellWindow: [25, 175], maxGood: 1.5,
+    lat: 40.08046, lon: 0.13854, facing: 140, exposureFactor: 1, swellWindow: [80, 175], maxGood: 1.5,
     windShelter: { sector: [330, 60], factor: 0.4 }, abrigoBonus: 2.8,
     bottom: 'Arena', bestTide: 'Media', bestSwell: 'E a SE', bestWind: 'O y NO',
     desc: 'Playa urbana de Oropesa, en la bahía al sur del castillo. Algo abrigada del Norte; funciona con mar del Este y Sureste y queda limpia con poniente.',
@@ -92,7 +92,7 @@ export const SPOTS = [
   }),
   S({
     id: 'Renega', name: 'La Renegà', zone: 'oropesa', zoneName: 'Oropesa del Mar',
-    lat: 40.06195, lon: 0.1206, facing: 148, exposureFactor: 0.9, swellWindow: [60, 212], abrigoBonus: 3.5, maxGood: 1.5,
+    lat: 40.06195, lon: 0.1206, facing: 148, exposureFactor: 0.9, swellWindow: [65, 210], abrigoBonus: 3.5, maxGood: 1.5,
     bottom: 'Roca y lajas', bestTide: 'Alta', bestSwell: 'E con periodo', bestWind: 'O y NO',
     level: 'Avanzado', hazards: 'Fondo de roca y lajas; entrada y salida por piedras',
     desc: 'Costa rocosa entre Oropesa y Benicàssim. Necesita mar de fondo con fuerza; con tamaño rompe con más potencia que las playas.',
@@ -108,7 +108,7 @@ export const SPOTS = [
   }),
   S({
     id: 'Voramar', name: 'Voramar', zone: 'oropesa', zoneName: 'Benicàssim',
-    lat: 40.05464, lon: 0.08248, facing: 147, exposureFactor: 0.85, swellWindow: [20, 204], maxGood: 1.5,
+    lat: 40.05464, lon: 0.08248, facing: 147, exposureFactor: 0.85, swellWindow: [80, 204], maxGood: 1.5,
     windShelter: { sector: [330, 60], factor: 0.4 }, abrigoBonus: 3.8,
     bottom: 'Arena y roca', bestTide: 'Media a alta', bestSwell: 'E a SE', bestWind: 'NO y N',
     desc: 'Extremo norte de Benicàssim, al abrigo de la punta. Aguanta temporales grandes y queda protegido del viento del Norte.',
@@ -173,7 +173,7 @@ export const SPOTS = [
   }),
   S({
     id: 'Planetario', name: 'Planetario', zone: 'grao', zoneName: 'Grao · Playa del Pinar',
-    lat: 39.9784738, lon: 0.026575, facing: 102, swellWindow: [42, 168], abrigoBonus: 1.8, maxGood: 2.37,
+    lat: 39.9784738, lon: 0.026575, facing: 102, swellWindow: [45, 150], abrigoBonus: 1.8, maxGood: 2.37,
     bottom: 'Arena', bestTide: 'Media subiendo', bestSwell: 'NE a E', bestWind: 'O y NO',
     desc: 'Frente al Planetario, junto al dique norte del puerto. Rompiente clásica del Grao con Levante y Gregal.',
     photo: {

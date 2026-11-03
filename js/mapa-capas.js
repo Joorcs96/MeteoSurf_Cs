@@ -29,11 +29,22 @@ const rosa = (g) => ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO
 function color(capa, v) {
   const p = CAPAS[capa].paradas;
   if (v <= p[0][0]) return p[0][1];
-  for (let i = 1; i < p.length; i++) if (v <= p[i][0]) return p[i][1];
+  for (let i = 1; i < p.length; i++) if (v <= p[i][0]) {
+    const a = hexARgb(p[i - 1][1]), b = hexARgb(p[i][1]);
+    const t = (v - p[i - 1][0]) / (p[i][0] - p[i - 1][0]);
+    return `rgb(${a.map((x, j) => Math.round(x + (b[j] - x) * t)).join(',')})`;
+  }
   return p[p.length - 1][1];
 }
 
 function hexARgb(h) { return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+
+// La malla marina de Open-Meteo extrapola valores sobre tierra. Recortar esos
+// puntos con una línea de costa conservadora para esta zona fija de Castellón.
+function puntoEnMar(p) {
+  const costa = p.lat >= 39.9 ? p.lat - 39.95 : -0.18 + (p.lat - 39.7) * 0.65;
+  return p.lon >= costa;
+}
 
 async function pedir(url) {
   const r = await fetch(url);
@@ -65,10 +76,11 @@ async function cargarMalla() {
 
 function valorPunto(capa, p, h) {
   const g = (o, k) => (o && o[k] ? o[k][h] : null);
+  const rumbo = (o, k) => { const d = g(o, k); return d == null ? null : d + 180; };
   switch (capa) {
-    case 'viento': { const v = g(p.met, 'wind_speed_10m'); return v == null ? null : { v: v * KMH_A_KT, dir: g(p.met, 'wind_direction_10m') + 180 }; }
-    case 'oleaje': { const v = g(p.mar, 'wave_height'); return v == null ? null : { v, dir: g(p.mar, 'wave_direction') + 180 }; }
-    case 'periodo': { const v = g(p.mar, 'wave_period'); return v == null ? null : { v, dir: g(p.mar, 'wave_direction') + 180 }; }
+    case 'viento': { const v = g(p.met, 'wind_speed_10m'); return v == null ? null : { v: v * KMH_A_KT, dir: rumbo(p.met, 'wind_direction_10m') }; }
+    case 'oleaje': { const v = g(p.mar, 'wave_height'); return v == null ? null : { v, dir: rumbo(p.mar, 'wave_direction') }; }
+    case 'periodo': { const v = g(p.mar, 'wave_period'); return v == null ? null : { v, dir: rumbo(p.mar, 'wave_direction') }; }
     case 'temp': { const v = g(p.mar, 'sea_surface_temperature'); return v == null ? null : { v, dir: null }; }
     case 'presion': { const v = g(p.met, 'pressure_msl'); return v == null ? null : { v, dir: null }; }
     default: return null;
@@ -96,7 +108,7 @@ function vientoEn(datos, h, lat, lon) {
   return [mezcla(0), mezcla(1)];
 }
 
-export const FLECHA = (grados, col, tam) => `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" style="transform:rotate(${grados}deg)" aria-hidden="true"><path d="M12 2 L19 20 L12 16 L5 20 Z" fill="${col}" stroke="#0a0f14" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+export const FLECHA = (grados, col, tam) => `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" style="transform:rotate(${grados}deg)" aria-hidden="true"><path d="M12 21V4 M6 10l6-6 6 6" fill="none" stroke="#09131d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 21V4 M6 10l6-6 6 6" fill="none" stroke="${col}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 // Motor para el mapa plano (Leaflet).
 export function motorLeaflet(mapa, L = window.L) {
@@ -106,10 +118,21 @@ export function motorLeaflet(mapa, L = window.L) {
     limpiar: () => grupo.clearLayers(),
     pintar(items) {
       grupo.clearLayers();
+      const area = mapa.getSize();
+      const celdas = new Map();
       items.forEach((it) => {
+        const p = mapa.latLngToContainerPoint([it.lat, it.lon]);
+        if (p.x < 0 || p.y < 55 || p.x > area.x || p.y > area.y - 100) return;
+        if (p.x > area.x - 82 && p.y < 280) return;
+        const gx = Math.floor(p.x / 76), gy = Math.floor(p.y / 72);
+        const key = `${gx}:${gy}`;
+        const distancia = (p.x - (gx + 0.5) * 76) ** 2 + (p.y - (gy + 0.5) * 72) ** 2;
+        if (!celdas.has(key) || distancia < celdas.get(key).distancia) celdas.set(key, { it, distancia });
+      });
+      celdas.forEach(({ it }) => {
         const flecha = it.dir == null ? '' : FLECHA(it.dir, it.col, it.tam);
-        const html = `<div class="capa-punto">${flecha}<b style="color:${it.col}">${it.texto}</b></div>`;
-        L.marker([it.lat, it.lon], { icon: L.divIcon({ html, className: '', iconSize: [40, 40], iconAnchor: [20, 20] }), interactive: false, keyboard: false, zIndexOffset: -1000 }).addTo(grupo);
+        const html = `<div class="capa-punto" style="--capa-color:${it.col}">${flecha}<b>${it.texto}</b></div>`;
+        L.marker([it.lat, it.lon], { icon: L.divIcon({ html, className: '', iconSize: [44, 38], iconAnchor: [22, 19] }), interactive: false, keyboard: false, zIndexOffset: -1000 }).addTo(grupo);
       });
     },
     aLatLng: (x, y) => { const ll = mapa.containerPointToLatLng([x, y]); return { lat: ll.lat, lng: ll.lng }; },
@@ -163,7 +186,9 @@ export function iniciarCapas(motor, host) {
   function pintarLeyenda() {
     if (!capa) return;
     const c = CAPAS[capa];
-    leyenda.innerHTML = `<span>${c.unidad}</span>` + c.paradas.map(([v, col]) => `<span style="background:${col}">${v}</span>`).join('');
+    const min = c.paradas[0][0], max = c.paradas.at(-1)[0];
+    const gradiente = c.paradas.map(([v, col]) => `${col} ${Math.round((v - min) * 100 / (max - min))}%`).join(',');
+    leyenda.innerHTML = `<strong>${c.nombre} · ${c.unidad}</strong><div class="capas-escala" style="background:linear-gradient(90deg,${gradiente})"></div><div class="capas-valores"><span>${c.paradas[0][0]}</span><span>${c.paradas.at(-1)[0]} ${c.unidad}</span></div>`;
   }
 
   function pintarPuntos() {
@@ -172,11 +197,12 @@ export function iniciarCapas(motor, host) {
     const h = hora;
     const items = [];
     datos.puntos.forEach((p) => {
+      if (['oleaje', 'periodo', 'temp'].includes(capa) && !puntoEnMar(p)) return;
       const val = valorPunto(capa, p, h);
       if (!val) return;
       items.push({
         lat: p.lat, lon: p.lon, dir: val.dir, col: color(capa, val.v), texto: formato(capa, val.v),
-        tam: capa === 'oleaje' ? 18 + Math.min(val.v, 4) * 5 : 22,
+        tam: 19,
       });
     });
     motor.pintar(items);
@@ -186,6 +212,7 @@ export function iniciarCapas(motor, host) {
     salida.textContent = datos ? etiquetaHora(hora) : '';
     pintarPuntos();
   }
+  const quitarPintadoVista = motor.alCambiarVista(() => { if (capa && datos) pintarPuntos(); });
 
   // Partículas de viento: canvas encima del mapa que no captura toques.
   function arrancarParticulas() {
@@ -244,7 +271,11 @@ export function iniciarCapas(motor, host) {
 
   async function elegir(nueva) {
     capa = nueva || null;
-    barra.querySelectorAll('button').forEach((b) => b.classList.toggle('on', (b.dataset.capa || null) === capa));
+    barra.querySelectorAll('button').forEach((b) => {
+      const activo = (b.dataset.capa || null) === capa;
+      b.classList.toggle('on', activo);
+      b.setAttribute('aria-pressed', String(activo));
+    });
     pintarLeyenda();
     parar();
     abajo.hidden = !capa;
@@ -300,6 +331,6 @@ export function iniciarCapas(motor, host) {
 
   return {
     reiniciar() { elegir(null); },
-    destruir() { vivo = false; parar(); pararParticulas(); motor.destruir(); host.innerHTML = ''; },
+    destruir() { vivo = false; parar(); pararParticulas(); quitarPintadoVista(); motor.destruir(); host.innerHTML = ''; },
   };
 }

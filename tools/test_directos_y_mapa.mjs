@@ -19,7 +19,7 @@ const server = createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': mime }); createReadStream(file).pipe(res);
 });
 await new Promise((resolve) => server.listen(0, resolve));
-const base = `http://127.0.0.1:${server.address().port}`;
+const base = process.env.TEST_BASE_URL?.replace(/\/$/, '') || `http://127.0.0.1:${server.address().port}`;
 const chrome = process.env.CHROME_PATH || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : null);
 const browser = await chromium.launch({ headless: true, ...(chrome && existsSync(chrome) ? { executablePath: chrome } : {}), args: ['--autoplay-policy=no-user-gesture-required'] });
 try {
@@ -42,6 +42,21 @@ try {
     assert.ok(segmentos.some((url) => url.includes(`${streamId}speed-`)), `${spot}: llegan fragmentos de la playa correcta`);
     assert.ok(!segmentos.some((url) => url.includes('copyright_violation')), `${spot}: sin cortinilla de marca`);
     console.log(`OK ${spot}: playa visible en movimiento, ${estado1.width}x${estado1.height}, ${segmentos.length} fragmentos`);
+    await page.close();
+  }
+
+  if (!process.argv.includes('--map-only')) {
+    const page = await browser.newPage();
+    await page.goto(`${base}/#/spot/Piramides`, { waitUntil: 'domcontentloaded' });
+    const video = page.locator('#cam video');
+    await video.waitFor({ timeout: 20000 });
+    await page.waitForFunction(() => document.querySelector('#cam .cam-badge-directo')?.textContent.includes('En directo'), null, { timeout: 30000 });
+    const first = await video.evaluate((v) => ({ width: v.videoWidth, height: v.videoHeight, time: v.currentTime }));
+    await page.waitForTimeout(2500);
+    const second = await video.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
+    assert.ok(first.width >= 640 && first.height >= 360, 'HLS: vídeo decodificado');
+    assert.ok(!second.paused && second.time - first.time >= 1, 'HLS: el directo avanza');
+    console.log(`OK Grao: HLS en directo, ${first.width}x${first.height}`);
     await page.close();
   }
 

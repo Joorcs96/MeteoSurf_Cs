@@ -4,13 +4,13 @@
 // tenían la PWA instalada borran la suya vieja en `activate` y se quedan con
 // esta. Va por encima de la v17 de `main` (que ya existe) para que, al integrar
 // las dos ramas, el número nunca baje y nadie se quede con un shell viejo.
-const CACHE = 'meteosurf-cs-v47-directos-mapa-2d';
+const CACHE = 'meteosurf-cs-v48-directos-movil';
 // `deteccion.js` y `detector-ia.js` también entran: los importa `cams.js`, y si
 // no están en la lista, a quien ya tenía la PWA instalada le falla la vigía sin
 // red aunque el resto de la app esté en caché.
 const SHELL = ['./', './index.html', './cam_skyline.html', './css/app.css', './js/app.js', './js/spots.js', './js/forecast.js',
   './js/compass.js', './js/cams.js', './js/cam_skyline.js', './js/assistant.js', './js/physics.js', './js/nowcast.js', './js/mapa-capas.js', './js/mapa-3d.js', './js/orientaciones-mapa.js', './data/fotos.json',
-  './js/deteccion.js', './js/detector-ia.js', './webcams.json', './manifest.json', './icon.svg'];
+  './js/deteccion.js', './js/detector-ia.js', './vendor/hls.min.js', './webcams.json', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));

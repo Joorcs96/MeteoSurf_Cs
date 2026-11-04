@@ -3,39 +3,68 @@
   const defaultPage = 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html';
   const requestedPage = params.get('page') || defaultPage;
   const pageUrl = [defaultPage, 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/benicasim.html'].includes(requestedPage) ? requestedPage : defaultPage;
-  const subFrame = document.getElementById('sky_player');
-
-  // Construir el reproductor autónomo con origen opaco (data: URI)
+  // El iframe exterior ya tiene origen opaco por su sandbox. Reproducir aquí
+  // evita que los navegadores móviles tengan que atravesar otro iframe data:.
   // Esto permite realizar fetch cross-origin sin cabecera Origin restrictiva,
   // recibiendo los fragmentos de vídeo real en directo (speed-*.ts) en vez de cortinilla.
-  const innerHtml = `<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { width:100%; height:100%; background:#000; overflow:hidden; }
-    video { width:100%; height:100%; object-fit:cover; display:block; background:#000; }
-  </style>
-</head>
-<body>
-  <video id="player_vid" autoplay muted playsinline controls></video>
-  <script>
     const v = document.getElementById('player_vid');
+    const start = document.getElementById('start');
     let hls = null;
     let renewTimer = null;
+    let requestController = null;
+    let waitingForTap = false;
+    let startAction = 'play';
     let attempts = 0;
     let lastProgress = performance.now();
     let lastTime = -1;
 
+    function requestPlay() {
+      const attempt = v.play();
+      if (attempt && typeof attempt.catch === 'function') attempt.catch((error) => {
+        if (error?.name !== 'NotAllowedError') { retry(); return; }
+        waitingForTap = true;
+        startAction = 'play';
+        start.textContent = '▶ Ver playa en directo';
+        start.hidden = false;
+        window.parent.postMessage({ type: 'skyline_tap_required' }, '*');
+      });
+    }
+
+    start.addEventListener('click', async () => {
+      if (startAction === 'retry') {
+        clearTimeout(renewTimer);
+        renewTimer = null;
+        start.hidden = true;
+        initStream();
+        return;
+      }
+      try {
+        await v.play();
+        waitingForTap = false;
+        start.hidden = true;
+      } catch (error) {
+        if (error?.name === 'NotAllowedError') {
+          waitingForTap = true;
+          start.hidden = false;
+        } else {
+          retry();
+        }
+      }
+    });
+
     function retry() {
       if (renewTimer) return;
+      if (requestController) requestController.abort();
+      waitingForTap = false;
+      start.hidden = true;
       window.parent.postMessage({ type: 'skyline_waiting' }, '*');
       if (hls) { hls.destroy(); hls = null; }
       if (++attempts >= 3) {
         window.parent.postMessage({ type: 'skyline_error' }, '*');
         attempts = 0;
+        startAction = 'retry';
+        start.textContent = '↻ Reintentar directo';
+        start.hidden = false;
         renewTimer = setTimeout(initStream, 30000);
         return;
       }
@@ -44,17 +73,22 @@
 
     async function initStream() {
       renewTimer = null;
+      start.hidden = true;
+      startAction = 'play';
       lastProgress = performance.now();
       lastTime = -1;
+      const controller = new AbortController();
+      requestController = controller;
+      const requestTimeout = setTimeout(() => controller.abort(), 12000);
       try {
-        const res = await fetch('${pageUrl}', { cache: 'no-cache' });
+        const res = await fetch(pageUrl, { cache: 'no-cache', signal: controller.signal });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const html = await res.text();
-        const match = html.match(/source\\s*:\\s*['"]livee?\\.m3u8\\?a=([^'"]+)['"]/i);
+        const match = html.match(/source\s*:\s*['"]livee?\.m3u8\?a=([^'"]+)['"]/i);
         if (!match) throw new Error('Token no encontrado');
         const token = match[1];
         const streamUrl = 'https://hd-auth.skylinewebcams.com/live.m3u8?a=' + token;
-        const playlist = await fetch(streamUrl, { cache: 'no-store' });
+        const playlist = await fetch(streamUrl, { cache: 'no-store', signal: controller.signal });
         if (!playlist.ok || /copyright_violation/i.test(await playlist.text())) throw new Error('Emisión no autorizada');
 
         if (hls) {
@@ -72,21 +106,26 @@
           hls.loadSource(streamUrl);
           hls.attachMedia(v);
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            v.play().catch(() => {});
+            requestPlay();
           });
           hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) retry();
           });
         } else if (v.canPlayType && v.canPlayType('application/vnd.apple.mpegurl')) {
           v.src = streamUrl;
-          v.play().catch(() => {});
+          requestPlay();
         } else { throw new Error('HLS no compatible'); }
       } catch (err) {
         retry();
+      } finally {
+        clearTimeout(requestTimeout);
+        if (requestController === controller) requestController = null;
       }
     }
 
     v.addEventListener('playing', () => {
+      waitingForTap = false;
+      start.hidden = true;
       window.parent.postMessage({
         type: 'skyline_playing',
         videoWidth: v.videoWidth,
@@ -110,29 +149,11 @@
     });
 
     v.addEventListener('waiting', () => {
-      window.parent.postMessage({ type: 'skyline_waiting' }, '*');
+      if (!waitingForTap) window.parent.postMessage({ type: 'skyline_waiting' }, '*');
     });
 
     v.addEventListener('error', retry);
-    setInterval(() => { if (!renewTimer && performance.now() - lastProgress > 18000) retry(); }, 5000);
+    setInterval(() => { if (!renewTimer && !waitingForTap && performance.now() - lastProgress > 18000) retry(); }, 5000);
 
     initStream();
-  </script>
-</body>
-</html>`;
-
-  subFrame.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(innerHtml);
-
-  // Reenviar mensajes de reproducción hacia la ventana principal de la aplicación
-  window.addEventListener('message', (event) => {
-    const data = event.data;
-    if (!data || typeof data !== 'object' || event.source !== subFrame.contentWindow) return;
-    if (data.type === 'skyline_playing') {
-      window.parent.postMessage(data, '*');
-    } else if (data.type === 'skyline_time') {
-      window.parent.postMessage(data, '*');
-    } else if (data.type === 'skyline_waiting' || data.type === 'skyline_error') {
-      window.parent.postMessage(data, '*');
-    }
-  });
 })();

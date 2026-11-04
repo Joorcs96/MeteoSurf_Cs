@@ -99,7 +99,7 @@ async function getHls() {
   if (hlsLib) return hlsLib;
   hlsLoading ??= new Promise((res, rej) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js';
+    s.src = 'vendor/hls.min.js';
     s.onload = res;
     s.onerror = () => { s.remove(); rej(new Error('No se pudo cargar el reproductor.')); };
     document.head.appendChild(s);
@@ -159,7 +159,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     f.allow = 'autoplay; fullscreen; picture-in-picture';
     f.allowFullscreen = true;
     f.referrerPolicy = 'no-referrer';
-    f.loading = 'lazy';
+    f.loading = 'eager';
     f.title = cam.name;
     const skylinePage = cam.embedUrl || 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html';
     f.src = `cam_skyline.html?page=${encodeURIComponent(skylinePage)}`;
@@ -205,6 +205,12 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
         tiempoInicial = null;
         delete f.dataset.videoReady;
         setBadge('buffer', '● Búfer');
+      } else if (data.type === 'skyline_tap_required') {
+        clearTimeout(signalTimer);
+        haReproducido = false;
+        tiempoInicial = null;
+        delete f.dataset.videoReady;
+        setBadge('buffer', '● Toca para ver');
       } else if (data.type === 'skyline_error') {
         clearTimeout(signalTimer);
         haReproducido = false;

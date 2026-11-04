@@ -9,7 +9,7 @@ const playwright = await import('playwright').catch(() => {
   if (!process.env.APPDATA) throw new Error('Playwright no está disponible para la prueba E2E.');
   return import(pathToFileURL(path.join(process.env.APPDATA, 'npm/node_modules/playwright/index.mjs')).href);
 });
-const { chromium } = playwright;
+const { chromium, devices } = playwright;
 const root = process.cwd();
 const server = createServer((req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
@@ -21,30 +21,73 @@ const server = createServer((req, res) => {
 await new Promise((resolve) => server.listen(0, resolve));
 const base = process.env.TEST_BASE_URL?.replace(/\/$/, '') || `http://127.0.0.1:${server.address().port}`;
 const chrome = process.env.CHROME_PATH || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : null);
-const browser = await chromium.launch({ headless: true, ...(chrome && existsSync(chrome) ? { executablePath: chrome } : {}), args: ['--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ headless: true, ...(chrome && existsSync(chrome) ? { executablePath: chrome } : {}) });
+const device = process.argv.includes('--iphone') ? 'iPhone 13' : process.argv.includes('--android') ? 'Pixel 7' : null;
+const gestureTest = process.argv.includes('--gesture-test');
+const retryTest = process.argv.includes('--retry-test');
 try {
   for (const [spot, streamId] of process.argv.includes('--map-only') ? [] : [['MorroGos', '2815'], ['Heliopolis', '2816']]) {
-    const page = await browser.newPage();
+    const page = await browser.newPage(device ? devices[device] : {});
+    let allowRequests = false;
+    let routeCount = 0;
+    if (retryTest) {
+      await page.route(/^https:\/\/www\.skylinewebcams\.com\/webcam\//, (route) => {
+        routeCount++;
+        if (!allowRequests) route.abort();
+        else route.continue();
+      });
+    }
+    if (gestureTest) await page.addInitScript(() => {
+      const play = HTMLMediaElement.prototype.play;
+      let rejected = false;
+      document.addEventListener('DOMContentLoaded', () => {
+        const video = document.getElementById('player_vid');
+        if (video) video.autoplay = false;
+      });
+      HTMLMediaElement.prototype.play = function () {
+        if (this.id === 'player_vid' && !rejected) {
+          rejected = true;
+          return Promise.reject(new DOMException('El navegador requiere un toque', 'NotAllowedError'));
+        }
+        return play.call(this);
+      };
+    });
     const segmentos = [];
     page.on('response', (r) => { if (/speed-.*\.ts/.test(r.url())) segmentos.push(r.url()); });
     await page.goto(`${base}/#/spot/${spot}`, { waitUntil: 'domcontentloaded' });
-    const player = page.frameLocator('#cam iframe').frameLocator('#sky_player').locator('#player_vid');
+    const player = page.frameLocator('#cam iframe').locator('#player_vid');
     await player.waitFor({ timeout: 25000 });
+    if (retryTest) {
+      const retry = page.frameLocator('#cam iframe').locator('#start');
+      try { await retry.getByText('Reintentar directo').waitFor({ state: 'visible', timeout: 30000 }); }
+      catch (error) { throw new Error(`${spot}: ${error.message}; peticiones=${routeCount}; botón=${JSON.stringify(await retry.evaluate((e) => ({ text: e.textContent, hidden: e.hidden })).catch(() => null))}; badge=${await page.locator('#cam .cam-badge').innerText()}`); }
+      assert.match(await page.locator('#cam .cam-badge').innerText(), /Sin señal/);
+      allowRequests = true;
+      await retry.click();
+    }
+    if (gestureTest) {
+      const start = page.frameLocator('#cam iframe').locator('#start');
+      await start.waitFor({ state: 'visible', timeout: 30000 });
+      assert.match(await page.locator('#cam .cam-badge').innerText(), /Toca para ver/);
+      await start.click();
+    }
     await page.waitForFunction(() => document.querySelector('#cam iframe')?.dataset.videoReady === 'true', null, { timeout: 30000 });
     const estado1 = await player.evaluate((v) => { v.controls = false; return { width: v.videoWidth, height: v.videoHeight, time: v.currentTime, paused: v.paused }; });
     const imagen1 = createHash('sha256').update(await player.screenshot()).digest('hex');
     await page.waitForTimeout(3500);
     const estado2 = await player.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
     const imagen2 = createHash('sha256').update(await player.screenshot()).digest('hex');
+    if (process.env.CAM_SCREENSHOT_DIR) await player.screenshot({ path: path.join(process.env.CAM_SCREENSHOT_DIR, `${spot}.png`) });
     assert.ok(estado1.width >= 640 && estado1.height >= 360, `${spot}: vídeo decodificado`);
-    assert.ok(!estado1.paused && !estado2.paused && estado2.time - estado1.time >= 2, `${spot}: el vídeo avanza`);
+    assert.ok(!estado1.paused && !estado2.paused && estado2.time - estado1.time >= 2, `${spot}: el vídeo avanza (${JSON.stringify({ estado1, estado2, segmentos: segmentos.length })})`);
     assert.notEqual(imagen1, imagen2, `${spot}: los fotogramas visibles cambian`);
     assert.ok(segmentos.some((url) => url.includes(`${streamId}speed-`)), `${spot}: llegan fragmentos de la playa correcta`);
     assert.ok(!segmentos.some((url) => url.includes('copyright_violation')), `${spot}: sin cortinilla de marca`);
-    console.log(`OK ${spot}: playa visible en movimiento, ${estado1.width}x${estado1.height}, ${segmentos.length} fragmentos`);
+    console.log(`OK ${device || 'escritorio'} ${spot}: playa visible en movimiento, ${estado1.width}x${estado1.height}, ${segmentos.length} fragmentos`);
     await page.close();
   }
 
+  if (!process.argv.includes('--cams-only')) {
   if (!process.argv.includes('--map-only')) {
     const page = await browser.newPage();
     await page.goto(`${base}/#/spot/Piramides`, { waitUntil: 'domcontentloaded' });
@@ -103,6 +146,7 @@ try {
   assert.equal(await rewindPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'La página no desborda a lo ancho');
   console.log('OK Rewind: calendario plegable, horas visibles y sin desbordamiento móvil');
   await rewindPage.close();
+  }
 } finally {
   await browser.close();
   await new Promise((resolve) => server.close(resolve));

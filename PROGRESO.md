@@ -10,6 +10,7 @@
 ## 👀 EN REVISION
 | Tarea | Rol/agente | Cerebro | Pestaña |
 | --- | --- | --- | --- |
+| Confirmar en iPhone y Android físicos los directos de Morro de Gos y Trinimar tras publicar la simplificación del reproductor | Jordi | Codex | Web publicada |
 
 ## ✅ FINALIZADAS
 | Fecha | Logro | Commit | Verificación |

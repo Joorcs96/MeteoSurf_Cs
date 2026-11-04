@@ -7,6 +7,7 @@ Dudas que no se pueden resolver sin decisión de Jordi. Se aplicó la opción co
 - Jordi confirma que ambas webcams siguen fallando en iPhone y Android. El reproductor actual usa un iframe `data:` aislado y oculta los rechazos de `video.play()`. Chrome móvil simulado sí llegó a decodificar vídeo real de ambas playas, por lo que esa prueba no reproduce el fallo de los teléfonos.
 - Se intentó cambiar el iframe a `srcdoc` y añadir un botón para iniciar o reintentar el directo. La prueba forzando un rechazo de reproducción pasó inicialmente, pero después falló tres veces seguidas: el vídeo dejó de avanzar dos veces y una vez no llegó a estado listo. Por la regla de tres fallos, se hizo `git restore` del intento y no se publicó.
 - Para resolverlo hace falta reproducir el fallo en Safari de iPhone y Chrome de Android reales, o registrar desde esos móviles el error de red/reproducción. No se debe llamar «arreglado» al vídeo solo por pasar en Chrome de escritorio o emulado.
+- Segundo intento: se eliminó el iframe `data:` interior, se incluyó Hls.js en la propia web y se añadieron inicio manual y reintento con tiempo límite. Pruebas locales: ambas playas en movimiento en Chrome móvil emulado con perfiles iPhone y Android, incluso tras bloqueo de reproducción y corte de red; capturas muestran las playas. Pendiente confirmar en los teléfonos físicos de Jordi tras publicar.
 
 
 ## 26/10/2026 · App Móvil Fase 1 (Antigravity Flash, rama feature/mejoras-ux-auditoria)

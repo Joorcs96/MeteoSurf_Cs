@@ -14,6 +14,7 @@
 ## ✅ FINALIZADAS
 | Fecha | Logro | Commit | Verificación |
 | --- | --- | --- | --- |
+| 2026-11-04 | Auditoría completa de webcams web: 11 directos activos con fotogramas cambiantes; excluidas la vista de 24 horas de Windy y la cámara inmóvil del hotel de Peñíscola; bloqueo para que la verificación HTTP no las reactive | c2266b3 | Chrome E2E local 11/11 cámaras activas; prueba del verificador Python correcta |
 | 2026-11-04 | Rewind plegable con cambio rápido de día en móvil; el actualizador ya no reactiva fotos fijas como cámaras; web publicada en GitHub Pages | 6c5a0f6 | Chrome E2E: Morro de Gos y Trinimar con vídeo 1920×1080 en movimiento, Grao HLS, mapa 2D móvil y Rewind; 14 orientaciones y 131 pruebas de Rewind correctas |
 | 2026-11-04 | Vídeo real de Morro de Gos y Trinimar, recuperación automática de señal, mapa 2D inicial, indicadores compactos y sectores de oleaje de los 14 spots contrastados con la costa | 4300541 | E2E Chrome: vídeo 1920×1080 con fotogramas cambiantes en ambas playas; mapa móvil con datos; 14 orientaciones y previsión comprobadas |
 | 2026-11-03 | Reproductor de vídeo en directo embebido para webcam de Morro de Gos (Hotel Servigroup Koral Beach) en iframe aislado con sandbox (Origin: null), Hls.js y evasión de bloqueo anti-hotlinking de Skyline sin enlaces externos | PENDIENTE | [VERIFICADO Simulación E2E headless Chrome CDP OK, 73 tests rewind OK, 44 tests backend OK, 6 tests histórico OK, tsc móvil 0 errores] |

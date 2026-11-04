@@ -77,6 +77,32 @@ try {
   if (process.env.MAP_SCREENSHOT) await page.screenshot({ path: process.env.MAP_SCREENSHOT });
   console.log('OK mapa: 2D inicial y capa de oleaje legible en móvil');
   await page.close();
+
+  const rewindPage = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 2 });
+  await rewindPage.goto(`${base}/#/spot/Piramides`, { waitUntil: 'domcontentloaded' });
+  await rewindPage.waitForFunction(() => document.querySelectorAll('[data-clip]').length > 0, null, { timeout: 20000 });
+  await rewindPage.locator('.spot-head .rating-pill').waitFor({ timeout: 30000 });
+  await rewindPage.locator('#rewind-toggle').click();
+  assert.equal(await rewindPage.locator('#rewind-calendar-panel').isHidden(), true, 'El calendario empieza plegado en móvil');
+  assert.ok(await rewindPage.locator('.rewind-day [data-clip]').count() > 0, 'Las horas siguen visibles sin calendario');
+  const initialDay = await rewindPage.locator('.rewind-day-nav span').textContent();
+  await rewindPage.locator('.rewind-day-nav button').first().click();
+  assert.notEqual(await rewindPage.locator('.rewind-day-nav span').textContent(), initialDay, 'Se cambia de día sin abrir el calendario');
+  assert.equal(await rewindPage.locator('#rewind-calendar-panel').isHidden(), true, 'Cambiar de día mantiene el calendario plegado');
+  if (process.env.REWIND_SCREENSHOT) { await rewindPage.locator('#rewind-strip').scrollIntoViewIfNeeded(); await rewindPage.screenshot({ path: process.env.REWIND_SCREENSHOT }); }
+  const toggle = rewindPage.locator('#rewind-calendar-toggle');
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+  await toggle.click();
+  assert.equal(await rewindPage.locator('#rewind-calendar-panel').isVisible(), true, 'El calendario se despliega');
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
+  await rewindPage.locator('.rewind-calendar [data-rewind-day]').first().click();
+  assert.equal(await rewindPage.locator('#rewind-calendar-panel').isVisible(), true, 'La fecha elegida mantiene el calendario abierto');
+  await rewindPage.locator('#rewind-calendar-toggle').click();
+  assert.equal(await rewindPage.locator('#rewind-calendar-panel').isHidden(), true, 'El calendario se puede volver a ocultar');
+  assert.ok(await rewindPage.locator('.rewind-day [data-clip]').count() > 0, 'Las horas permanecen al ocultarlo');
+  assert.equal(await rewindPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'La página no desborda a lo ancho');
+  console.log('OK Rewind: calendario plegable, horas visibles y sin desbordamiento móvil');
+  await rewindPage.close();
 } finally {
   await browser.close();
   await new Promise((resolve) => server.close(resolve));

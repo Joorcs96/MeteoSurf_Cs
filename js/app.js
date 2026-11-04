@@ -40,7 +40,7 @@ export function hideProModal() {
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
-const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null, rewindMonth: null, rewindDay: null };
+const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null, rewindMonth: null, rewindDay: null, rewindCalendarOpen: null, rewindStripOpen: false };
 
 // Asistente de previsión (se carga aparte para no retrasar el primer pintado)
 let aiMod = null;
@@ -921,13 +921,15 @@ function renderRewindCalendar(clips) {
     if (!days.has(key)) days.set(key, []);
     days.get(key).push({ c, i });
   });
-  const newest = [...days.keys()].sort().at(-1);
+  const sortedDays = [...days.keys()].sort();
+  const newest = sortedDays.at(-1);
   if (!state.rewindMonth) { state.rewindDay = newest; state.rewindMonth = newest.slice(0, 7); }
   const [year, month] = state.rewindMonth.split('-').map(Number);
   const first = new Date(Date.UTC(year, month - 1, 1));
   const offset = (first.getUTCDay() + 6) % 7;
   const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const label = first.toLocaleDateString('es-ES', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const selectedKey = state.rewindDay && days.has(state.rewindDay) ? state.rewindDay : sortedDays.filter((key) => key.startsWith(state.rewindMonth)).at(-1);
   const cells = Array.from({ length: offset + count }, (_, i) => {
     if (i < offset) return '<span class="rewind-cal-empty"></span>';
     const key = `${state.rewindMonth}-${String(i - offset + 1).padStart(2, '0')}`;
@@ -935,12 +937,16 @@ function renderRewindCalendar(clips) {
     if (!entries) return `<span class="rewind-cal-day muted">${i - offset + 1}</span>`;
     const avg = entries.reduce((sum, e) => sum + Number(e.c.prevision?.altura || 0), 0) / entries.length;
     const quality = avg >= 0.65 ? 'good' : avg >= 0.35 ? 'fair' : 'poor';
-    return `<button class="rewind-cal-day ${quality} ${key === state.rewindDay ? 'on' : ''}" data-rewind-day="${key}" title="${entries.length} vídeo(s) grabados">${i - offset + 1}<small>${entries.length}</small></button>`;
+    return `<button class="rewind-cal-day ${quality} ${key === selectedKey ? 'on' : ''}" data-rewind-day="${key}" title="${entries.length} vídeo(s) grabados">${i - offset + 1}<small>${entries.length}</small></button>`;
   }).join('');
-  const selectedKey = state.rewindDay && days.has(state.rewindDay) ? state.rewindDay : [...days.keys()].find((key) => key.startsWith(state.rewindMonth));
   const selected = days.get(selectedKey) || [];
   const selectedLabel = selectedKey ? new Date(`${selectedKey}T12:00:00Z`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : 'Sin vídeos este mes';
-  return `<div id="rewind-strip" class="rewind-strip" hidden><div class="rewind-intro"><b>Histórico Rewind</b><span>Elige un día coloreado y después la hora del vídeo.</span></div><div class="rewind-month"><button data-rewind-month="-1" aria-label="Mes anterior">‹</button><b>${esc(label)}</b><button data-rewind-month="1" aria-label="Mes siguiente">›</button></div><div class="rewind-week"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="rewind-calendar">${cells}</div><div class="rewind-legend"><i class="good"></i> bueno <i class="fair"></i> regular <i class="poor"></i> flojo <span>· número = vídeos</span></div><section class="rewind-day"><h3>${esc(selectedLabel)}</h3><div class="clip-hours">${selected.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section></div>`;
+  const selectedIdx = sortedDays.indexOf(selectedKey);
+  const prevDay = selectedIdx > 0 ? sortedDays[selectedIdx - 1] : '';
+  const nextDay = selectedIdx >= 0 && selectedIdx < sortedDays.length - 1 ? sortedDays[selectedIdx + 1] : '';
+  const dayNav = `<div class="rewind-day-nav"><button type="button" data-rewind-day="${prevDay}" aria-label="Día anterior con vídeos" ${prevDay ? '' : 'disabled'}>‹</button><span>${esc(selectedLabel)}</span><button type="button" data-rewind-day="${nextDay}" aria-label="Día siguiente con vídeos" ${nextDay ? '' : 'disabled'}>›</button></div>`;
+  const calendarOpen = state.rewindCalendarOpen ?? window.innerWidth >= 800;
+  return `<div id="rewind-strip" class="rewind-strip" ${state.rewindStripOpen ? '' : 'hidden'}><div class="rewind-head"><div class="rewind-intro"><b>Histórico Rewind</b><span>Elige una hora o cambia de día.</span></div><button id="rewind-calendar-toggle" class="rewind-calendar-toggle" type="button" aria-expanded="${calendarOpen}" aria-controls="rewind-calendar-panel">${ICON.calendar}<span>${calendarOpen ? 'Ocultar calendario' : 'Elegir fecha'}</span></button></div><div id="rewind-calendar-panel" ${calendarOpen ? '' : 'hidden'}><div class="rewind-month"><button data-rewind-month="-1" aria-label="Mes anterior">‹</button><b>${esc(label)}</b><button data-rewind-month="1" aria-label="Mes siguiente">›</button></div><div class="rewind-week"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="rewind-calendar">${cells}</div><div class="rewind-legend"><i class="good"></i> bueno <i class="fair"></i> regular <i class="poor"></i> flojo <span>· número = vídeos</span></div></div>${dayNav}<section class="rewind-day"><h3>Horas disponibles</h3><div class="clip-hours">${selected.map(({ c, i }) => `<button data-clip="${i}" title="${esc(c.camaraNombre || c.camaraCorta)}">${clipTime(new Date(c.hora))}</button>`).join('')}</div></section></div>`;
 }
 function renderRewinds(spot) {
   const clips = clipsForSpot(spot);
@@ -963,23 +969,30 @@ function bindClips(spot, camEl, showCam) {
   const record = $('#record-clip'), status = $('#record-status'), save = $('#save-clip');
   $('#rewind-toggle').addEventListener('click', (e) => {
     const strip = $('#rewind-strip'); strip.hidden = !strip.hidden;
+    state.rewindStripOpen = !strip.hidden;
     e.currentTarget.setAttribute('aria-expanded', String(!strip.hidden));
   });
+  $('#rewind-calendar-toggle')?.addEventListener('click', (e) => {
+    const panel = $('#rewind-calendar-panel');
+    panel.hidden = !panel.hidden;
+    state.rewindCalendarOpen = !panel.hidden;
+    e.currentTarget.setAttribute('aria-expanded', String(state.rewindCalendarOpen));
+    e.currentTarget.querySelector('span').textContent = state.rewindCalendarOpen ? 'Ocultar calendario' : 'Elegir fecha';
+  });
   view.querySelectorAll('[data-rewind-day]').forEach((b) => b.addEventListener('click', () => {
+    if (!b.dataset.rewindDay || b.disabled) return;
     state.rewindDay = b.dataset.rewindDay;
     state.rewindMonth = state.rewindDay.slice(0, 7);
+    state.rewindStripOpen = true;
     renderSpot(spot.id);
-    $('#rewind-strip').hidden = false;
-    $('#rewind-toggle').setAttribute('aria-expanded', 'true');
   }));
   view.querySelectorAll('[data-rewind-month]').forEach((b) => b.addEventListener('click', () => {
     const [y, m] = state.rewindMonth.split('-').map(Number);
     const next = new Date(Date.UTC(y, m - 1 + Number(b.dataset.rewindMonth), 1));
     state.rewindMonth = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`;
     state.rewindDay = null;
+    state.rewindStripOpen = true;
     renderSpot(spot.id);
-    $('#rewind-strip').hidden = false;
-    $('#rewind-toggle').setAttribute('aria-expanded', 'true');
   }));
   $('#live-cam').addEventListener('click', showCam);
   view.querySelectorAll('[data-clip]').forEach((b) => b.addEventListener('click', () => {
@@ -1275,7 +1288,7 @@ function renderSessionEvidence(spot, h) {
 function renderSpot(id) {
   const spot = SPOTS.find((s) => s.id === id);
   if (!spot) { location.hash = '#/'; return; }
-  if (state.spotId !== id) { state.dayIdx = 0; state.camIdx = 0; state.spotId = id; state.tab = 'ahora'; state.rewindMonth = null; state.rewindDay = null; }
+  if (state.spotId !== id) { state.dayIdx = 0; state.camIdx = 0; state.spotId = id; state.tab = 'ahora'; state.rewindMonth = null; state.rewindDay = null; state.rewindCalendarOpen = null; state.rewindStripOpen = false; }
   renderQuickSpots();
   document.title = `${spot.name} · MeteoSurf_Cs`;
   const f = state.fc?.spots[id];
@@ -1310,7 +1323,7 @@ function renderSpot(id) {
         <div class="cam" id="cam"></div>
         ${cams.length > 1 ? `<div class="cam-switch">${cams.map((c, i) => `<button data-cam="${i}" class="${i === state.camIdx ? 'on' : ''}">${ICON.cam} ${esc(c.short || c.name)}</button>`).join('')}</div>` : ''}
         <div class="cam-source" id="cam-source"></div>
-        <div class="cam-actions"><button id="rewind-toggle" aria-expanded="false" aria-controls="rewind-strip">Rewind</button><button id="record-clip" hidden>Grabar clip</button><button id="vigia-ola" hidden aria-pressed="false">Vigilar la ola</button><button id="live-cam" hidden>Volver al directo</button></div>
+        <div class="cam-actions"><button id="rewind-toggle" aria-expanded="${state.rewindStripOpen}" aria-controls="rewind-strip">Rewind</button><button id="record-clip" hidden>Grabar clip</button><button id="vigia-ola" hidden aria-pressed="false">Vigilar la ola</button><button id="live-cam" hidden>Volver al directo</button></div>
         ${renderRewinds(spot)}<div id="clip-info" class="clip-info" hidden></div><p id="record-status" class="record-status" role="status"></p><a id="save-clip" class="save-clip" hidden>Guardar clip</a>
         <p id="vigia-note" class="vigia-note" hidden></p><a id="save-ola" class="save-clip" hidden>Guardar clip de la ola</a>
       </div>
@@ -2277,12 +2290,9 @@ async function init() {
   setInterval(() => { if (document.visibilityState === 'visible') updateRealtime(); }, 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') updateRealtime(); });
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then((reg) => {
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        nw?.addEventListener('statechange', () => { if (nw.state === 'activated' && navigator.serviceWorker.controller) location.reload(); });
-      });
-    }).catch(() => { /* sin SW */ });
+    // La PWA actualiza su caché en segundo plano. Forzar una recarga aquí
+    // interrumpía el vídeo y la selección de Rewind al entrar desde el móvil.
+    navigator.serviceWorker.register('sw.js').catch(() => { /* sin SW */ });
   }
 }
 const savedTheme = store.get('theme', null);

@@ -186,9 +186,10 @@ def procesar_camara(cam: Dict[str, Any], now_iso: str) -> None:
     name = cam.get("name", cam_id)
     embed_type = cam.get("embedType", "")
 
-    # Un JPG puede responder 200 sin emitir vídeo. Nunca lo rehabilites como
-    # webcam en directo: el usuario vería una imagen fija con apariencia de live.
-    if embed_type == "jpg":
+    # Una respuesta HTTP 200 no demuestra vídeo en directo. Las fuentes que
+    # fallaron la comprobación visual quedan excluidas hasta verificarlas de
+    # nuevo en el navegador; el sondeo automático no debe rehabilitarlas.
+    if embed_type == "jpg" or cam.get("liveVerified") is False:
         cam["enabled"] = False
         cam["verified"] = False
         cam["lastChecked"] = now_iso

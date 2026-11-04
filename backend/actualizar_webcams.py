@@ -186,6 +186,14 @@ def procesar_camara(cam: Dict[str, Any], now_iso: str) -> None:
     name = cam.get("name", cam_id)
     embed_type = cam.get("embedType", "")
 
+    # Un JPG puede responder 200 sin emitir vídeo. Nunca lo rehabilites como
+    # webcam en directo: el usuario vería una imagen fija con apariencia de live.
+    if embed_type == "jpg":
+        cam["enabled"] = False
+        cam["verified"] = False
+        cam["lastChecked"] = now_iso
+        return
+
     # Un enlace a la web del propietario no es un stream: no se verifica ni se deshabilita
     if embed_type == "link":
         return

@@ -26,7 +26,7 @@ try {
   for (const spot of process.argv.includes('--map-only') ? [] : ['MorroGos', 'Heliopolis']) {
     const page = await browser.newPage(device ? devices[device] : {});
     await page.goto(`${base}/#/spot/${spot}`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#cam .cam-msg').waitFor({ timeout: 20000 });
+    await page.locator('#cam .cam-msg').getByText('Directo no disponible').waitFor({ timeout: 20000 });
     assert.match(await page.locator('#cam .cam-msg').innerText(), /Directo no disponible/);
     assert.equal(await page.locator('#cam iframe, #cam video, #cam img').count(), 0, `${spot}: no se muestra un directo falso`);
     console.log(`OK ${device || 'escritorio'} ${spot}: indisponibilidad clara, sin búfer infinito ni falso directo`);

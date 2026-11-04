@@ -139,15 +139,15 @@
         "Heliopolis"
       ],
       "priority": 1,
-      "embedType": "skyline",
+      "embedType": "restricted",
       "embedUrl": "https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/benicasim.html",
       "pageUrl": "https://www.servigroup.com/es/hotel-trinimar-benicasim/webcam-benicasim/",
       "credit": "Hotel Servigroup Trinimar",
       "refreshSeconds": 0,
       "distanceKm": 0.3,
       "tokenRefresh": null,
-      "verified": true,
-      "notes": "Emisión en directo de Playa Heliópolis (Hotel Servigroup Trinimar). Reproducción en streaming HLS directo de las olas.",
+      "verified": false,
+      "notes": "La cámara apunta a Playa Heliópolis, pero SkylineWebcams no autoriza integrar su vídeo en sitios ajenos al propietario. Pendiente de una fuente autorizada del hotel o del proveedor.",
       "enabled": true,
       "lastChecked": "2026-11-04T06:45:07.753852+00:00",
       "failCount": 0
@@ -336,7 +336,7 @@
         "MorroGos"
       ],
       "priority": 1,
-      "embedType": "skyline",
+      "embedType": "restricted",
       "embedUrl": "https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
       "pageUrl": "https://www.servigroup.com/es/hotel-koral-beach-oropesa-del-mar/webcam-oropesa/",
       "credit": "Hotel Servigroup Koral Beach / SkylineWebcams",
@@ -344,8 +344,8 @@
       "refreshSeconds": 0,
       "distanceKm": 0.2,
       "tokenRefresh": null,
-      "verified": true,
-      "notes": "Emisión en directo de Playa de Morro de Gos (Hotel Servigroup Koral Beach). Reproducción en streaming HLS directo de las olas.",
+      "verified": false,
+      "notes": "La cámara apunta a Playa de Morro de Gos, pero SkylineWebcams no autoriza integrar su vídeo en sitios ajenos al propietario. Pendiente de una fuente autorizada del hotel o del proveedor.",
       "enabled": true,
       "lastChecked": "2026-11-04T06:45:07.753852+00:00",
       "failCount": 0

@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -23,67 +22,29 @@ const base = process.env.TEST_BASE_URL?.replace(/\/$/, '') || `http://127.0.0.1:
 const chrome = process.env.CHROME_PATH || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : null);
 const browser = await chromium.launch({ headless: true, ...(chrome && existsSync(chrome) ? { executablePath: chrome } : {}) });
 const device = process.argv.includes('--iphone') ? 'iPhone 13' : process.argv.includes('--android') ? 'Pixel 7' : null;
-const gestureTest = process.argv.includes('--gesture-test');
-const retryTest = process.argv.includes('--retry-test');
 try {
-  for (const [spot, streamId] of process.argv.includes('--map-only') ? [] : [['MorroGos', '2815'], ['Heliopolis', '2816']]) {
+  for (const spot of process.argv.includes('--map-only') ? [] : ['MorroGos', 'Heliopolis']) {
     const page = await browser.newPage(device ? devices[device] : {});
-    let allowRequests = false;
-    let routeCount = 0;
-    if (retryTest) {
-      await page.route(/^https:\/\/www\.skylinewebcams\.com\/webcam\//, (route) => {
-        routeCount++;
-        if (!allowRequests) route.abort();
-        else route.continue();
-      });
-    }
-    if (gestureTest) await page.addInitScript(() => {
-      const play = HTMLMediaElement.prototype.play;
-      let rejected = false;
-      document.addEventListener('DOMContentLoaded', () => {
-        const video = document.getElementById('player_vid');
-        if (video) video.autoplay = false;
-      });
-      HTMLMediaElement.prototype.play = function () {
-        if (this.id === 'player_vid' && !rejected) {
-          rejected = true;
-          return Promise.reject(new DOMException('El navegador requiere un toque', 'NotAllowedError'));
-        }
-        return play.call(this);
-      };
-    });
-    const segmentos = [];
-    page.on('response', (r) => { if (/speed-.*\.ts/.test(r.url())) segmentos.push(r.url()); });
     await page.goto(`${base}/#/spot/${spot}`, { waitUntil: 'domcontentloaded' });
-    const player = page.frameLocator('#cam iframe').locator('#player_vid');
-    await player.waitFor({ timeout: 25000 });
-    if (retryTest) {
-      const retry = page.frameLocator('#cam iframe').locator('#start');
-      try { await retry.getByText('Reintentar directo').waitFor({ state: 'visible', timeout: 30000 }); }
-      catch (error) { throw new Error(`${spot}: ${error.message}; peticiones=${routeCount}; botón=${JSON.stringify(await retry.evaluate((e) => ({ text: e.textContent, hidden: e.hidden })).catch(() => null))}; badge=${await page.locator('#cam .cam-badge').innerText()}`); }
-      assert.match(await page.locator('#cam .cam-badge').innerText(), /Sin señal/);
-      allowRequests = true;
-      await retry.click();
-    }
-    if (gestureTest) {
-      const start = page.frameLocator('#cam iframe').locator('#start');
-      await start.waitFor({ state: 'visible', timeout: 30000 });
-      assert.match(await page.locator('#cam .cam-badge').innerText(), /Toca para ver/);
-      await start.click();
-    }
-    await page.waitForFunction(() => document.querySelector('#cam iframe')?.dataset.videoReady === 'true', null, { timeout: 30000 });
-    const estado1 = await player.evaluate((v) => { v.controls = false; return { width: v.videoWidth, height: v.videoHeight, time: v.currentTime, paused: v.paused }; });
-    const imagen1 = createHash('sha256').update(await player.screenshot()).digest('hex');
-    await page.waitForTimeout(3500);
-    const estado2 = await player.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
-    const imagen2 = createHash('sha256').update(await player.screenshot()).digest('hex');
-    if (process.env.CAM_SCREENSHOT_DIR) await player.screenshot({ path: path.join(process.env.CAM_SCREENSHOT_DIR, `${spot}.png`) });
-    assert.ok(estado1.width >= 640 && estado1.height >= 360, `${spot}: vídeo decodificado`);
-    assert.ok(!estado1.paused && !estado2.paused && estado2.time - estado1.time >= 2, `${spot}: el vídeo avanza (${JSON.stringify({ estado1, estado2, segmentos: segmentos.length })})`);
-    assert.notEqual(imagen1, imagen2, `${spot}: los fotogramas visibles cambian`);
-    assert.ok(segmentos.some((url) => url.includes(`${streamId}speed-`)), `${spot}: llegan fragmentos de la playa correcta`);
-    assert.ok(!segmentos.some((url) => url.includes('copyright_violation')), `${spot}: sin cortinilla de marca`);
-    console.log(`OK ${device || 'escritorio'} ${spot}: playa visible en movimiento, ${estado1.width}x${estado1.height}, ${segmentos.length} fragmentos`);
+    await page.locator('#cam .cam-msg').waitFor({ timeout: 20000 });
+    assert.match(await page.locator('#cam .cam-msg').innerText(), /Directo no disponible/);
+    assert.equal(await page.locator('#cam iframe, #cam video, #cam img').count(), 0, `${spot}: no se muestra un directo falso`);
+    console.log(`OK ${device || 'escritorio'} ${spot}: indisponibilidad clara, sin búfer infinito ni falso directo`);
+    await page.close();
+  }
+
+  if (!process.argv.includes('--map-only')) {
+    const page = await browser.newPage(device ? devices[device] : {});
+    await page.goto(`${base}/#/camaras`, { waitUntil: 'domcontentloaded' });
+    const morro = page.locator('.cam-card').filter({ has: page.locator('[data-camspot="MorroGos"]') });
+    await morro.locator('.cam-msg').waitFor({ timeout: 20000 });
+    await page.waitForTimeout(500);
+    assert.match(await morro.locator('.cam-msg').innerText(), /Directo no disponible/);
+    const heliopolis = page.locator('[data-camspot="Heliopolis"]');
+    assert.match(await heliopolis.locator('.cam-short-name').innerText(), /Benicàssim Vela/);
+    await page.locator('[data-camvista="comparar"]').click();
+    assert.equal(await page.locator('.cmp-sel option').filter({ hasText: 'Morro de Gos' }).count(), 0);
+    console.log(`OK ${device || 'escritorio'} catálogo: Morro indisponible y excluido de la comparación`);
     await page.close();
   }
 

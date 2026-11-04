@@ -126,6 +126,10 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       `<a class="cam-link-btn" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener">Abrir cámara</a></div></div>`);
     return;
   }
+  if (cam.embedType === 'restricted') {
+    msg(el, 'Directo no disponible', 'El proveedor de esta cámara no permite reproducir su vídeo dentro de MeteoSurf.');
+    return;
+  }
   const badgeTxt = cam.embedType === 'jpg' ? 'FOTO' : 'CÁMARA';
   const overlay = `<div class="cam-overlay"><span class="live-badge">${badgeTxt}</span></div>`;
   el.insertAdjacentHTML('beforeend', overlay);
@@ -147,86 +151,6 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     f.title = cam.name;
     el.appendChild(f);
     active.set(el, () => { f.src = 'about:blank'; });
-    return;
-  }
-
-  if (t === 'skyline') {
-    const f = document.createElement('iframe');
-    // cam_skyline.html es una página local controlada por MeteoSurf. Mantener
-    // su origen permite comprobar su estado de vídeo; la webcam externa nunca
-    // se incrusta como iframe y sigue sin poder acceder a la aplicación.
-    f.sandbox = 'allow-scripts';
-    f.allow = 'autoplay; fullscreen; picture-in-picture';
-    f.allowFullscreen = true;
-    f.referrerPolicy = 'no-referrer';
-    f.loading = 'eager';
-    f.title = cam.name;
-    const skylinePage = cam.embedUrl || 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html';
-    f.src = `cam_skyline.html?page=${encodeURIComponent(skylinePage)}`;
-    el.appendChild(f);
-
-    const badge = document.createElement('span');
-    badge.className = 'cam-badge cam-badge-buffer';
-    badge.textContent = '● Búfer';
-    el.appendChild(badge);
-
-    const setBadge = (tipo, texto) => {
-      badge.className = `cam-badge cam-badge-${tipo} ${tipo}`;
-      badge.textContent = texto;
-    };
-
-    let haReproducido = false;
-    let tiempoInicial = null;
-    let signalTimer = setTimeout(() => {
-      if (!haReproducido && sessions.get(el) === session) {
-        setBadge('sin-senal', '● Sin señal');
-      }
-    }, 20000);
-
-    const onMessage = (event) => {
-      if (sessions.get(el) !== session) return;
-      const data = event.data;
-      if (!data || typeof data !== 'object' || event.source !== f.contentWindow) return;
-      if (data.type === 'skyline_playing' || data.type === 'skyline_time') {
-        const t = Number(data.currentTime);
-        if (data.videoWidth > 0 && data.videoHeight > 0 && Number.isFinite(t)) {
-          if (tiempoInicial == null) tiempoInicial = t;
-          f.dataset.videoTime = String(t);
-          if (t - tiempoInicial >= 1) {
-            haReproducido = true;
-            clearTimeout(signalTimer);
-            f.dataset.videoReady = 'true';
-            f.dataset.videoSize = `${data.videoWidth}x${data.videoHeight}`;
-            setBadge('directo', '● En directo');
-          }
-        }
-      } else if (data.type === 'skyline_waiting') {
-        haReproducido = false;
-        tiempoInicial = null;
-        delete f.dataset.videoReady;
-        setBadge('buffer', '● Búfer');
-      } else if (data.type === 'skyline_tap_required') {
-        clearTimeout(signalTimer);
-        haReproducido = false;
-        tiempoInicial = null;
-        delete f.dataset.videoReady;
-        setBadge('buffer', '● Toca para ver');
-      } else if (data.type === 'skyline_error') {
-        clearTimeout(signalTimer);
-        haReproducido = false;
-        tiempoInicial = null;
-        delete f.dataset.videoReady;
-        setBadge('sin-senal', '● Sin señal');
-      }
-    };
-
-    window.addEventListener('message', onMessage);
-    active.set(el, () => {
-      clearTimeout(signalTimer);
-      window.removeEventListener('message', onMessage);
-      f.src = 'about:blank';
-      f.remove();
-    });
     return;
   }
 
@@ -1100,9 +1024,6 @@ export function camThumb(cam) {
   if (!cam) return null;
   if (cam.thumbUrl) return cam.thumbUrl;
   if (cam.embedType === 'jpg') return cam.embedUrl;
-  if (cam.embedType === 'skyline') return cam.embedUrl?.includes('benicasim')
-    ? 'https://cdn.skylinewebcams.com/live2816.jpg'
-    : 'https://cdn.skylinewebcams.com/live2815.jpg';
   const id = cam.embedType === 'youtube' && cam.embedUrl.match(/(?:v=|youtu\.be\/|embed\/|live\/)([\w-]{11})/)?.[1];
   return id ? `https://i.ytimg.com/vi/${id}/hqdefault_live.jpg` : null;
 }

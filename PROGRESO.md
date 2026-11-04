@@ -1,7 +1,9 @@
 # Tablero de Estado · Surfline Castellón
 
 ## 📋 PENDIENTES
-- Ninguna tarea de esta entrega pendiente.
+| Tarea | Dependencia |
+| --- | --- |
+| Restablecer vídeo real dentro de MeteoSurf para Morro de Gos y Trinimar | Fuente HLS/reproductor autorizado o permiso de Servigroup/SkylineWebcams; comprobar después en teléfonos físicos |
 
 ## ⚙️ EN CURSO
 | Tarea | Rol/agente | Cerebro | Pestaña |
@@ -10,7 +12,7 @@
 ## 👀 EN REVISION
 | Tarea | Rol/agente | Cerebro | Pestaña |
 | --- | --- | --- | --- |
-| Confirmar en iPhone y Android físicos los directos de Morro de Gos y Trinimar tras publicar la simplificación del reproductor | Jordi | Codex | Web publicada |
+| Confirmar en iPhone y Android físicos una nueva fuente autorizada de Morro de Gos y Trinimar, cuando esté disponible | Jordi | Codex | Pendiente de fuente |
 
 ## ✅ FINALIZADAS
 | Fecha | Logro | Commit | Verificación |

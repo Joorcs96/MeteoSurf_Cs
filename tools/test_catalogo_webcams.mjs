@@ -31,16 +31,11 @@ for (const cam of cams) {
     await page.goto(`${base}/#/spot/${spot}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.locator('#cam').waitFor({ timeout: 20000 });
     if (index > 0) await page.locator(`[data-cam="${index}"]`).click({ timeout: 10000 });
-    if (cam.embedType === 'skyline') {
-      await page.waitForFunction(() => document.querySelector('#cam iframe')?.dataset.videoReady === 'true', null, { timeout: 30000 });
-      const v = page.frameLocator('#cam iframe').frameLocator('#sky_player').locator('#player_vid');
-      await v.waitFor({ timeout: 5000 });
-      result.first = await v.evaluate(x => ({ t:x.currentTime,w:x.videoWidth,h:x.videoHeight,paused:x.paused }));
-      const hash1 = createHash('sha256').update(await v.screenshot()).digest('hex');
-      await page.waitForTimeout(2300);
-      result.last = await v.evaluate(x => ({ t:x.currentTime,paused:x.paused }));
-      result.changed = hash1 !== createHash('sha256').update(await v.screenshot()).digest('hex');
-      result.ok = result.last.t - result.first.t > 1 && result.changed;
+    if (cam.embedType === 'restricted') {
+      await page.locator('#cam .cam-msg').waitFor({ timeout: 5000 });
+      result.message = await page.locator('#cam .cam-msg').innerText();
+      result.ok = result.message.includes('Directo no disponible')
+        && await page.locator('#cam iframe, #cam video, #cam img').count() === 0;
     } else if (cam.embedType === 'hls') {
       const v = page.locator('#cam video');
       await v.waitFor({ timeout: 25000 });
@@ -89,5 +84,5 @@ for (const cam of cams) {
 }
 await browser.close();
 if (server.listening) await new Promise(resolve => server.close(resolve));
-console.log(`RESUMEN ${results.filter(x=>x.ok).length}/${results.length}`);
+console.log(`DIRECTOS VERIFICADOS ${results.filter(x=>x.ok && x.type !== 'restricted').length}/${results.filter(x=>x.type !== 'restricted').length}; RESTRINGIDOS ${results.filter(x=>x.type === 'restricted').length}`);
 if (results.some(x => !x.ok)) process.exitCode = 1;

@@ -186,6 +186,13 @@ def procesar_camara(cam: Dict[str, Any], now_iso: str) -> None:
     name = cam.get("name", cam_id)
     embed_type = cam.get("embedType", "")
 
+    # La página del proveedor puede responder HTTP 200 aunque prohíba
+    # integrar el vídeo. No rehabilitar estas cámaras por una prueba de URL.
+    if embed_type == "restricted":
+        cam["verified"] = False
+        cam["lastChecked"] = now_iso
+        return
+
     # Una respuesta HTTP 200 no demuestra vídeo en directo. Las fuentes que
     # fallaron la comprobación visual quedan excluidas hasta verificarlas de
     # nuevo en el navegador; el sondeo automático no debe rehabilitarlas.

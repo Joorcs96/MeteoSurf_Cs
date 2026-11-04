@@ -510,7 +510,7 @@ function renderPrevision() {
   const spots = sortedSpots.filter((s) => {
     if (state.zone === 'all') return true;
     if (state.zone === 'fav') return favs.has(s.id);
-    if (state.zone === 'cams') return camsForSpot(s).length > 0;
+    if (state.zone === 'cams') return camsForSpot(s).some((c) => c.embedType !== 'restricted');
     if (state.zone === 'offshore') {
       const sh = fc?.spots[s.id]?.hours[nowIndex(fc.spots[s.id].hours)];
       return sh && (sh.wind.key === 'offshore' || sh.wind.key === 'crossoff' || sh.wind.key === 'glassy');
@@ -2083,12 +2083,13 @@ function camInfo(s) {
 
 // Comparar dos cámaras a la vez, cada una de un spot distinto.
 function renderCamsComparar() {
-  const conCam = ordered().filter((s) => camsForSpot(s).length > 0);
-  if (camSel.length < 2) camSel = [...camSel, ...conCam.map((s) => s.id).filter((id) => !camSel.includes(id))].slice(0, 2);
+  const disponibles = (s) => camsForSpot(s).filter((c) => c.embedType !== 'restricted');
+  const conCam = ordered().filter((s) => disponibles(s).length > 0);
+  camSel = [...camSel.filter((id) => conCam.some((s) => s.id === id)), ...conCam.map((s) => s.id).filter((id) => !camSel.includes(id))].slice(0, 2);
   const opciones = (sel) => conCam.map((s) => `<option value="${esc(s.id)}" ${s.id === sel ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
   const hueco = (i) => {
     const s = SPOTS.find((x) => x.id === camSel[i]);
-    const lista = camsForSpot(s);
+    const lista = disponibles(s);
     return `<div class="cmp-slot" data-slot="${i}">
       <div class="cmp-top">
         <select class="cmp-sel" data-sel="${i}" aria-label="Spot ${i + 1}">${opciones(s.id)}</select>
@@ -2106,7 +2107,7 @@ function renderCamsComparar() {
   const poner = (i, k = 0) => {
     const el = view.querySelector(`[data-cmpcam="${i}"]`);
     const s = SPOTS.find((x) => x.id === camSel[i]);
-    playCam(el, camsForSpot(s)[k]);
+    playCam(el, disponibles(s)[k]);
   };
   poner(0); poner(1);
   view.querySelectorAll('[data-sel]').forEach((sel) => sel.addEventListener('change', () => {
@@ -2130,20 +2131,21 @@ function renderCams() {
   const allWithCams = ordered()
     .map((s) => ({ s, cams: camsForSpot(s) }))
     .filter((x) => x.cams.length > 0);
+  const liveCount = allWithCams.filter(({ cams }) => cams.some((c) => c.embedType !== 'restricted')).length;
   const filtered = camZone === 'all' ? allWithCams : allWithCams.filter(({ s }) => s.zone === camZone);
 
   const PLAY_SVG = '<svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m10 7 7 5-7 5z"/></svg>';
 
   view.innerHTML = `
     <div class="region-head cams-head"><div><h1>Cámaras en directo</h1>
-      <p>${allWithCams.length} spots con cámara · puedes ver varias a la vez</p></div>
+      <p>${liveCount} spots con cámara disponible · puedes ver varias a la vez</p></div>
       <button class="chip btn on cmp-abrir" data-camvista="comparar">Comparar dos</button></div>
     <div class="chips" role="tablist" style="margin-bottom:14px">
       ${zones.map(([id, n]) => `<button class="chip btn ${camZone === id ? 'on' : ''}" data-camzone="${id}">${n}</button>`).join('')}
     </div>
     <div class="cam-grid">
       ${filtered.length ? filtered.map(({ s, cams }) => {
-        const c = cams[0];
+        const c = cams.find((cam) => cam.embedType !== 'restricted') || cams[0];
         return `<div class="cam-card">
           <div class="cam-card-head">
             <div class="cam-card-spot">
@@ -2152,14 +2154,14 @@ function renderCams() {
             </div>
             <div class="cam-card-surf">${camInfo(s)}</div>
           </div>
-          <div class="cam cam-card-video" data-camspot="${esc(s.id)}">
-            <button class="cam-placeholder" aria-label="Reproducir cámara de ${esc(s.name)}">
+          <div class="cam cam-card-video" data-camspot="${esc(s.id)}" data-camidx="${cams.indexOf(c)}">
+            ${c.embedType === 'restricted' ? `<div class="cam-msg"><div><b>Directo no disponible</b>El proveedor aún no permite integrarlo en MeteoSurf.</div></div>` : `<button class="cam-placeholder" aria-label="Reproducir cámara de ${esc(s.name)}">
               <div class="cam-placeholder-overlay">
                 <span class="cam-live-badge">CÁMARA</span>
                 ${PLAY_SVG}
                 <span class="cam-short-name">${esc(c.short || c.name)}</span>
               </div>
-            </button>
+            </button>`}
           </div>
           <div class="cam-card-footer">
             <a href="#/spot/${encodeURIComponent(s.id)}" class="cam-forecast-link">Ver previsión</a>
@@ -2195,7 +2197,9 @@ function renderCams() {
         }
       });
     }, { threshold: 0.25 }); // arranca cuando al menos el 25 % de la tarjeta es visible
-    view.querySelectorAll('[data-camspot]').forEach((el) => camObs.observe(el));
+    view.querySelectorAll('[data-camspot]').forEach((el) => {
+      if (el.querySelector('.cam-placeholder')) camObs.observe(el);
+    });
   }
 }
 

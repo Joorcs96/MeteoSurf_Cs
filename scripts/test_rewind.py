@@ -99,8 +99,8 @@ class TestSeleccionCamaras(unittest.TestCase):
             cams["cv_grao_castellon"]["spotsCubiertos"], ["Piramides", "Gurugu"]
         )
         self.assertEqual(cams["cv-benicassim-vela-hls"]["spotsCubiertos"], ["Heliopolis"])
-        # La cámara oficial HLS de Oropesa cubre La Concha y Morro de Gos.
-        self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["MorroGos", "Concha"])
+        # Una cámara por spot: la de Oropesa está en La Concha, no en Morro de Gos.
+        self.assertEqual(cams["cv-oropesa-hls"]["spotsCubiertos"], ["Concha"])
 
     def test_no_toma_camaras_deshabilitadas(self):
         cams = rewind.camaras_rewind(self.webcams)
@@ -711,7 +711,7 @@ class TestMain(unittest.TestCase):
             self.assertEqual(rewind.main(self._args(tmp)), 0)
             self.assertEqual(len(self.grabadas), 4)
             indice = json.loads(Path(tmp, "rewinds.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(indice["rewinds"]), 6)  # Grao cubre 2 spots, Oropesa 2 (MorroGos + Concha), Heliópolis 1, Voramar 1
+            self.assertEqual(len(indice["rewinds"]), 5)  # Grao cubre 2 spots, los otros 2 y 2
             self.assertEqual(indice["timezone"], "Europe/Madrid")
             self.assertEqual(indice["updatedAt"], "2026-09-29T14:00:00+02:00")
             self.assertEqual(indice["dias"], 30)

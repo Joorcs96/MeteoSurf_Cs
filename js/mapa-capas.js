@@ -4,11 +4,11 @@
 // sobre una malla de puntos de Open-Meteo, con deslizador de hora y "pincho":
 // al tocar el mapa se ve el tiempo de ese punto. Sin claves ni servidores propios.
 
-const LATS = [39.7, 39.8, 39.9, 40.0, 40.1, 40.2, 40.3, 40.4, 40.5];
-const LONS = [-0.25, -0.15, -0.05, 0.05, 0.15, 0.25, 0.35, 0.45, 0.55];
+const LATS = [39.5, 39.6, 39.7, 39.8, 39.9, 40.0, 40.1, 40.2, 40.3, 40.4, 40.5, 40.6, 40.7, 40.8];
+const LONS = [-0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
 const PASO = 0.1;
 const HORAS = 72;
-const CACHE_CLAVE = 'ms_mapa_malla_v1';
+const CACHE_CLAVE = 'ms_mapa_malla_v2';
 const CACHE_MIN = 60;
 const KMH_A_KT = 0.539957;
 
@@ -42,8 +42,16 @@ function hexARgb(h) { return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16
 // La malla marina de Open-Meteo extrapola valores sobre tierra. Recortar esos
 // puntos con una línea de costa conservadora para esta zona fija de Castellón.
 function puntoEnMar(p) {
-  const costa = p.lat >= 39.9 ? p.lat - 39.95 : -0.18 + (p.lat - 39.7) * 0.65;
-  return p.lon >= costa;
+  const lat = p.lat ?? p[0];
+  const lon = p.lon ?? p.lng ?? p[1];
+  if (lat == null || lon == null) return false;
+  let c;
+  if (lat < 39.98) c = -0.18 + (lat - 39.73) * 0.72;
+  else if (lat < 40.055) c = 0.00 + (lat - 39.98) * 1.09;
+  else if (lat < 40.095) c = 0.082 + (lat - 40.055) * 1.675;
+  else if (lat < 40.38) c = 0.149 + (lat - 40.095) * 0.915;
+  else c = 0.41 + (lat - 40.38) * 0.78;
+  return lon >= c - 0.015;
 }
 
 async function pedir(url) {
@@ -93,6 +101,66 @@ function formato(capa, v) {
   return v.toFixed(1);
 }
 
+// Interpolación bilineal de valor y dirección en cualquier punto de la malla.
+function interpolarPunto(datos, capa, h, lat, lon) {
+  if (!datos || !datos.puntos || lat < LATS[0] || lat > LATS.at(-1) || lon < LONS[0] || lon > LONS.at(-1)) return null;
+  const fi = Math.min(Math.max((lat - LATS[0]) / PASO, 0), LATS.length - 1.001);
+  const fj = Math.min(Math.max((lon - LONS[0]) / PASO, 0), LONS.length - 1.001);
+  const i = Math.floor(fi), j = Math.floor(fj);
+  const a = fi - i, b = fj - j;
+
+  const idx00 = i * LONS.length + j;
+  const idx01 = i * LONS.length + (j + 1);
+  const idx10 = (i + 1) * LONS.length + j;
+  const idx11 = (i + 1) * LONS.length + (j + 1);
+
+  const p00 = datos.puntos[idx00];
+  const p01 = datos.puntos[idx01];
+  const p10 = datos.puntos[idx10];
+  const p11 = datos.puntos[idx11];
+
+  const v00 = p00 ? valorPunto(capa, p00, h) : null;
+  const v01 = p01 ? valorPunto(capa, p01, h) : null;
+  const v10 = p10 ? valorPunto(capa, p10, h) : null;
+  const v11 = p11 ? valorPunto(capa, p11, h) : null;
+
+  const vals = [v00, v01, v10, v11].filter(Boolean);
+  if (!vals.length) return null;
+
+  let v;
+  if (v00 && v01 && v10 && v11) {
+    v = (v00.v * (1 - b) + v01.v * b) * (1 - a) + (v10.v * (1 - b) + v11.v * b) * a;
+  } else {
+    let sumW = 0, sumV = 0;
+    if (v00) { const w = (1 - a) * (1 - b); sumW += w; sumV += v00.v * w; }
+    if (v01) { const w = (1 - a) * b; sumW += w; sumV += v01.v * w; }
+    if (v10) { const w = a * (1 - b); sumW += w; sumV += v10.v * w; }
+    if (v11) { const w = a * b; sumW += w; sumV += v11.v * w; }
+    v = sumW > 0 ? sumV / sumW : vals[0].v;
+  }
+
+  let dir = null;
+  const dirs = [v00?.dir, v01?.dir, v10?.dir, v11?.dir];
+  if (dirs.some((d) => d != null)) {
+    let sinSum = 0, cosSum = 0, wSum = 0;
+    const weights = [(1 - a) * (1 - b), (1 - a) * b, a * (1 - b), a * b];
+    dirs.forEach((d, k) => {
+      if (d != null) {
+        const rad = (d * Math.PI) / 180;
+        sinSum += Math.sin(rad) * weights[k];
+        cosSum += Math.cos(rad) * weights[k];
+        wSum += weights[k];
+      }
+    });
+    if (wSum > 0) {
+      const deg = (Math.atan2(sinSum, cosSum) * 180) / Math.PI;
+      dir = ((deg % 360) + 360) % 360;
+    }
+  }
+
+  return { v, dir };
+}
+
 // Viento (u: este, v: norte, en kt) interpolado en cualquier punto de la malla.
 function vientoEn(datos, h, lat, lon) {
   const fi = Math.min(Math.max((lat - LATS[0]) / PASO, 0), LATS.length - 1.001);
@@ -118,21 +186,10 @@ export function motorLeaflet(mapa, L = window.L) {
     limpiar: () => grupo.clearLayers(),
     pintar(items) {
       grupo.clearLayers();
-      const area = mapa.getSize();
-      const celdas = new Map();
       items.forEach((it) => {
-        const p = mapa.latLngToContainerPoint([it.lat, it.lon]);
-        if (p.x < 0 || p.y < 55 || p.x > area.x || p.y > area.y - 100) return;
-        if (p.x > area.x - 82 && p.y < 280) return;
-        const gx = Math.floor(p.x / 76), gy = Math.floor(p.y / 72);
-        const key = `${gx}:${gy}`;
-        const distancia = (p.x - (gx + 0.5) * 76) ** 2 + (p.y - (gy + 0.5) * 72) ** 2;
-        if (!celdas.has(key) || distancia < celdas.get(key).distancia) celdas.set(key, { it, distancia });
-      });
-      celdas.forEach(({ it }) => {
         const flecha = it.dir == null ? '' : FLECHA(it.dir, it.col, it.tam);
         const html = `<div class="capa-punto" style="--capa-color:${it.col}">${flecha}<b>${it.texto}</b></div>`;
-        L.marker([it.lat, it.lon], { icon: L.divIcon({ html, className: '', iconSize: [44, 38], iconAnchor: [22, 19] }), interactive: false, keyboard: false, zIndexOffset: -1000 }).addTo(grupo);
+        L.marker([it.lat, it.lon], { icon: L.divIcon({ html, className: '', iconSize: [40, 36], iconAnchor: [20, 18] }), interactive: false, keyboard: false, zIndexOffset: -1000 }).addTo(grupo);
       });
     },
     aLatLng: (x, y) => { const ll = mapa.containerPointToLatLng([x, y]); return { lat: ll.lat, lng: ll.lng }; },
@@ -195,16 +252,31 @@ export function iniciarCapas(motor, host) {
     motor.limpiar();
     if (!capa || !datos) return;
     const h = hora;
+    const cont = motor.contenedor();
+    if (!cont) return;
+    const rect = cont.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const esEscritorio = rect.width >= 800;
+    const celda = esEscritorio ? 48 : 68;
     const items = [];
-    datos.puntos.forEach((p) => {
-      if (['oleaje', 'periodo', 'temp'].includes(capa) && !puntoEnMar(p)) return;
-      const val = valorPunto(capa, p, h);
-      if (!val) return;
-      items.push({
-        lat: p.lat, lon: p.lon, dir: val.dir, col: color(capa, val.v), texto: formato(capa, val.v),
-        tam: 19,
-      });
-    });
+    const margenSup = esEscritorio ? 64 : 56;
+    const margenInf = esEscritorio ? 24 : 64;
+    const margenDer = esEscritorio ? 60 : 54;
+    const margenIzq = 8;
+
+    for (let x = margenIzq + celda / 2; x < rect.width - margenDer; x += celda) {
+      for (let y = margenSup + celda / 2; y < rect.height - margenInf; y += celda) {
+        const ll = motor.aLatLng(x, y);
+        if (!ll || !Number.isFinite(ll.lat) || !Number.isFinite(ll.lng)) continue;
+        if (['oleaje', 'periodo', 'temp'].includes(capa) && !puntoEnMar(ll)) continue;
+        const val = interpolarPunto(datos, capa, h, ll.lat, ll.lng);
+        if (!val || val.v == null || isNaN(val.v)) continue;
+        items.push({
+          lat: ll.lat, lon: ll.lng, dir: val.dir, col: color(capa, val.v), texto: formato(capa, val.v),
+          tam: esEscritorio ? 18 : 20,
+        });
+      }
+    }
     motor.pintar(items);
   }
 

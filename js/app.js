@@ -252,6 +252,10 @@ function route() {
   renderQuickSpots();
   const savedClip = $('#save-clip');
   if (savedClip?.dataset.url) URL.revokeObjectURL(savedClip.dataset.url);
+  if (window._mapaResizeHandler && page !== 'mapa') {
+    window.removeEventListener('resize', window._mapaResizeHandler);
+    window._mapaResizeHandler = null;
+  }
   document.querySelectorAll('.cam').forEach(stopCam);
   if (page === 'spot' && arg) return renderSpot(decodeURIComponent(arg));
   if (page === 'mapa') return renderMap();
@@ -1977,23 +1981,29 @@ async function renderMap() {
   document.title = 'Mapa · MeteoSurf_Cs';
   view.innerHTML = '<div class="mapa-full"><div id="map"></div><div id="map3d" hidden></div><div id="map-capas" class="mapa-ui"></div><div id="map-capas-3d" class="mapa-ui"></div><button type="button" id="btn-3d" class="mapa-3d" aria-pressed="false" aria-label="Cambiar entre mapa plano y relieve en 3D">3D</button><button type="button" id="btn-base" class="mapa-3d mapa-base" aria-pressed="false" aria-label="Cambiar entre mapa de calles y satélite" hidden>Sat</button></div>';
   if (!window.L) {
-    const cdns = [
-      'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet',
-      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet',
-    ];
-    for (const base of cdns) {
-      try {
-        await new Promise((ok, fallo) => {
-          const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `${base}.css`; document.head.appendChild(l);
-          const s = document.createElement('script'); s.src = `${base}.js`;
-          s.onload = () => window.L ? ok() : fallo(new Error('Leaflet no se inició'));
-          s.onerror = () => fallo(new Error('CDN no disponible'));
-          document.head.appendChild(s);
-        });
-        break;
-      } catch { /* probar el siguiente CDN */ }
+    if (!window._cargaLeaflet) {
+      window._cargaLeaflet = (async () => {
+        const cdns = [
+          'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet',
+          'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet',
+        ];
+        for (const base of cdns) {
+          try {
+            await new Promise((ok, fallo) => {
+              const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `${base}.css`; document.head.appendChild(l);
+              const s = document.createElement('script'); s.src = `${base}.js`;
+              s.onload = () => window.L ? ok() : fallo(new Error('Leaflet no se inició'));
+              s.onerror = () => fallo(new Error('CDN no disponible'));
+              document.head.appendChild(s);
+            });
+            break;
+          } catch { /* probar el siguiente CDN */ }
+        }
+      })();
     }
+    await window._cargaLeaflet;
     if (!window.L) {
+      window._cargaLeaflet = null;
       $('#map').textContent = 'El mapa no se ha podido iniciar. Vuelve a cargar la página.';
       return;
     }
@@ -2042,7 +2052,11 @@ async function renderMap() {
   $('#btn-3d').addEventListener('click', (e) => alternar3D(e.currentTarget));
   $('#btn-base').addEventListener('click', () => mapa3d?.alternarBase());
   // El mapa plano es el predeterminado; el relieve 3D se abre al tocar su botón.
-  setTimeout(() => { leaflet.invalidateSize(); leaflet.fitBounds(bounds, { padding: [60, 60] }); }, 50);
+  if (window._mapaResizeHandler) window.removeEventListener('resize', window._mapaResizeHandler);
+  window._mapaResizeHandler = () => { leaflet?.invalidateSize(); };
+  window.addEventListener('resize', window._mapaResizeHandler);
+  requestAnimationFrame(() => leaflet?.invalidateSize());
+  setTimeout(() => { leaflet?.invalidateSize(); leaflet?.fitBounds(bounds, { padding: [50, 50] }); }, 80);
 }
 
 // ---------- Todas las camaras ----------

@@ -319,3 +319,6 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Muestreo de pantalla en cuadrícula fija (48px en escritorio, 68px en móvil) con interpolación bilineal de alturas y vectorial angular para direcciones.
 - Al hacer zoom, la densidad de flechas se mantiene constante y homogénea sin huecos vacíos.
 - Calibrada la línea de costa con silueta fina poligonal para que las flechas marinas lleguen hasta la rompiente de los 14 spots sin pisar tierra firme.
+- Sincronización 2D/3D: al alternar entre el mapa plano y el relieve 3D se conserva la capa seleccionada (viento, oleaje, etc.).
+- En 3D se muestran 143 flechas con inclinación y rumbo adaptados al terreno.
+- Service worker actualizado a v50 (meteosurf-cs-v50-mapa-escritorio) para renovación inmediata del caché del navegador.

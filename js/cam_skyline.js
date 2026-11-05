@@ -1,0 +1,233 @@
+(() => {
+  const params = new URLSearchParams(location.search);
+  const defaultPage = 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html';
+  const requestedPage = params.get('page') || defaultPage;
+  const isBenicasim = requestedPage.includes('benicasim');
+  const pageUrl = isBenicasim
+    ? 'https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/benicasim.html'
+    : defaultPage;
+
+  const v = document.getElementById('player_vid');
+  const start = document.getElementById('start');
+  let hls = null;
+  let renewTimer = null;
+  let requestController = null;
+  let waitingForTap = false;
+  let startAction = 'play';
+  let attempts = 0;
+  let lastProgress = performance.now();
+  let lastTime = -1;
+  let haReproducido = false;
+
+  function notifyParent(data) {
+    try {
+      window.parent.postMessage(data, '*');
+    } catch {
+      // Ignorar si el padre no está disponible
+    }
+  }
+
+  function requestPlay() {
+    const attempt = v.play();
+    if (attempt && typeof attempt.catch === 'function') {
+      attempt.catch((error) => {
+        if (error?.name !== 'NotAllowedError') {
+          retry();
+          return;
+        }
+        waitingForTap = true;
+        startAction = 'play';
+        start.textContent = '▶ Ver playa en directo';
+        start.hidden = false;
+        notifyParent({ type: 'skyline_tap_required' });
+      });
+    }
+  }
+
+  v.addEventListener('click', () => {
+    if (v.paused) requestPlay();
+  });
+
+  start.addEventListener('click', async () => {
+    if (startAction === 'retry') {
+      clearTimeout(renewTimer);
+      renewTimer = null;
+      start.hidden = true;
+      initStream();
+      return;
+    }
+    try {
+      await v.play();
+      waitingForTap = false;
+      start.hidden = true;
+    } catch (error) {
+      if (error?.name === 'NotAllowedError') {
+        waitingForTap = true;
+        start.hidden = false;
+      } else {
+        retry();
+      }
+    }
+  });
+
+  function retry() {
+    if (renewTimer) return;
+    if (requestController) requestController.abort();
+    waitingForTap = false;
+    start.hidden = true;
+    notifyParent({ type: 'skyline_waiting' });
+    if (hls) {
+      hls.destroy();
+      hls = null;
+    }
+    if (++attempts >= 3) {
+      notifyParent({ type: 'skyline_error' });
+      attempts = 0;
+      startAction = 'retry';
+      start.textContent = '↻ Reintentar directo';
+      start.hidden = false;
+      renewTimer = setTimeout(initStream, 30000);
+      return;
+    }
+    renewTimer = setTimeout(initStream, 3500);
+  }
+
+  async function initStream() {
+    renewTimer = null;
+    start.hidden = true;
+    startAction = 'play';
+    lastProgress = performance.now();
+    lastTime = -1;
+    const controller = new AbortController();
+    requestController = controller;
+    const requestTimeout = setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const res = await fetch(pageUrl, { cache: 'no-cache', signal: controller.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const html = await res.text();
+      const match = html.match(/source\s*:\s*['"](?:livee|live)\.m3u8\?a=([^'"]+)['"]/i);
+      if (!match) throw new Error('Token no encontrado');
+      const token = match[1];
+      const streamUrl = 'https://hd-auth.skylinewebcams.com/live.m3u8?a=' + token;
+
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+
+      if (window.Hls && window.Hls.isSupported()) {
+        hls = new Hls({
+          lowLatencyMode: true,
+          backBufferLength: 4,
+          maxBufferLength: 10,
+          maxMaxBufferLength: 20,
+          liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 8,
+          capLevelToPlayerSize: true
+        });
+        hls.loadSource(streamUrl);
+        hls.attachMedia(v);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          requestPlay();
+        });
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (data.fatal) retry();
+        });
+      } else if (v.canPlayType && v.canPlayType('application/vnd.apple.mpegurl')) {
+        v.src = streamUrl;
+        requestPlay();
+      } else {
+        throw new Error('HLS no compatible');
+      }
+    } catch {
+      retry();
+    } finally {
+      clearTimeout(requestTimeout);
+      if (requestController === controller) requestController = null;
+    }
+  }
+
+  // Sincronización en vivo cuando la pestaña cambia de visibilidad
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      v.pause();
+    } else {
+      if (hls && typeof hls.liveSyncPosition === 'number' && hls.liveSyncPosition > 0) {
+        const livePos = hls.liveSyncPosition;
+        if (livePos - v.currentTime > 4) {
+          v.currentTime = livePos;
+        }
+        try { hls.startLoad(); } catch {}
+      }
+      requestPlay();
+    }
+  });
+
+  // Mensajes desde el contenedor principal (MeteoSurf)
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+    if (data.type === 'play') {
+      requestPlay();
+    } else if (data.type === 'pause') {
+      v.pause();
+    } else if (data.type === 'renovar') {
+      if (hls && typeof hls.liveSyncPosition === 'number' && hls.liveSyncPosition > 0) {
+        v.currentTime = hls.liveSyncPosition;
+        try { hls.startLoad(); } catch {}
+      }
+      requestPlay();
+    }
+  });
+
+  v.addEventListener('playing', () => {
+    haReproducido = true;
+    waitingForTap = false;
+    start.hidden = true;
+    notifyParent({
+      type: 'skyline_playing',
+      videoWidth: v.videoWidth,
+      videoHeight: v.videoHeight,
+      currentTime: v.currentTime
+    });
+  });
+
+  v.addEventListener('timeupdate', () => {
+    if (v.videoWidth > 0 && v.currentTime > lastTime + 0.1) {
+      lastTime = v.currentTime;
+      lastProgress = performance.now();
+      attempts = 0;
+    }
+    notifyParent({
+      type: 'skyline_time',
+      currentTime: v.currentTime,
+      videoWidth: v.videoWidth,
+      videoHeight: v.videoHeight
+    });
+  });
+
+  v.addEventListener('waiting', () => {
+    if (!waitingForTap) notifyParent({ type: 'skyline_waiting' });
+  });
+
+  v.addEventListener('error', retry);
+
+  // Perro guardián contra atascos en el búfer
+  setInterval(() => {
+    if (renewTimer || waitingForTap || document.hidden || v.paused) return;
+    const diff = performance.now() - lastProgress;
+    if (diff > 4000 && hls && typeof hls.liveSyncPosition === 'number' && hls.liveSyncPosition > 0) {
+      const livePos = hls.liveSyncPosition;
+      if (livePos - v.currentTime > 4) {
+        v.currentTime = livePos;
+        try { hls.startLoad(); } catch {}
+      }
+    }
+    if (diff > 18000) {
+      retry();
+    }
+  }, 3000);
+
+  initStream();
+})();

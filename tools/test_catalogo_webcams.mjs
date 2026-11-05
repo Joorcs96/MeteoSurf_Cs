@@ -46,7 +46,7 @@ for (const cam of cams) {
       result.last = await v.evaluate(x => ({ t:x.currentTime,paused:x.paused }));
       result.changed = hash1 !== createHash('sha256').update(await v.screenshot()).digest('hex');
       result.ok = result.last.t - result.first.t > 1 && result.changed && result.first.w >= 320;
-    } else if (cam.embedType === 'iframe') {
+    } else if (cam.embedType === 'iframe' || cam.embedType === 'skyline') {
       const frame = page.frameLocator('#cam iframe');
       await page.waitForTimeout(7000);
       result.frameUrl = await page.locator('#cam iframe').getAttribute('src');

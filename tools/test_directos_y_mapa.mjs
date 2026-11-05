@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -23,13 +24,25 @@ const chrome = process.env.CHROME_PATH || (process.platform === 'win32' ? 'C:/Pr
 const browser = await chromium.launch({ headless: true, ...(chrome && existsSync(chrome) ? { executablePath: chrome } : {}) });
 const device = process.argv.includes('--iphone') ? 'iPhone 13' : process.argv.includes('--android') ? 'Pixel 7' : null;
 try {
-  for (const spot of process.argv.includes('--map-only') ? [] : ['MorroGos', 'Heliopolis']) {
+  for (const [spot, streamId] of process.argv.includes('--map-only') ? [] : [['MorroGos', '2815'], ['Heliopolis', '2816']]) {
     const page = await browser.newPage(device ? devices[device] : {});
+    const segmentos = [];
+    page.on('response', (r) => { if (/speed-.*\.ts/.test(r.url())) segmentos.push(r.url()); });
     await page.goto(`${base}/#/spot/${spot}`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#cam .cam-msg').getByText('Directo no disponible').waitFor({ timeout: 20000 });
-    assert.match(await page.locator('#cam .cam-msg').innerText(), /Directo no disponible/);
-    assert.equal(await page.locator('#cam iframe, #cam video, #cam img').count(), 0, `${spot}: no se muestra un directo falso`);
-    console.log(`OK ${device || 'escritorio'} ${spot}: indisponibilidad clara, sin búfer infinito ni falso directo`);
+    const player = page.frameLocator('#cam iframe').locator('#player_vid');
+    await player.waitFor({ timeout: 25000 });
+    await page.waitForFunction(() => document.querySelector('#cam iframe')?.dataset.videoReady === 'true', null, { timeout: 30000 });
+    const estado1 = await player.evaluate((v) => { v.controls = false; return { width: v.videoWidth, height: v.videoHeight, time: v.currentTime, paused: v.paused }; });
+    const imagen1 = createHash('sha256').update(await player.screenshot()).digest('hex');
+    await page.waitForTimeout(3000);
+    const estado2 = await player.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
+    const imagen2 = createHash('sha256').update(await player.screenshot()).digest('hex');
+    assert.ok(estado1.width >= 640 && estado1.height >= 360, `${spot}: vídeo decodificado (${estado1.width}x${estado1.height})`);
+    assert.ok(!estado1.paused && !estado2.paused && estado2.time - estado1.time >= 1, `${spot}: el vídeo avanza`);
+    assert.notEqual(imagen1, imagen2, `${spot}: los fotogramas visibles cambian`);
+    assert.ok(segmentos.some((url) => url.includes(`${streamId}speed-`)), `${spot}: llegan fragmentos de la playa correcta`);
+    assert.ok(!segmentos.some((url) => url.includes('copyright_violation')), `${spot}: sin cortinilla de marca`);
+    console.log(`OK ${device || 'escritorio'} ${spot}: playa visible en movimiento, ${estado1.width}x${estado1.height}, ${segmentos.length} fragmentos`);
     await page.close();
   }
 
@@ -37,14 +50,12 @@ try {
     const page = await browser.newPage(device ? devices[device] : {});
     await page.goto(`${base}/#/camaras`, { waitUntil: 'domcontentloaded' });
     const morro = page.locator('.cam-card').filter({ has: page.locator('[data-camspot="MorroGos"]') });
-    await morro.locator('.cam-msg').waitFor({ timeout: 20000 });
-    await page.waitForTimeout(500);
-    assert.match(await morro.locator('.cam-msg').innerText(), /Directo no disponible/);
-    const heliopolis = page.locator('[data-camspot="Heliopolis"]');
-    assert.match(await heliopolis.locator('.cam-short-name').innerText(), /Benicàssim Vela/);
-    await page.locator('[data-camvista="comparar"]').click();
-    assert.equal(await page.locator('.cmp-sel option').filter({ hasText: 'Morro de Gos' }).count(), 0);
-    console.log(`OK ${device || 'escritorio'} catálogo: Morro indisponible y excluido de la comparación`);
+    await morro.locator('.cam-placeholder').waitFor({ timeout: 20000 });
+    assert.ok(await morro.count() > 0, 'Morro de Gos en catálogo');
+    const heliopolis = page.locator('.cam-card').filter({ has: page.locator('[data-camspot="Heliopolis"]') });
+    await heliopolis.locator('.cam-placeholder').waitFor({ timeout: 20000 });
+    assert.ok(await heliopolis.count() > 0, 'Heliópolis en catálogo');
+    console.log(`OK ${device || 'escritorio'} catálogo: Morro y Heliópolis disponibles`);
     await page.close();
   }
 

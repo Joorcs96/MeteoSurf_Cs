@@ -145,10 +145,24 @@ def verificar_generica(url: str) -> bool:
         return False
 
 
+def verificar_skyline(embed_url: str) -> bool:
+    """Verifica que la página de Skyline responda HTTP 200 y contenga el token de emisión HLS."""
+    try:
+        with _http_get(embed_url) as resp:
+            if resp.status != 200:
+                return False
+            html = resp.read().decode("utf-8", errors="ignore")
+            return bool(re.search(r"source\s*:\s*['\"](?:livee|live)\.m3u8\?a=[^'\"]+['\"]", html, re.I))
+    except Exception:
+        return False
+
+
 def verificar_embed(embed_type: str, embed_url: str) -> bool:
     """Verifica una cámara según su tipo de embed."""
     if not embed_url:
         return False
+    if embed_type == "skyline":
+        return verificar_skyline(embed_url)
     if embed_type == "hls":
         return verificar_hls(embed_url)
     if embed_type in ("jpg", "mjpeg"):

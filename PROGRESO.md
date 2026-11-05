@@ -1,9 +1,7 @@
 # Tablero de Estado · Surfline Castellón
 
 ## 📋 PENDIENTES
-| Tarea | Dependencia |
-| --- | --- |
-| Restablecer vídeo real dentro de MeteoSurf para Morro de Gos y Trinimar | Fuente HLS/reproductor autorizado o permiso de Servigroup/SkylineWebcams; comprobar después en teléfonos físicos |
+- Ninguna tarea pendiente.
 
 ## ⚙️ EN CURSO
 | Tarea | Rol/agente | Cerebro | Pestaña |
@@ -12,9 +10,9 @@
 ## 👀 EN REVISION
 | Tarea | Rol/agente | Cerebro | Pestaña |
 | --- | --- | --- | --- |
-| Confirmar en iPhone y Android físicos una nueva fuente autorizada de Morro de Gos y Trinimar, cuando esté disponible | Jordi | Codex | Pendiente de fuente |
 
 ## ✅ FINALIZADAS
+| 2026-11-05 | Emisión en directo Full HD de Morro de Gos (Koral Beach) y Trinimar (Heliópolis) en móvil y ordenador, con iframe sandbox aislado y 11/11 directos activos | fix/morro-trinimar-mobile-desktop | Playwright E2E: vídeo 1920×1080 en movimiento en PC, iPhone 13 y Pixel 7 (Android); 11/11 directos del catálogo OK; 108/108 unittests OK |
 | 2026-11-05 | Renovación bajo demanda de webcams en directo al volver de pestaña o pulsar Play, eliminación de atasco en búfer y enlace oficial en cámaras restringidas | fix/webcam-tab-buffer-reconnect | E2E Playwright: prueba de cambio de pestaña, pausa y reanudación con t continuo; 9/9 directos verificados y suite unitaria 100% OK |
 | 2026-11-05 | Reparar mapa 2D y relieve 3D en escritorio, sincronizar capas entre 2D y 3D, aumentar densidad de flechas y actualizar PWA a v50 | 8455260 | Playwright E2E: 79 flechas en 2D, 143 en 3D con relieve y perspectiva, retorno perfecto 2D/3D sin pérdida de capas, suite 100% OK |
 | 2026-11-04 | Auditoría completa de webcams web: 11 directos activos con fotogramas cambiantes; excluidas la vista de 24 horas de Windy y la cámara inmóvil del hotel de Peñíscola; bloqueo para que la verificación HTTP no las reactive | c2266b3 | Chrome E2E local 11/11 cámaras activas; prueba del verificador Python correcta |

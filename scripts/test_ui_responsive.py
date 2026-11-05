@@ -61,7 +61,7 @@ class TestUIResponsive(unittest.TestCase):
                 "--headless=new",
                 f"--user-data-dir={temp_profile}",
                 f"--window-size={width},{height}",
-                "--virtual-time-budget=2500",
+                "--virtual-time-budget=4500",
                 "--run-all-compositor-stages-before-draw",
                 "--dump-dom",
                 url

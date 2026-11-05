@@ -342,8 +342,8 @@ export const SPOTS: Spot[] = [
     "maxGood": 2,
     "level": "Todos los niveles",
     "hazards": "Ninguno destacable",
-    "seaLat": 39.9954,
-    "seaLon": 0.0464,
+    "seaLat": 40.0067,
+    "seaLon": 0.0512,
     "swellWindow": [
       48,
       182
@@ -351,24 +351,24 @@ export const SPOTS: Spot[] = [
     "id": "Piramides",
     "name": "Pirámides",
     "zone": "grao",
-    "zoneName": "Grao · Playa del Pinar",
-    "lat": 39.99872,
-    "lon": 0.03137,
-    "facing": 106,
+    "zoneName": "Grao · Playa del Serradal",
+    "lat": 40.01121,
+    "lon": 0.03667,
+    "facing": 112,
     "abrigoBonus": 1.8,
     "bottom": "Arena",
     "bestTide": "Media",
     "bestSwell": "NE a E",
     "bestWind": "O y NO",
-    "desc": "Playa del Pinar, al norte del Planetario. Picos variables sobre arena, olas largas y suaves; buena para tablón.",
+    "desc": "Playa del Serradal, en la zona de Pirámides. Pico conocido por su ola con salida de izquierda sobre fondo de arena; buena para tablón y evolutivas.",
     "photo": {
-      "title": "Platja del Pinar (Castelló de la Plana)",
-      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Platja_del_Pinar_%28Castell%C3%B3_de_la_Plana%29.JPG/960px-Platja_del_Pinar_%28Castell%C3%B3_de_la_Plana%29.JPG",
-      "file": "Platja_del_Pinar_(Castelló_de_la_Plana).JPG",
+      "title": "Platja del Serradal (Castelló de la Plana)",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Platja_del_Serradal_%28Castell%C3%B3_de_la_Plana%29.JPG/960px-Platja_del_Serradal_%28Castell%C3%B3_de_la_Plana%29.JPG",
+      "file": "Platja_del_Serradal_(Castelló_de_la_Plana).JPG",
       "author": "Juan Emilio Prades Bel",
       "license": "CC BY-SA 3.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
-      "url": "https://commons.wikimedia.org/wiki/File:Platja_del_Pinar_%28Castell%C3%B3_de_la_Plana%29.JPG"
+      "url": "https://commons.wikimedia.org/wiki/File:Platja_del_Serradal_%28Castell%C3%B3_de_la_Plana%29.JPG"
     }
   },
   {

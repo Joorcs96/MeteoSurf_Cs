@@ -286,8 +286,7 @@ export const FACTOR = {
   ],
 };
 
-// La tabla 'Gurugu' se calculó en 39.99872, 0.03137, que es donde está Pirámides (Jordi, 05/10).
-// El Gurugú está 1 km al norte, en el Serradal, con la misma costa: comparte tabla hasta recalcularla.
+// Pirámides está en la Playa del Serradal (40.01121, 0.03667, ajustado por Jordi el 05/11/2026), compartiendo tramo de costa con el Gurugú.
 FACTOR.Piramides = FACTOR.Gurugu;
 
 // Suelo por difracción/refracción (Jordi, 18/10/2026, contrastado con la cámara de Voramar): con mar

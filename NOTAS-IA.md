@@ -224,7 +224,7 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 
 
 - 05/10: Planetario casi plano a las 15 h con 0.6 m / 4.4 s del ENE en el modelo: Komar daba 0.75 m. Ahora la web usa la tabla v3 (`js/physics.js`) en 8 spots, viento efectivo max(media, 0.6 x racha), Calma < 6 km/h efectivos y el periodo 4-6 s no penaliza. Caso 4 en `node scripts/test_calibracion.mjs`. Los modelos (MF, ECMWF, GFS) daban casi lo mismo todo el día: el bajón real lo marcaron la boya (mar del E de 8 s que se apaga y gira a S) y la brisa de mar.
-- Spots del Grao de norte a sur (Jordi, 05/10): Gurugú = Serradal (40.00838, 0.03523), Pirámides = Playa del Pinar (39.99872, 0.03137), Planetario. Antes estaban intercambiados. Ambos usan la tabla v3 calculada en 39.99872 (la de 'Gurugu') hasta recalcular. La cámara del Grao y los rewinds cubren Planetario y Pirámides.
+- Spots del Grao de norte a sur: Pirámides = Playa del Serradal (40.01121, 0.03667, ajustado por Jordi el 05/11/2026), Gurugú = Serradal (40.00838, 0.03523), Planetario. Pirámides y Gurugú comparten tabla de física en el Serradal.
 - 05/10 por la mañana un amigo de Jordi surfeó bien a las 9 h con 0.47 m en rompiente y terral: la escala era pesimista. Ahora 0.40-0.50 m con terral o calma da Regular (techo sube un escalón con viento limpio); con viento de mar sigue Muy malo. Los otros 12 spots comprobados con costa OSM + Nominatim: en el agua y en su playa.
 - Seguridad: CSP en index/votar (permite jsdelivr, Open-Meteo, Turisme CV, IPCamLive, Windy, YouTube; vídeos https). Nada de scripts inline: el de votar está en `js/votar.js`. Si se añade una fuente externa nueva, hay que añadirla a la CSP o se bloquea.
 

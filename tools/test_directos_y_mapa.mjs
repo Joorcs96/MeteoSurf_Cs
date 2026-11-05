@@ -24,26 +24,48 @@ const chrome = process.env.CHROME_PATH || (process.platform === 'win32' ? 'C:/Pr
 const browser = await chromium.launch({ headless: true, ...(chrome && existsSync(chrome) ? { executablePath: chrome } : {}) });
 const device = process.argv.includes('--iphone') ? 'iPhone 13' : process.argv.includes('--android') ? 'Pixel 7' : null;
 try {
-  for (const [spot, streamId] of process.argv.includes('--map-only') ? [] : [['MorroGos', '2815'], ['Heliopolis', '2816']]) {
-    const page = await browser.newPage(device ? devices[device] : {});
-    const segmentos = [];
-    page.on('response', (r) => { if (/speed-.*\.ts/.test(r.url())) segmentos.push(r.url()); });
-    await page.goto(`${base}/#/spot/${spot}`, { waitUntil: 'domcontentloaded' });
-    const player = page.frameLocator('#cam iframe').locator('#player_vid');
-    await player.waitFor({ timeout: 25000 });
-    await page.waitForFunction(() => document.querySelector('#cam iframe')?.dataset.videoReady === 'true', null, { timeout: 30000 });
-    const estado1 = await player.evaluate((v) => { v.controls = false; return { width: v.videoWidth, height: v.videoHeight, time: v.currentTime, paused: v.paused }; });
-    const imagen1 = createHash('sha256').update(await player.screenshot()).digest('hex');
-    await page.waitForTimeout(3000);
-    const estado2 = await player.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
-    const imagen2 = createHash('sha256').update(await player.screenshot()).digest('hex');
-    assert.ok(estado1.width >= 640 && estado1.height >= 360, `${spot}: vídeo decodificado (${estado1.width}x${estado1.height})`);
-    assert.ok(!estado1.paused && !estado2.paused && estado2.time - estado1.time >= 1, `${spot}: el vídeo avanza`);
-    assert.notEqual(imagen1, imagen2, `${spot}: los fotogramas visibles cambian`);
-    assert.ok(segmentos.some((url) => url.includes(`${streamId}speed-`)), `${spot}: llegan fragmentos de la playa correcta`);
-    assert.ok(!segmentos.some((url) => url.includes('copyright_violation')), `${spot}: sin cortinilla de marca`);
-    console.log(`OK ${device || 'escritorio'} ${spot}: playa visible en movimiento, ${estado1.width}x${estado1.height}, ${segmentos.length} fragmentos`);
-    await page.close();
+  if (!process.argv.includes('--map-only')) {
+    // 1. Morro de Gos: emisión oficial HLS 1080p en directo (Turisme CV Costa de Oropesa)
+    {
+      const page = await browser.newPage(device ? devices[device] : {});
+      await page.goto(`${base}/#/spot/MorroGos`, { waitUntil: 'domcontentloaded' });
+      const video = page.locator('#cam video');
+      await video.waitFor({ timeout: 25000 });
+      await page.waitForFunction(() => document.querySelector('#cam .cam-badge-directo')?.textContent.includes('En directo'), null, { timeout: 30000 });
+      const estado1 = await video.evaluate((v) => ({ width: v.videoWidth, height: v.videoHeight, time: v.currentTime, paused: v.paused }));
+      const imagen1 = createHash('sha256').update(await video.screenshot()).digest('hex');
+      await page.waitForTimeout(3000);
+      const estado2 = await video.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
+      const imagen2 = createHash('sha256').update(await video.screenshot()).digest('hex');
+      assert.ok(estado1.width >= 640 && estado1.height >= 360, `MorroGos: vídeo decodificado (${estado1.width}x${estado1.height})`);
+      assert.ok(!estado1.paused && !estado2.paused && estado2.time - estado1.time >= 1, `MorroGos: el vídeo avanza`);
+      assert.notEqual(imagen1, imagen2, `MorroGos: los fotogramas visibles cambian en directo`);
+      console.log(`OK ${device || 'escritorio'} MorroGos: playa visible en movimiento, ${estado1.width}x${estado1.height}`);
+      await page.close();
+    }
+
+    // 2. Heliópolis: emisión directa Full HD Hotel Trinimar
+    {
+      const page = await browser.newPage(device ? devices[device] : {});
+      const segmentos = [];
+      page.on('response', (r) => { if (/speed-.*\.ts/.test(r.url())) segmentos.push(r.url()); });
+      await page.goto(`${base}/#/spot/Heliopolis`, { waitUntil: 'domcontentloaded' });
+      const player = page.frameLocator('#cam iframe').locator('#player_vid');
+      await player.waitFor({ timeout: 25000 });
+      await page.waitForFunction(() => document.querySelector('#cam iframe')?.dataset.videoReady === 'true', null, { timeout: 30000 });
+      const estado1 = await player.evaluate((v) => { v.controls = false; return { width: v.videoWidth, height: v.videoHeight, time: v.currentTime, paused: v.paused }; });
+      const imagen1 = createHash('sha256').update(await player.screenshot()).digest('hex');
+      await page.waitForTimeout(3000);
+      const estado2 = await player.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
+      const imagen2 = createHash('sha256').update(await player.screenshot()).digest('hex');
+      assert.ok(estado1.width >= 640 && estado1.height >= 360, `Heliopolis: vídeo decodificado (${estado1.width}x${estado1.height})`);
+      assert.ok(!estado1.paused && !estado2.paused && estado2.time - estado1.time >= 1, `Heliopolis: el vídeo avanza`);
+      assert.notEqual(imagen1, imagen2, `Heliopolis: los fotogramas visibles cambian`);
+      assert.ok(segmentos.some((url) => url.includes('2816speed-')), `Heliopolis: llegan fragmentos de la playa correcta`);
+      assert.ok(!segmentos.some((url) => url.includes('copyright_violation')), `Heliopolis: sin cortinilla de marca`);
+      console.log(`OK ${device || 'escritorio'} Heliopolis: playa visible en movimiento, ${estado1.width}x${estado1.height}, ${segmentos.length} fragmentos`);
+      await page.close();
+    }
   }
 
   if (!process.argv.includes('--map-only')) {

@@ -171,9 +171,10 @@ export const WEBCAMS_DATA: Webcam[] = [
   {
     "id": "cv-oropesa-hls",
     "name": "Comunitat Valenciana",
-    "short": "Oropesa del Mar / La Concha",
+    "short": "Oropesa del Mar (Costa)",
     "spots": [
-      "Concha"
+      "Concha",
+      "MorroGos"
     ],
     "priority": 1,
     "embedType": "hls",
@@ -181,7 +182,7 @@ export const WEBCAMS_DATA: Webcam[] = [
     "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/orpesa-oropesa-del-mar/webcams/oropesa-del-mar-1",
     "credit": "Turisme Comunitat Valenciana",
     "refreshSeconds": 0,
-    "distanceKm": 0.3,
+    "distanceKm": 1.3,
     "tokenRefresh": null,
     "verified": true,
     "notes": "Coordenadas de la cámara (40.0844/0.1415): zona del castillo y La Concha de Oropesa, así que es la cámara de La Concha. Antes se compartía con Morro de Gos y la Renegà (1,3 y 3 km): ya no. HLS con CORS * confirmado.",
@@ -350,7 +351,7 @@ export const WEBCAMS_DATA: Webcam[] = [
     "spots": [
       "MorroGos"
     ],
-    "priority": 1,
+    "priority": 2,
     "embedType": "skyline",
     "embedUrl": "https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
     "pageUrl": "https://www.servigroup.com/es/hotel-koral-beach-oropesa-del-mar/webcam-oropesa/",

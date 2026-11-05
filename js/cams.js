@@ -184,6 +184,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
 
     let haReproducido = false;
     let tiempoInicial = null;
+    let bufferTimer = null;
     let signalTimer = setTimeout(() => {
       if (!haReproducido && sessions.get(el) === session) {
         setBadge('sin-senal', '● Sin señal');
@@ -202,6 +203,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
           if (t - tiempoInicial >= 1 || data.type === 'skyline_playing') {
             haReproducido = true;
             clearTimeout(signalTimer);
+            clearTimeout(bufferTimer);
             f.dataset.videoReady = 'true';
             f.dataset.videoSize = `${data.videoWidth}x${data.videoHeight}`;
             setBadge('directo', '● En directo');
@@ -209,6 +211,12 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
         }
       } else if (data.type === 'skyline_waiting') {
         setBadge('buffer', '● Búfer');
+        clearTimeout(bufferTimer);
+        bufferTimer = setTimeout(() => {
+          if (sessions.get(el) === session && el.isConnected) {
+            try { f.contentWindow?.postMessage({ type: 'renovar' }, '*'); } catch {}
+          }
+        }, 3500);
       } else if (data.type === 'skyline_error') {
         if (!haReproducido) setBadge('sin-senal', '● Sin señal');
       }
@@ -224,6 +232,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
 
     active.set(el, () => {
       clearTimeout(signalTimer);
+      clearTimeout(bufferTimer);
       window.removeEventListener('message', onMessage);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       f.src = 'about:blank';

@@ -2225,6 +2225,15 @@ function renderCams() {
     view.querySelectorAll('[data-camspot]').forEach((el) => {
       if (el.querySelector('.cam-placeholder')) camObs.observe(el);
     });
+    view.querySelectorAll('.cam-placeholder').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.closest('[data-camspot]');
+        if (target) {
+          delete target.dataset.pausada;
+          reproducirCamCard(target);
+        }
+      });
+    });
   }
 }
 
@@ -2317,7 +2326,24 @@ async function init() {
   // Refresco automático cada 30 min si la pestaña está visible
   setInterval(() => { if (document.visibilityState === 'visible') refresh(true); }, 30 * 60 * 1000);
   setInterval(() => { if (document.visibilityState === 'visible') updateRealtime(); }, 60 * 1000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') updateRealtime(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      document.querySelectorAll('.cam video').forEach((v) => {
+        if (!v.paused) {
+          v.dataset.pausadaPorTab = '1';
+          v.pause();
+        }
+      });
+    } else {
+      updateRealtime();
+      document.querySelectorAll('.cam video').forEach((v) => {
+        if (v.dataset.pausadaPorTab) {
+          delete v.dataset.pausadaPorTab;
+          v.play?.().catch(() => {});
+        }
+      });
+    }
+  });
   if ('serviceWorker' in navigator) {
     // La PWA actualiza su caché en segundo plano. Forzar una recarga aquí
     // interrumpía el vídeo y la selección de Rewind al entrar desde el móvil.

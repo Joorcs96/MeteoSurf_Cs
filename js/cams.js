@@ -127,7 +127,10 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     return;
   }
   if (cam.embedType === 'restricted') {
-    msg(el, 'Directo no disponible', 'El proveedor de esta cámara no permite reproducir su vídeo dentro de MeteoSurf.');
+    const enlaceOficial = cam.pageUrl
+      ? `<br><a class="cam-link-btn" href="${esc(cam.pageUrl)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;padding:6px 14px;background:var(--surface-2,#1a3344);color:var(--text-1,#fff);border-radius:20px;text-decoration:none;font-size:13px;font-weight:600">Ver cámara oficial en su web</a>`
+      : '';
+    msg(el, 'Directo no disponible', `El proveedor de esta cámara no permite reproducir su vídeo dentro de MeteoSurf.${enlaceOficial}`);
     return;
   }
   const badgeTxt = cam.embedType === 'jpg' ? 'FOTO' : 'CÁMARA';
@@ -207,8 +210,57 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       clearTimeout(signalTimer);
       setBadge('directo', '● En directo');
     };
+    let bufferTimer = null;
+    const renovarDirecto = () => {
+      if (sessions.get(el) !== session || !el.isConnected) return;
+      ultimoAvance = performance.now();
+      if (hls) {
+        // En emisiones en directo, si el búfer se quedó atrás tras una pausa o cambio de pestaña,
+        // saltamos hacia adelante al borde actual del directo para evitar pedir segmentos expirados.
+        const livePos = hls.liveSyncPosition ?? (v.seekable.length ? v.seekable.end(v.seekable.length - 1) : null);
+        if (livePos != null && (livePos - v.currentTime) > 6) {
+          try { v.currentTime = livePos; } catch { /* ignorar */ }
+        }
+        hls.startLoad();
+        if (!v.paused) v.play?.().catch(() => {});
+      } else if (v.src && !v.paused) {
+        const s = v.src;
+        v.src = s;
+        v.load();
+        v.play?.().catch(() => {});
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        // Al ocultar la pestaña, actualizamos el avance para evitar fallos del watchdog
+        ultimoAvance = performance.now();
+      } else {
+        // Al volver a la pestaña, renovamos la sincronización con el directo si ya estaba reproduciendo
+        if (haReproducido) renovarDirecto();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    const onPlay = () => {
+      ultimoAvance = performance.now();
+      // Solo renovamos si el vídeo ya había arrancado previamente (reanudación tras pausa o cambio de pestaña)
+      if (haReproducido) {
+        renovarDirecto();
+      }
+    };
+    v.addEventListener('play', onPlay);
+
     const onWaiting = () => {
       setBadge('buffer', '● Búfer');
+      clearTimeout(bufferTimer);
+      // Si la cámara permanece en búfer más de 4s (desfase con la emisión en vivo),
+      // se renueva la posición del directo automáticamente:
+      bufferTimer = setTimeout(() => {
+        if (!v.paused && sessions.get(el) === session && el.isConnected) {
+          renovarDirecto();
+        }
+      }, 4000);
     };
 
     v.addEventListener('timeupdate', onTimeUpdate);
@@ -223,10 +275,27 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       setTimeout(() => { if (el.isConnected && sessions.get(el) === intento) playCam(el, cam, { autoplay }); }, 30000);
     };
     const watchdog = setInterval(() => {
+      if (document.hidden) {
+        ultimoAvance = performance.now();
+        return;
+      }
       if (v.paused && (haReproducido || !autoplay)) { ultimoAvance = performance.now(); return; }
       if (sessions.get(el) === session && performance.now() - ultimoAvance > 20000) fail();
     }, 5000);
-    active.set(el, () => { clearTimeout(signalTimer); clearInterval(watchdog); v.removeEventListener('timeupdate', onTimeUpdate); v.removeEventListener('waiting', onWaiting); v.removeEventListener('stalled', onWaiting); hls?.destroy(); v.pause(); v.removeAttribute('src'); v.load(); });
+    active.set(el, () => {
+      clearTimeout(signalTimer);
+      clearTimeout(bufferTimer);
+      clearInterval(watchdog);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      v.removeEventListener('timeupdate', onTimeUpdate);
+      v.removeEventListener('waiting', onWaiting);
+      v.removeEventListener('stalled', onWaiting);
+      v.removeEventListener('play', onPlay);
+      hls?.destroy();
+      v.pause();
+      v.removeAttribute('src');
+      v.load();
+    });
     if (isApple() && v.canPlayType('application/vnd.apple.mpegurl')) {
       v.src = fuente;
       v.addEventListener('error', fail, { once: true });
@@ -236,8 +305,16 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
         if (sessions.get(el) !== session || !el.isConnected) return;
         if (!Hls.isSupported()) { v.src = fuente; }
         else {
-          // Varias cámaras a la vez: poco búfer atrás y adelante, y nunca más resolución de la que cabe en el recuadro.
-          hls = new Hls({ lowLatencyMode: true, backBufferLength: 6, maxBufferLength: 10, maxMaxBufferLength: 20, capLevelToPlayerSize: true });
+          // Varias cámaras a la vez: poco búfer atrás y adelante, sincronización en vivo y sin desfases
+          hls = new Hls({
+            lowLatencyMode: true,
+            backBufferLength: 6,
+            maxBufferLength: 10,
+            maxMaxBufferLength: 20,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 10,
+            capLevelToPlayerSize: true
+          });
           hls.loadSource(fuente);
           hls.attachMedia(v);
           hls.on(Hls.Events.ERROR, async (_, d) => {

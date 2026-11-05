@@ -15,6 +15,7 @@
 | Confirmar en iPhone y Android físicos una nueva fuente autorizada de Morro de Gos y Trinimar, cuando esté disponible | Jordi | Codex | Pendiente de fuente |
 
 ## ✅ FINALIZADAS
+| 2026-11-05 | Renovación bajo demanda de webcams en directo al volver de pestaña o pulsar Play, eliminación de atasco en búfer y enlace oficial en cámaras restringidas | fix/webcam-tab-buffer-reconnect | E2E Playwright: prueba de cambio de pestaña, pausa y reanudación con t continuo; 9/9 directos verificados y suite unitaria 100% OK |
 | 2026-11-05 | Reparar mapa 2D y relieve 3D en escritorio, sincronizar capas entre 2D y 3D, aumentar densidad de flechas y actualizar PWA a v50 | 8455260 | Playwright E2E: 79 flechas en 2D, 143 en 3D con relieve y perspectiva, retorno perfecto 2D/3D sin pérdida de capas, suite 100% OK |
 | 2026-11-04 | Auditoría completa de webcams web: 11 directos activos con fotogramas cambiantes; excluidas la vista de 24 horas de Windy y la cámara inmóvil del hotel de Peñíscola; bloqueo para que la verificación HTTP no las reactive | c2266b3 | Chrome E2E local 11/11 cámaras activas; prueba del verificador Python correcta |
 | 2026-11-04 | Rewind plegable con cambio rápido de día en móvil; el actualizador ya no reactiva fotos fijas como cámaras; web publicada en GitHub Pages | 6c5a0f6 | Chrome E2E: Morro de Gos y Trinimar con vídeo 1920×1080 en movimiento, Grao HLS, mapa 2D móvil y Rewind; 14 orientaciones y 131 pruebas de Rewind correctas |

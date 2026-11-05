@@ -9,13 +9,13 @@
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body { width:100%; height:100%; background:#000; overflow:hidden; }
-    video { width:100%; height:100%; object-fit:cover; display:block; background:#000; cursor:pointer; }
+    video { width:100%; height:100%; object-fit:contain; display:block; background:#000; cursor:pointer; }
     #start { position:absolute; z-index:2; inset:0; margin:auto; width:max-content; max-width:calc(100% - 24px); height:52px; padding:0 20px; border:1px solid #ffffff66; border-radius:28px; background:#102c3be8; color:#fff; font:600 16px system-ui,-apple-system,sans-serif; cursor:pointer; touch-action:manipulation; }
     #start[hidden] { display:none; }
   </style>
 </head>
 <body>
-  <video id="player_vid" autoplay muted playsinline></video>
+  <video id="player_vid" autoplay muted playsinline controls></video>
   <button id="start" type="button" hidden aria-label="Ver playa en directo">▶ Ver playa en directo</button>
   <script src="js/cam_skyline.js"></script>
 </body>

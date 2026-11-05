@@ -2,6 +2,12 @@
 
 Dudas que no se pueden resolver sin decisión de Jordi. Se aplicó la opción conservadora y se siguió.
 
+## 05/11/2026 · Resolución definitiva de webcams Morro de Gos y Trinimar (móvil y PC)
+
+- **Resuelto:** Integrado reproductor embebido mediante `cam_skyline.html` con sandbox y origen opaco (`Origin: null`), lo que permite que el auth server de Skyline entregue los fragmentos reales HLS `2815speed-*.ts` / `2816speed-*.ts` (Full HD 1080p) en vez de cortinillas de copyright.
+- **Regla de cero gasto y cero procesos en el host:** Ver cámaras no consume ningún token de IA ni ejecuta tareas en segundo plano en el portátil de Jordi. El tráfico es 100% web nativo (HTTP/HLS) en el navegador del cliente al pulsar Play.
+- **Aspecto idéntico:** Cuenta con los mismos controles de vídeo (`controls`), ajuste proporcional (`object-fit: contain`) y badges que las demás cámaras.
+
 ## 04/11/2026 · Directos de Morro de Gos y Trinimar en móvil
 
 - **Diagnóstico definitivo del segundo intento:** Jordi confirma pantalla negra y «Búfer» en los móviles tras publicar. Las pruebas de Chrome emulado no representan el resultado real y las afirmaciones previas de «directo arreglado» quedan anuladas.

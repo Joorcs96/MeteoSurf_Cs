@@ -402,6 +402,8 @@ export function iniciarCapas(motor, host) {
   });
 
   return {
+    capaActual: () => capa,
+    elegir: (c) => elegir(c),
     reiniciar() { elegir(null); },
     destruir() { vivo = false; parar(); pararParticulas(); quitarPintadoVista(); motor.destruir(); host.innerHTML = ''; },
   };

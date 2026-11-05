@@ -1906,7 +1906,18 @@ async function alternar3D(btn, { silencioso = false } = {}) {
   btnBase.hidden = !on;
   btn.textContent = on ? '2D' : '3D';
   cerrarHojaSpot();
-  if (on) { capasMapa?.reiniciar(); mapa3d.mostrar(); } else { capas3d?.reiniciar(); mapa3d.ocultar(); leaflet?.invalidateSize(); }
+  if (on) {
+    const c = capasMapa?.capaActual();
+    capasMapa?.reiniciar();
+    mapa3d.mostrar();
+    if (c) capas3d?.elegir(c);
+  } else {
+    const c = capas3d?.capaActual();
+    capas3d?.reiniciar();
+    mapa3d.ocultar();
+    leaflet?.invalidateSize();
+    if (c) capasMapa?.elegir(c);
+  }
   return on;
 }
 

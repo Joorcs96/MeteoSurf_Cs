@@ -15,8 +15,7 @@
 | Confirmar en iPhone y Android físicos una nueva fuente autorizada de Morro de Gos y Trinimar, cuando esté disponible | Jordi | Codex | Pendiente de fuente |
 
 ## ✅ FINALIZADAS
-| Fecha | Logro | Commit | Verificación |
-| --- | --- | --- | --- |
+| 2026-11-05 | Reparar mapa en escritorio (pantalla completa, sin solapar tabbar, auto-redimensionado) y aumentar densidad de flechas de previsión (viento, oleaje, periodo) con interpolación bilineal suave y recorte fino en costa | 036a84f | Playwright E2E: 108 flechas de viento, 79-80 de oleaje/periodo, 171 con zoom en escritorio, suite completa 100% OK |
 | 2026-11-04 | Auditoría completa de webcams web: 11 directos activos con fotogramas cambiantes; excluidas la vista de 24 horas de Windy y la cámara inmóvil del hotel de Peñíscola; bloqueo para que la verificación HTTP no las reactive | c2266b3 | Chrome E2E local 11/11 cámaras activas; prueba del verificador Python correcta |
 | 2026-11-04 | Rewind plegable con cambio rápido de día en móvil; el actualizador ya no reactiva fotos fijas como cámaras; web publicada en GitHub Pages | 6c5a0f6 | Chrome E2E: Morro de Gos y Trinimar con vídeo 1920×1080 en movimiento, Grao HLS, mapa 2D móvil y Rewind; 14 orientaciones y 131 pruebas de Rewind correctas |
 | 2026-11-04 | Vídeo real de Morro de Gos y Trinimar, recuperación automática de señal, mapa 2D inicial, indicadores compactos y sectores de oleaje de los 14 spots contrastados con la costa | 4300541 | E2E Chrome: vídeo 1920×1080 con fotogramas cambiantes en ambas playas; mapa móvil con datos; 14 orientaciones y previsión comprobadas |

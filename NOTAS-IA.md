@@ -312,3 +312,10 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 | meteosurf-v2 | si | 0 | 2026-09-27 23:36:04 +0200 |  |
 | mralcachofino-base | no | 12 | 2026-08-28 19:25:05 +0200 |  |
 | seguridad-csp | si | 0 | 2026-10-04 23:53:20 +0200 | C:/Users/Jordi/orca/workspaces/Surfline_CS/redisenar-main |
+
+## Mapa de escritorio y densidad de flechas (05/11/2026)
+- Reparado el layout de escritorio (>=800px): oculta la .tabbar redundante de móvil, asigna #view { top: 64px; bottom: 0; } y añade resize listener en Leaflet con invalidateSize().
+- Malla ampliada de Open-Meteo a 14 lats x 13 lons (182 puntos, 39.5-40.8N, -0.2-1.0E), cubriendo todo el mar visible en pantallas grandes.
+- Muestreo de pantalla en cuadrícula fija (48px en escritorio, 68px en móvil) con interpolación bilineal de alturas y vectorial angular para direcciones.
+- Al hacer zoom, la densidad de flechas se mantiene constante y homogénea sin huecos vacíos.
+- Calibrada la línea de costa con silueta fina poligonal para que las flechas marinas lleguen hasta la rompiente de los 14 spots sin pisar tierra firme.

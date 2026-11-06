@@ -1,14 +1,14 @@
 {
-  "updatedAt": "2026-11-06T02:38:00.027262Z",
+  "updatedAt": "2026-11-06T10:02:21.556783Z",
   "timezone": "Europe/Madrid",
   "streams": {
     "surfers_castellon_hls": {
       "alias": "609a27d8a9c83",
-      "hls": "https://s169.ipcamlive.com/streams/a93dk9pht8bohbnfi/stream.m3u8",
-      "snapshot": "https://s169.ipcamlive.com/streams/a93dk9pht8bohbnfi/snapshot.jpg",
+      "hls": "https://s169.ipcamlive.com/streams/a9xiuyfhsrnolmdta/stream.m3u8",
+      "snapshot": "https://s169.ipcamlive.com/streams/a9xiuyfhsrnolmdta/snapshot.jpg",
       "ok": true,
       "motivo": "",
-      "resolvedAt": "2026-11-06T02:38:00.027262Z",
+      "resolvedAt": "2026-11-06T10:02:21.556783Z",
       "ttlMin": 45
     }
   }

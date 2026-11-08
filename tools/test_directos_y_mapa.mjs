@@ -44,26 +44,22 @@ try {
       await page.close();
     }
 
-    // 2. Heliópolis: emisión directa Full HD Hotel Trinimar
+    // 2. Heliópolis: emisión oficial HLS 1080p en directo (Turisme CV Escola de Vela)
     {
       const page = await browser.newPage(device ? devices[device] : {});
-      const segmentos = [];
-      page.on('response', (r) => { if (/speed-.*\.ts/.test(r.url())) segmentos.push(r.url()); });
       await page.goto(`${base}/#/spot/Heliopolis`, { waitUntil: 'domcontentloaded' });
-      const player = page.frameLocator('#cam iframe').locator('#player_vid');
-      await player.waitFor({ timeout: 25000 });
-      await page.waitForFunction(() => document.querySelector('#cam iframe')?.dataset.videoReady === 'true', null, { timeout: 30000 });
-      const estado1 = await player.evaluate((v) => { v.controls = false; return { width: v.videoWidth, height: v.videoHeight, time: v.currentTime, paused: v.paused }; });
-      const imagen1 = createHash('sha256').update(await player.screenshot()).digest('hex');
+      const video = page.locator('#cam video');
+      await video.waitFor({ timeout: 25000 });
+      await page.waitForFunction(() => document.querySelector('#cam .cam-badge-directo')?.textContent.includes('En directo'), null, { timeout: 30000 });
+      const estado1 = await video.evaluate((v) => ({ width: v.videoWidth, height: v.videoHeight, time: v.currentTime, paused: v.paused }));
+      const imagen1 = createHash('sha256').update(await video.screenshot()).digest('hex');
       await page.waitForTimeout(3000);
-      const estado2 = await player.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
-      const imagen2 = createHash('sha256').update(await player.screenshot()).digest('hex');
+      const estado2 = await video.evaluate((v) => ({ time: v.currentTime, paused: v.paused }));
+      const imagen2 = createHash('sha256').update(await video.screenshot()).digest('hex');
       assert.ok(estado1.width >= 640 && estado1.height >= 360, `Heliopolis: vídeo decodificado (${estado1.width}x${estado1.height})`);
       assert.ok(!estado1.paused && !estado2.paused && estado2.time - estado1.time >= 1, `Heliopolis: el vídeo avanza`);
       assert.notEqual(imagen1, imagen2, `Heliopolis: los fotogramas visibles cambian`);
-      assert.ok(segmentos.some((url) => url.includes('2816speed-')), `Heliopolis: llegan fragmentos de la playa correcta`);
-      assert.ok(!segmentos.some((url) => url.includes('copyright_violation')), `Heliopolis: sin cortinilla de marca`);
-      console.log(`OK ${device || 'escritorio'} Heliopolis: playa visible en movimiento, ${estado1.width}x${estado1.height}, ${segmentos.length} fragmentos`);
+      console.log(`OK ${device || 'escritorio'} Heliopolis: playa visible en movimiento, ${estado1.width}x${estado1.height}`);
       await page.close();
     }
   }

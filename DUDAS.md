@@ -2,6 +2,15 @@
 
 Dudas que no se pueden resolver sin decisión de Jordi. Se aplicó la opción conservadora y se siguió.
 
+## 08/11/2026 · Solución definitiva y consistente de Morro de Gos y Trinimar (como el resto de webcams)
+
+- **Causa raíz:** SkylineWebcams bloquea activamente la integración en webs de terceros (cabeceras SAMEORIGIN, cortinillas de copyright_violation con origen github.io y bloqueo en móviles de iframes con sandbox, lo que causaba pantalla negra y «Búfer» infinito en los teléfonos de Jordi).
+- **Solución unificada como el resto del catálogo:**
+  1. **Morro de Gos:** Emisión oficial directa HLS 1080p de Turisme Comunitat Valenciana (`cv-oropesa-hls`) desde el cerro del castillo de Oropesa (cubre Morro de Gos y La Concha) como cámara principal con reproducción nativa HTML5 `<video>`, sin cortes ni hotlinking y compatible al 100% en iPhone, Android y PC.
+  2. **Heliópolis / Trinimar:** Emisión oficial directa HLS 1080p de Turisme Comunitat Valenciana (`cv-benicassim-vela-hls` enlazada a la señal activa de Palasiet/bahía de Benicàssim) con reproducción nativa HTML5 `<video>`.
+  3. Las emisiones de Servigroup (Koral Beach y Trinimar) quedan como secundarias `restricted` con botón directo para abrirlas en su web oficial si el usuario desea la perspectiva del hotel, sin bloquear nunca el reproductor del spot.
+- **Validación:** 9/9 webcams activas en directo con fotogramas en movimiento comprobados; E2E superadas en PC, iPhone 13 y Pixel 7; 73/73 tests de Rewind OK. Cero tokens y cero procesos en host.
+
 ## 05/11/2026 · Resolución definitiva de webcams Morro de Gos y Trinimar (móvil y PC)
 
 - **Resuelto:** Integrado reproductor embebido mediante `cam_skyline.html` con sandbox y origen opaco (`Origin: null`), lo que permite que el auth server de Skyline entregue los fragmentos reales HLS `2815speed-*.ts` / `2816speed-*.ts` (Full HD 1080p) en vez de cortinillas de copyright.

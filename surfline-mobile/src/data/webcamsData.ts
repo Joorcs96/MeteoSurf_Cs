@@ -129,50 +129,51 @@ export const WEBCAMS_DATA: Webcam[] = [
   {
     "id": "cv-benicassim-vela-hls",
     "name": "Comunitat Valenciana",
-    "short": "Benicàssim Vela (club náutico)",
+    "short": "Heliópolis / Benicàssim",
     "spots": [
       "Heliopolis"
     ],
     "priority": 1,
     "embedType": "hls",
-    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/BenicassimVela/playlist.m3u8",
-    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/benicassim-benicasim/webcams/benicassim-vela",
+    "embedUrl": "https://streaming.comunitatvalenciana.com/webcam/BenicassimPalasiet/playlist.m3u8",
+    "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/benicassim-benicasim/webcams/benicassim-palasiet",
     "credit": "Turisme Comunitat Valenciana",
     "refreshSeconds": 0,
-    "distanceKm": 2.6,
+    "distanceKm": 1.5,
     "tokenRefresh": null,
-    "verified": false,
-    "notes": "Única cámara con vídeo real en directo cerca de Heliópolis (2,6 km) y razonablemente cerca de Voramar (1,9 km) — para Voramar se recomienda mejor la cámara del Hotel Voramar (prioridad 1 de ese spot); esta queda de prioridad 2 ahí. HLS con CORS * confirmado en manifest, sub-lista (chunklist_w*.m3u8) y segmentos .ts.",
-    "enabled": false,
-    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
-    "failCount": 8
+    "verified": true,
+    "notes": "Cámara oficial en directo 1080p HLS de Turisme Comunitat Valenciana en Benicàssim (Palasiet / bahía de Benicàssim). Emisión en streaming HLS directo Full HD con CORS *, fiable en móvil y PC.",
+    "enabled": true,
+    "lastChecked": "2026-11-07T22:54:12.397606+00:00",
+    "failCount": 0
   },
   {
     "id": "skyline-jpg-heliopolis",
-    "name": "SkylineWebcams",
+    "name": "Hotel Servigroup Trinimar",
     "short": "Heliópolis (Hotel Trinimar)",
     "spots": [
       "Heliopolis"
     ],
     "priority": 2,
-    "embedType": "jpg",
-    "embedUrl": "https://cdn.skylinewebcams.com/live2816.jpg",
-    "pageUrl": "https://www.skylinewebcams.com/es/webcam/espana/comunidad-valenciana/castellon/benicasim.html",
-    "credit": "SkylineWebcams / Hotel Servigroup Trinimar",
-    "refreshSeconds": 90,
+    "embedType": "restricted",
+    "embedUrl": "https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/benicasim.html",
+    "pageUrl": "https://www.servigroup.com/es/hotel-trinimar-benicasim/webcam-benicasim/",
+    "credit": "Hotel Servigroup Trinimar",
+    "refreshSeconds": 0,
     "distanceKm": 0.3,
     "tokenRefresh": null,
-    "verified": true,
-    "notes": "Hotel justo en la playa de Heliópolis, pero sólo hay foto fija (sin vídeo) porque la página con vídeo de Skyline bloquea el iframe (X-Frame-Options: SAMEORIGIN, confirmado con curl). La imagen se cachea 1080 s (18 min) en el CDN — no tiene sentido pedirla más a menudo que eso, aunque el propio servidor la actualiza antes; usar como imagen de referencia, no como 'en directo' minuto a minuto.",
-    "enabled": true,
-    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "verified": false,
+    "notes": "Hotel Servigroup Trinimar en Playa Heliópolis. Emisión restringida por el proveedor a su web oficial.",
+    "enabled": false,
+    "lastChecked": "2026-11-07T22:54:12.397606+00:00",
     "failCount": 0
   },
   {
     "id": "cv-oropesa-hls",
     "name": "Comunitat Valenciana",
-    "short": "Oropesa del Mar / La Concha",
+    "short": "Oropesa del Mar (Costa)",
     "spots": [
+      "MorroGos",
       "Concha"
     ],
     "priority": 1,
@@ -181,12 +182,12 @@ export const WEBCAMS_DATA: Webcam[] = [
     "pageUrl": "https://www.comunitatvalenciana.com/es/castello-castellon/orpesa-oropesa-del-mar/webcams/oropesa-del-mar-1",
     "credit": "Turisme Comunitat Valenciana",
     "refreshSeconds": 0,
-    "distanceKm": 0.3,
+    "distanceKm": 1.3,
     "tokenRefresh": null,
     "verified": true,
-    "notes": "Coordenadas de la cámara (40.0844/0.1415): zona del castillo y La Concha de Oropesa, así que es la cámara de La Concha. Antes se compartía con Morro de Gos y la Renegà (1,3 y 3 km): ya no. HLS con CORS * confirmado.",
+    "notes": "Coordenadas de la cámara (40.0844/0.1415, cerro del castillo): cubre la costa de Oropesa (La Concha a 0,3 km y Morro de Gos a 1,3 km). Emisión oficial HLS 1080p en directo con CORS *.",
     "enabled": true,
-    "lastChecked": "2026-10-24T16:07:17.472209+00:00",
+    "lastChecked": "2026-11-07T22:54:12.397606+00:00",
     "failCount": 0
   },
   {
@@ -350,8 +351,8 @@ export const WEBCAMS_DATA: Webcam[] = [
     "spots": [
       "MorroGos"
     ],
-    "priority": 1,
-    "embedType": "skyline",
+    "priority": 2,
+    "embedType": "restricted",
     "embedUrl": "https://www.skylinewebcams.com/webcam/espana/comunidad-valenciana/castellon/oropesa-del-mar.html",
     "pageUrl": "https://www.servigroup.com/es/hotel-koral-beach-oropesa-del-mar/webcam-oropesa/",
     "credit": "Hotel Servigroup Koral Beach / SkylineWebcams",
@@ -359,10 +360,10 @@ export const WEBCAMS_DATA: Webcam[] = [
     "refreshSeconds": 0,
     "distanceKm": 0.2,
     "tokenRefresh": null,
-    "verified": true,
-    "notes": "Webcam oficial en directo de la Playa de Morro de Gos (Hotel Servigroup Koral Beach). Emisión de vídeo HLS Full HD embebida en directo mediante reproductor aislado anti-bloqueo.",
-    "enabled": true,
-    "lastChecked": "2026-11-03T00:00:00.000000+00:00",
+    "verified": false,
+    "notes": "Hotel Servigroup Koral Beach en la playa de Morro de Gos. Emisión restringida por el proveedor a su web oficial.",
+    "enabled": false,
+    "lastChecked": "2026-11-07T22:54:12.397606+00:00",
     "failCount": 0
   }
 ];

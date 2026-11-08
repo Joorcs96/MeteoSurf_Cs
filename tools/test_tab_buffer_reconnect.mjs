@@ -116,13 +116,13 @@ try {
     await page.close();
   }
 
-  // 3. Probar Heliópolis (Hotel Trinimar - Skyline HLS con autorrenovación)
+  // 3. Probar Heliópolis (cámara oficial Heliópolis Escola de Vela 1080p en directo)
   {
     const page = await browser.newPage();
     await page.goto(`${base}/#/spot/Heliopolis`, { waitUntil: 'domcontentloaded' });
-    const video = page.frameLocator('#cam iframe').locator('#player_vid');
+    const video = page.locator('#cam video');
     await video.waitFor({ timeout: 25000 });
-    await page.waitForFunction(() => document.querySelector('#cam iframe')?.dataset.videoReady === 'true', null, { timeout: 30000 });
+    await page.waitForFunction(() => document.querySelector('#cam .cam-badge-directo')?.textContent.includes('En directo'), null, { timeout: 30000 });
 
     const t1 = await video.evaluate((v) => v.currentTime);
     assert.ok(t1 > 0, 'Vídeo Heliopolis reproduciendo inicialmente');

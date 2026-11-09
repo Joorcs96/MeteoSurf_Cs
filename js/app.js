@@ -487,6 +487,40 @@ function renderAhora() {
       </div>
     </section>
 
+    <!-- MAPA AEMET: PREDICCIÓN MARÍTIMA LEVANTE -->
+    <section class="now-aemet-section" aria-label="Mapa AEMET predicción marítima" style="margin-top:32px">
+      <div class="section-title">Mapa AEMET <span class="faint">Predicción marítima · Mar combinada · Levante</span></div>
+      <div class="card" style="overflow:hidden">
+        <div style="position:relative;background:var(--surface-2);min-height:220px;display:flex;align-items:center;justify-content:center">
+          <img id="aemet-map-img" src="" alt="Cargando mapa AEMET…" loading="lazy"
+               style="display:none;max-width:100%;height:auto;width:100%;object-fit:contain">
+          <div id="aemet-map-skeleton" class="skeleton" style="position:absolute;inset:0;border-radius:0"></div>
+          <p id="aemet-map-error" style="display:none;position:relative;z-index:1;padding:24px;text-align:center;font-size:13px;color:var(--text-2)">
+            Mapa AEMET no disponible en este momento.<br>
+            <a href="https://www.aemet.es/es/eltiempo/prediccion/maritima?opc1=0&opc3=0&area=val1" target="_blank" rel="noopener" style="color:var(--text-2)">Ver en aemet.es →</a>
+          </p>
+        </div>
+        <div style="padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;min-height:20px">
+            <span id="aemet-map-time" style="font-size:13px;color:var(--text-2);font-weight:600"></span>
+            <span id="aemet-map-frame" style="font-size:11px;color:var(--text-2)"></span>
+          </div>
+          <div id="aemet-timeline" style="display:flex;gap:2px;height:4px"></div>
+          <div style="display:flex;justify-content:center;align-items:center;gap:6px">
+            <button class="chip btn" id="aemet-first" aria-label="Primer fotograma" title="Inicio" style="min-height:36px;padding:6px 10px;font-size:14px">⏮</button>
+            <button class="chip btn" id="aemet-prev" aria-label="Anterior" title="Anterior" style="min-height:36px;padding:6px 10px;font-size:14px">⏪</button>
+            <button class="chip btn on" id="aemet-play" aria-label="Reproducir" title="Reproducir" style="min-height:40px;padding:8px 18px;font-size:16px">▶</button>
+            <button class="chip btn" id="aemet-next" aria-label="Siguiente" title="Siguiente" style="min-height:36px;padding:6px 10px;font-size:14px">⏩</button>
+            <button class="chip btn" id="aemet-last" aria-label="Último fotograma" title="Final" style="min-height:36px;padding:6px 10px;font-size:14px">⏭</button>
+          </div>
+          <p style="font-size:11px;color:var(--text-2);text-align:center;margin:0">
+            Modelo WAM · AEMET · Levante ·
+            <a href="https://www.aemet.es/es/eltiempo/prediccion/maritima?opc1=0&opc3=0&area=val1" target="_blank" rel="noopener" style="color:var(--text-2)">Ver en aemet.es →</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
     ${footer()}
   `;
 
@@ -501,6 +535,7 @@ function renderAhora() {
 
   bindFavs();
   showOnboarding();
+  initAemetMapWidget();
 }
 
 // ---------- Sección Previsión: lista regional ----------
@@ -2237,8 +2272,160 @@ function renderCams() {
   }
 }
 
+// ---------- Widget mapa AEMET predicción marítima Levante ----------
+function initAemetMapWidget() {
+  const img = document.getElementById('aemet-map-img');
+  const skeleton = document.getElementById('aemet-map-skeleton');
+  const errorEl = document.getElementById('aemet-map-error');
+  const timeLabel = document.getElementById('aemet-map-time');
+  const frameLabel = document.getElementById('aemet-map-frame');
+  const timeline = document.getElementById('aemet-timeline');
+  const btnPlay = document.getElementById('aemet-play');
+  if (!img || !btnPlay) return;
+
+  const FRAME_START = 6, FRAME_STEP = 3, FRAME_END = 90;
+  const N = (FRAME_END - FRAME_START) / FRAME_STEP + 1; // 29 fotogramas
+
+  let runStr = null;
+  let curFrame = 0;
+  let playing = false;
+  let timer = null;
+
+  function frameOffset(i) { return String(FRAME_START + i * FRAME_STEP).padStart(3, '0'); }
+
+  function frameUrl(run, i) {
+    return `https://www.aemet.es/imagenes_d/eltiempo/prediccion/mod_maritima/${run}+${frameOffset(i)}_aewam_lev_martot.png`;
+  }
+
+  function frameDate(run, i) {
+    const dt = new Date(Date.UTC(
+      parseInt(run.slice(0, 4)), parseInt(run.slice(4, 6)) - 1,
+      parseInt(run.slice(6, 8)), parseInt(run.slice(8, 10))
+    ));
+    dt.setUTCHours(dt.getUTCHours() + FRAME_START + i * FRAME_STEP);
+    return dt;
+  }
+
+  function formatDate(dt) {
+    return dt.toLocaleString('es-ES', {
+      timeZone: 'Europe/Madrid',
+      weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  function buildTimeline() {
+    if (!timeline) return;
+    const now = Date.now();
+    timeline.innerHTML = '';
+    for (let i = 0; i < N; i++) {
+      const dot = document.createElement('div');
+      const isCur = i === curFrame;
+      const isPast = frameDate(runStr, i).getTime() < now;
+      dot.style.cssText = `flex:1;height:4px;border-radius:2px;cursor:pointer;background:${isCur ? 'var(--text)' : isPast ? 'var(--text-2)' : 'var(--line)'};transition:background 0.15s`;
+      const idx = i;
+      dot.addEventListener('click', () => { stop(); goTo(idx); });
+      timeline.appendChild(dot);
+    }
+  }
+
+  function showFrame() {
+    if (!document.getElementById('aemet-map-img')) { clearInterval(timer); return; }
+    const url = frameUrl(runStr, curFrame);
+    img.src = url;
+    if (timeLabel) timeLabel.textContent = formatDate(frameDate(runStr, curFrame));
+    if (frameLabel) frameLabel.textContent = `${curFrame + 1} / ${N}`;
+    buildTimeline();
+  }
+
+  function goTo(i) { curFrame = Math.max(0, Math.min(N - 1, i)); showFrame(); }
+
+  function tick() {
+    if (!document.getElementById('aemet-map-img')) { clearInterval(timer); timer = null; return; }
+    curFrame = curFrame >= N - 1 ? 0 : curFrame + 1;
+    showFrame();
+  }
+
+  function play() {
+    playing = true;
+    if (btnPlay) { btnPlay.textContent = '⏸'; btnPlay.setAttribute('aria-label', 'Pausar'); }
+    clearInterval(timer);
+    timer = setInterval(tick, 450);
+  }
+
+  function stop() {
+    playing = false;
+    if (btnPlay) { btnPlay.textContent = '▶'; btnPlay.setAttribute('aria-label', 'Reproducir'); }
+    clearInterval(timer);
+    timer = null;
+  }
+
+  img.addEventListener('load', () => {
+    if (skeleton) skeleton.style.display = 'none';
+    img.style.display = 'block';
+  });
+  img.addEventListener('error', () => {
+    if (!img.dataset.errored) {
+      img.dataset.errored = '1';
+      img.style.display = 'none';
+    }
+  });
+
+  function checkImg(url) {
+    return new Promise((ok) => {
+      const t = new Image();
+      t.onload = () => ok(true);
+      t.onerror = () => ok(false);
+      t.src = url;
+    });
+  }
+
+  async function detectRun() {
+    const now = new Date();
+    const h = now.getUTCHours();
+    const p2 = (n) => String(n).padStart(2, '0');
+    const ds = (d) => `${d.getUTCFullYear()}${p2(d.getUTCMonth() + 1)}${p2(d.getUTCDate())}`;
+    const tod = ds(now);
+    const yest = ds(new Date(now - 86400000));
+    const runs = h >= 17 ? [tod + '12', tod + '00', yest + '12']
+      : h >= 5 ? [tod + '00', yest + '12', yest + '00']
+      : [yest + '12', yest + '00'];
+    for (const run of runs) {
+      if (await checkImg(frameUrl(run, 0))) return run;
+    }
+    return null;
+  }
+
+  function seekToNow() {
+    const now = Date.now();
+    let best = 0, bestDiff = Infinity;
+    for (let i = 0; i < N; i++) {
+      const diff = Math.abs(frameDate(runStr, i).getTime() - now);
+      if (diff < bestDiff) { bestDiff = diff; best = i; }
+    }
+    curFrame = Math.max(0, best - 2);
+  }
+
+  document.getElementById('aemet-first')?.addEventListener('click', () => { stop(); goTo(0); });
+  document.getElementById('aemet-prev')?.addEventListener('click', () => { stop(); goTo(curFrame - 1); });
+  document.getElementById('aemet-next')?.addEventListener('click', () => { stop(); goTo(curFrame + 1); });
+  document.getElementById('aemet-last')?.addEventListener('click', () => { stop(); goTo(N - 1); });
+  btnPlay.addEventListener('click', () => { if (playing) stop(); else play(); });
+
+  detectRun().then((run) => {
+    if (!run) {
+      if (skeleton) skeleton.style.display = 'none';
+      if (errorEl) errorEl.style.display = 'block';
+      return;
+    }
+    runStr = run;
+    seekToNow();
+    showFrame();
+    play();
+  });
+}
+
 function footer() {
-  return `<div class="footer">MeteoSurf_Cs · Datos: Open-Meteo (modelos ECMWF, DWD, Météo-France) · Cámaras de sus propietarios
+  return `<div class="footer">MeteoSurf_Cs · Datos: Open-Meteo (modelos ECMWF, DWD, Météo-France) · AEMET (mapa marítimo) · Cámaras de sus propietarios
     <br><span id="version"></span></div>`;
 }
 

@@ -1548,3 +1548,8 @@ tiempo_utc,tiempo_recuperado_utc,tipo_sensor,estacion_id,estacion_nombre,lat,lon
 2026-11-13T15:00:00Z,2026-11-13T15:18:38Z,BOYA,2630,Boya de Valencia,39.51,0.2,54.9,Puertos del Estado · red de boyas REDEXT,https://portus.puertos.es/portussvr/api,1.17,1.97,4.88,3.91,251,256,20.55,,,,,,,,OK,
 2026-11-13T15:00:00Z,2026-11-13T15:18:38Z,BOYA,2720,Boya de Tarragona,40.69,1.47,145.2,Puertos del Estado · red de boyas REDEXT,https://portus.puertos.es/portussvr/api,1.29,,6.25,4.84,217,200,20.75,,,,,,,,OK,
 2026-11-13T15:17:00Z,2026-11-13T15:18:38Z,MAREOGRAFO,3655,Mareografo de Sagunto,39.63392,-0.20624,43.9,Puertos del Estado · mareógrafo,https://portus.puertos.es/portussvr/api,,,,,,,,0.167,,,,,,,OK,
+2026-11-13T21:00:00Z,2026-11-13T21:55:47Z,BOYA,1712,Boya de Tarragona,41.07,1.19,155.5,Puertos del Estado · red de boyas REDEXT,https://portus.puertos.es/portussvr/api,1.03,1.71,6.7,5.3,183,,20.0,,,,,,,,OK,
+2026-11-13T21:00:00Z,2026-11-13T21:55:47Z,BOYA,2630,Boya de Valencia,39.51,0.2,54.9,Puertos del Estado · red de boyas REDEXT,https://portus.puertos.es/portussvr/api,0.7,0.91,3.52,3.44,238,256,20.48,,,,,,,,OK,
+2026-11-13T21:00:00Z,2026-11-13T21:55:47Z,BOYA,2720,Boya de Tarragona,40.69,1.47,145.2,Puertos del Estado · red de boyas REDEXT,https://portus.puertos.es/portussvr/api,1.17,,6.64,5.0,201,211,21.43,,,,,,,,OK,
+2026-11-13T21:40:00Z,2026-11-13T21:55:47Z,VIENTO,4660,Estación Meteorológica de Castellón Mistral,39.97736,0.02505,1.0,Puertos del Estado · estaciones meteorológicas REMPOR,https://portus.puertos.es/portussvr/api,,,,,,,,,0.7,2.5,1.7,6.1,167,18.7,OK,
+2026-11-13T21:54:00Z,2026-11-13T21:55:47Z,MAREOGRAFO,3655,Mareografo de Sagunto,39.63392,-0.20624,43.9,Puertos del Estado · mareógrafo,https://portus.puertos.es/portussvr/api,,,,,,,,0.14,,,,,,,OK,

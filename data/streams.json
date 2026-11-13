@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-13T03:00:45.489913Z",
+  "updatedAt": "2026-11-13T11:18:16.318989Z",
   "timezone": "Europe/Madrid",
   "streams": {
     "surfers_castellon_hls": {
@@ -8,7 +8,7 @@
       "snapshot": "",
       "ok": false,
       "motivo": "el player no respondió",
-      "resolvedAt": "2026-11-13T03:00:45.489913Z",
+      "resolvedAt": "2026-11-13T11:18:16.318989Z",
       "ttlMin": 45
     }
   }

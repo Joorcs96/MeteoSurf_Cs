@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-14T05:00:53.733363Z",
+  "updatedAt": "2026-11-14T12:21:12.957170Z",
   "timezone": "Europe/Madrid",
   "streams": {
     "surfers_castellon_hls": {
@@ -8,7 +8,7 @@
       "snapshot": "https://s169.ipcamlive.com/streams/a9vinuslh0yvazw3e/snapshot.jpg",
       "ok": true,
       "motivo": "",
-      "resolvedAt": "2026-11-14T05:00:53.733363Z",
+      "resolvedAt": "2026-11-14T12:21:12.957170Z",
       "ttlMin": 45
     }
   }

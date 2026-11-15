@@ -377,7 +377,7 @@ export function SurfTrack3DMap({
             const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
             // Gradiente de color según velocidad de planeo (usando paleta THEME)
-            let segColor = THEME.ratings.fair;        // Verde (11-15 km/h)
+            let segColor: string = THEME.ratings.fair;        // Verde (11-15 km/h)
             if (pt.speedKmH > 19) segColor = THEME.ratings.poorfair; // Dorado (>19 km/h)
             else if (pt.speedKmH > 15) segColor = THEME.accent;      // Cian (15-19 km/h)
 

@@ -20,6 +20,12 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Trampa: las cámaras no guardan lat/lon; la distancia de zona se estima con las coordenadas de los spots que cubre cada cámara. Es una referencia, no una medición exacta.
 - El script es determinista (semilla `20261116`); cambiar la semilla o la iteración cambia la muestra de usuarios y clima.
 
+## Limpieza de ramas (2026-11-16)
+- [VERIFICADO] Eliminadas 30 ramas remotas obsoletas y 2 worktrees locales. El registro con SHA y motivo está en `docs/ramas-limpiadas-2026-11-16.md`.
+- [VERIFICADO] Se conservan 11 ramas con trabajo propio (features, auditorías o documentación) que no está en main: diseno-profesional, herramientas-pwa, historico-datos, imagenes-clips, ms-audita-estrellas, ms-calibra, ms-rewinds-ui, ms-verifica-fuentes, nowcast-boya, panel-avisos y diseno-listo-auditoria.
+- [VERIFICADO] No se borró ninguna rama con trabajo único sin comprobar antes que su contenido estuviera en otra rama, en main o en una PR fusionada.
+- Trampa: `gh pr list` solo muestra las PR reales; muchas ramas antiguas se integraron subiendo commits directamente a main, por eso se comprobó también `git cherry` y los registros de PROGRESO.
+
 ## Datos básicos
 - Web: https://joorcs96.github.io/MeteoSurf_Cs/ (GitHub Pages, rama main, raíz). Repo Joorcs96/MeteoSurf_Cs (antes Surfline_CS; Netlify ya no se usa).
 - Carpeta local sigue llamándose C:/Users/Jordi/orca/Surfline_CS. Investigación e informes: C:/Users/Jordi/orca/meteosurf_research.

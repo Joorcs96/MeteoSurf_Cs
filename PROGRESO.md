@@ -22,6 +22,14 @@
 - Documento: `docs/simulacion-10000-50anios.md`; resultados por iteración en `docs/simulacion-10000-50anios-iteracion-N.json`.
 - Límite: la simulación valida consistencia y contratos, no exactitud oceanográfica contra boyas.
 
+## 2026-11-16 — Limpieza de ramas y conflicto pendiente
+
+- Eliminados los dos worktrees viejos de Claude (`msw-forecasts` y `msw-spots`), ambos idénticos al main antiguo.
+- Borradas 30 ramas remotas: ya contenidas en main, sin cambios propios, PR fusionadas, duplicadas, solo commits automáticos de datos o bases antiguas sustituidas. Sus códigos SHA quedan en `docs/ramas-limpiadas-2026-11-16.md`.
+- Conservadas a propósito 11 ramas con trabajo propio pendiente de revisar (diseño, histórico, rewinds, auditorías, etc.).
+- Corregido el bloque de conflicto de merge que quedaba dentro de este mismo archivo.
+- No se ha desplegado nada ni se ha reescrito el historial; solo limpieza de referencias.
+
 ## 2026-11-15 — Ejecución simultánea en vivo: iPhone y Apple Watch Series 7 en pantalla
 
 - Entorno en ejecución simultánea en pantalla:
@@ -191,8 +199,6 @@ Capturas y logs: `.capturas/rediseno/` (no subir a git). GrabaciÃ³n MP4 real d
 Sin merge a main; `js/spots.js` y `js/compass.js` intactos. Pruebas Python reproducibles con `python -m unittest scripts.test_realtime backend.test_motor_fisica scripts.test_rewind` (84 tests OK). Pruebas JS con `node tools/test_rating_conservador.js` (16 tests OK) y `node tools/test_formato_null.js` (15 tests OK).
 La excepciÃ³n TLS mantiene un riesgo de autenticidad en los datos pÃºblicos; `REALTIME_CA_BUNDLE` permite exigir verificaciÃ³n. AEMET experimental retirado: las fuentes requeridas funcionan sin secretos.
 
-<<<<<<< HEAD
-| Pruebas y capturas mÃ³viles | Hechas: script real, 8 pruebas Python, escenarios de navegador, sintaxis JS y claro/oscuro 390â844 | Joorcs96/ms-realtime-reviewed | Capturas e informes locales en `.capturas/` |
 | Calibrar la previsiÃ³n (relevo del worker sin cuota) | Hecha: trenes de oleaje separados, periodo 4â6 s sin penalizar, viento de mar penaliza desde 12 km/h. 44 pruebas en verde | Joorcs96/calibracion-prevision | Decidir DUDAS.md 1 (portar el motor v3 al backend) |
 
 ## Calibrar la previsiÃ³n (05/10/2026)
@@ -216,8 +222,7 @@ Verificado ademÃ¡s contra la API real (`forecast_days=3`, sin tocar
 repartida entre 0 y 4, con el 4/5 entrando solo con terral.
 
 Sin merge a main. `js/` y `historico_olas.csv` intactos.
-=======
+
 | Rediseño | Hecha: adaptado a main (Outfit, motion, data preserved) | Joorcs96/redisenar-main | Revisar |
->>>>>>> seguridad-csp
 ? [2026-10-24] Rama Joorcs96/reparar-surfers integrada en main
 ? [2026-10-24] Rama Joorcs96/redisenar-web integrada en main

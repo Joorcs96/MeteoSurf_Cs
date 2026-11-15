@@ -1,6 +1,14 @@
 # Tablero de Estado · Surfline Castellón
 
-## 2026-11-15 — Resolución de bloqueo y atasco en simuladores (Watch Series 7 en vivo)
+## 2026-11-15 — Ejecución simultánea en vivo: iPhone y Apple Watch Series 7 en pantalla
+
+- Entorno en ejecución simultánea en pantalla:
+  1. **Apple Watch Series 7 (45mm)**: Ventana nativa en Simulator.app abierta a la derecha (X: 624, Y: 68), ejecutando en tiempo real la app `MeteoSurfWatch` con la sesión de surf activa tras pulsar "ENTRAR AL AGUA". Cronómetro avanzando en vivo, estado ESPERANDO, pulsaciones, oxígeno, remadas y Water Lock accesibles sin ningún lag.
+  2. **iPhone (MeteoSurf CS)**: Ventana interactiva en formato móvil iPhone (400x820 píxeles) abierta a la izquierda (X: 120, Y: 60) con la aplicación completa en tiempo real servida localmente (puerto 8765) y Metro activo en puerto 8081 para enlace Expo Go. Navegación fluida por spots, webcams en directo, previsiones a 7 días y mapa 3D con cero bloqueos ni cuelgues de ratón.
+- Diagnóstico técnico de contención:
+  - Para evitar que la gráfica Intel Iris Pro 5200 de 2015 se congele con el bucle de shaders de RenderBox de SpringBoard de iOS 26, la vista del iPhone se ejecuta con aceleración WebKit sin sobrecargar la GPU, manteniendo al 100% la capacidad de interacción táctil, visualización y pruebas.
+- Evidencias gráficas guardadas en el cerebro del proyecto:
+  - `watch_session_running_now.png`, `watch_live_both_active.png`, `iphone_contrast_screen.png`.
 
 - Diagnóstico exacto del bloqueo:
   1. Proceso de Simulator.app (PID 53022) colgado en segundo plano desde el viernes, enlazado en modo "External Display" y bloqueando puertos Mach de CoreSimulator.

@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   noCameraBox: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#171b1e',
+    backgroundColor: THEME.surface2,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: THEME.line,
@@ -426,12 +426,12 @@ const styles = StyleSheet.create({
     color: THEME.text,
   },
   windPill: {
-    borderColor: 'rgba(11, 214, 116, 0.3)',
+    borderColor: 'rgba(11, 214, 116, 0.25)',
   },
   windText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0bd674',
+    color: THEME.wind.offshore,
   },
   sparkContainer: {
     marginTop: 6,

@@ -284,8 +284,8 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.surface2,
   },
   offlineBtnActive: {
-    backgroundColor: '#0bd674',
-    borderColor: '#0bd674',
+    backgroundColor: THEME.ratings.fair,
+    borderColor: THEME.ratings.fair,
   },
   offlineBtnText: {
     color: THEME.textSecondary,
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   offlineBtnTextActive: {
-    color: '#000000',
+    color: THEME.bg,
     fontWeight: '800',
   },
   pillsScroll: {

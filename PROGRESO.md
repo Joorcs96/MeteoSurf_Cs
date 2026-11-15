@@ -1,5 +1,15 @@
 # Tablero de Estado · Surfline Castellón
 
+## 2026-11-16 — Diagnóstico y corte de notificaciones de WhatsApp ("Ultron Orca / Google Chrome")
+
+- Causa raíz identificada:
+  - El proyecto `orca-ultron` (puente de WhatsApp con Baileys) se identifica ante WhatsApp como `['Ultron Orca', 'Chrome', '1.0.0']`.
+  - Cuando se vinculó como dispositivo enlazado en el móvil, un fallo en la lógica de desconexión ejecutaba `setTimeout(startUltron, 3000)` en un bucle infinito cada 3 segundos sin límite de intentos.
+  - Cada intento forzaba a WhatsApp a enviar una notificación push al iPhone indicando: "Se ha sincronizado con Google Chrome, Ultron Orca".
+- Correcciones aplicadas:
+  - Instrucciones inmediatas a Jordi para cerrar la sesión en WhatsApp > Dispositivos vinculados desde su iPhone (detiene las notificaciones al segundo).
+  - Parcheado `src/index.js` en el repositorio `orca-ultron` con límite estricto de 3 intentos (`MAX_RECONNECT_ATTEMPTS = 3`), backoff exponencial progresivo (10s, 20s, 30s) y parada definitiva del proceso con `process.exit(0)` si la sesión es revocada o se supera el límite. Commiteado y subido a `origin/main` en `orca-ultron`.
+
 ## 2026-11-16 — App móvil: rediseño terminado y datos reales en Inicio y Previsiones
 
 - Pantallas rediseñadas y cerradas (Comunidad, Sesiones y Vigía) con el tema oscuro `THEME`:

@@ -3,9 +3,10 @@
 ## 2026-11-15 — Ejecución simultánea en vivo: iPhone y Apple Watch Series 7 en pantalla
 
 - Entorno en ejecución simultánea en pantalla:
-  1. **Apple Watch Series 7 (45mm)**: Ventana nativa en Simulator.app abierta a la derecha (X: 624, Y: 68), ejecutando en tiempo real la app `MeteoSurfWatch` con la sesión de surf activa tras pulsar "ENTRAR AL AGUA". Cronómetro avanzando en vivo (más de 175 minutos ininterrumpidos), estado ESPERANDO, pulsaciones, oxígeno, remadas y Water Lock accesibles sin ningún lag.
+  1. **Apple Watch Series 7 (45mm)**: Ventana nativa en Simulator.app abierta a la derecha (X: 624, Y: 68), ejecutando en tiempo real la app `MeteoSurfWatch` con la sesión de surf activa tras pulsar "ENTRAR AL AGUA". Cronómetro avanzando en vivo (más de 180 minutos ininterrumpidos), estado ESPERANDO, pulsaciones, oxígeno, remadas y Water Lock accesibles sin ningún lag.
   2. **iPhone (MeteoSurf CS)**: Ventana interactiva en formato móvil iPhone (400x820 píxeles) abierta a la izquierda (X: 120, Y: 60) con la aplicación completa en tiempo real servida localmente (puerto 8765) y Metro activo en puerto 8081.
-  3. **Acceso directo en iPhone físico sin cuentas**: Generado y abierto en pantalla `qr_direct_iphone.png` para apertura instantánea en Safari móvil de `https://joorcs96.github.io/MeteoSurf_Cs/` con opción PWA a pantalla completa, eliminando barreras de login de Expo Go en iOS.
+  3. **Vinculación oficial con cuenta Expo/EAS de Jordi**: Sesión iniciada con éxito en el Mac como `joorcs` (`jordi.gr96@gmail.com`). Proyecto registrado y enlazado en Expo (`@joorcs/meteosurf-cs`, ID `e28c7e2a-c3c0-43ff-b5a3-f94769df948b`), archivo `eas.json` configurado para compilaciones y Metro bundler firmado con propietario `joorcs` para carga directa en Expo Go del iPhone.
+  4. **Acceso directo en iPhone físico**: Código QR actualizado en `expo_qr_code.png` y enlace PWA en `qr_direct_iphone.png`.
 - Diagnóstico técnico de contención:
   - Para evitar que la gráfica Intel Iris Pro 5200 de 2015 se congele con el bucle de shaders de RenderBox de SpringBoard de iOS 26, la vista del iPhone se ejecuta con aceleración WebKit sin sobrecargar la GPU, manteniendo al 100% la capacidad de interacción táctil, visualización y pruebas.
 - Evidencias gráficas guardadas en el cerebro del proyecto:

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>es</string>
+    <key>CFBundleDisplayName</key>
+    <string>MeteoSurf</string>
+    <key>CFBundleExecutable</key>
+    <string>MeteoSurfWatch</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.meteosurf.cs.watchkitapp</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>MeteoSurfWatch</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>WatchSimulator</string>
+    </array>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>DTPlatformName</key>
+    <string>watchsimulator</string>
+    <key>MinimumOSVersion</key>
+    <string>10.0</string>
+    <key>UIDeviceFamily</key>
+    <array>
+        <integer>4</integer>
+    </array>
+    <key>WKApplication</key>
+    <true/>
+    <key>WKCompanionAppBundleIdentifier</key>
+    <string>com.meteosurf.cs</string>
+    <key>WKRunsIndependentlyOfCompanionApp</key>
+    <true/>
+    <key>NSHealthShareUsageDescription</key>
+    <string>MeteoSurf necesita acceder a tus pulsaciones y calorías para traquear sesiones de surf.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>MeteoSurf guarda tus entrenamientos de surf en Apple Health.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>MeteoSurf usa el GPS en el mar para detectar velocidad de olas y recorridos.</string>
+</dict>
+</plist>

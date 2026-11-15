@@ -1,5 +1,14 @@
 # Tablero de Estado · Surfline Castellón
 
+## 2026-11-15 — Rediseño completo app móvil
+
+- TEMA oscuro profesional usando THEME desde src/theme/colors.ts
+- Todos los archivos migrados: app/(tabs)/index.tsx, forecasts.tsx, tracking.tsx, vigia.tsx, community.tsx, _layout.tsx
+- SurfTrack3DMap.tsx: todos los colores hardcodeados reemplazados por THEME
+- useWatchSessionReceiver.ts: nuevo hook para datos biométricos del Apple Watch
+- 0 errores de TypeScript (npx tsc --noEmit)
+- App funcionando en simulador iPhone 12 Pro Max + Apple Watch Series 7
+
 ## 📋 PENDIENTES
 - Ninguna tarea pendiente.
 

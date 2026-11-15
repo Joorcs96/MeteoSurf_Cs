@@ -332,3 +332,12 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Sincronización 2D/3D: al alternar entre el mapa plano y el relieve 3D se conserva la capa seleccionada (viento, oleaje, etc.).
 - En 3D se muestran 143 flechas con inclinación y rumbo adaptados al terreno.
 - Service worker actualizado a v50 (meteosurf-cs-v50-mapa-escritorio) para renovación inmediata del caché del navegador.
+
+## Rediseño app móvil (2026-11-15)
+- THEME: fuente única de verdad en src/theme/colors.ts. NUNCA hardcodear hex en componentes.
+- getRatingColor(stars) y getRatingLabel(stars) disponibles en colors.ts para colores de valoración
+- SurfTrack3DMap.tsx: segColor debe tiparse como string explícitamente (let segColor: string) para evitar error TS de tipos literales
+- useWatchSessionReceiver.ts: simula biométricas Watch cada 5s. Se activa solo cuando isTracking=true en sessionStore
+- TabBar (_layout.tsx): íconos filled cuando focused (water/water-outline, etc.)
+- Worker de Antigravity/Gemini: NO usar nunca. Los fork agents de Claude son más fiables
+- Simulador: solo iPhone 12 Pro Max iOS 26 (ID: 311E4F7E) + Apple Watch Series 7 (ID: 176832A8)

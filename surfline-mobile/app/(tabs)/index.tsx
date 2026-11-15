@@ -194,13 +194,13 @@ export default function SpotsScreen() {
             <Text style={styles.sparkTitle}>TENDENCIA 7 DÍAS</Text>
             <View style={styles.sparkBars}>
               {[
-                { day: 'HOY', color: '#0bd674' },
-                { day: 'SÁB', color: '#ffcd1e' },
-                { day: 'DOM', color: '#009371' },
-                { day: 'LUN', color: '#ff9500' },
-                { day: 'MAR', color: '#c3cad3' },
-                { day: 'MIÉ', color: '#c3cad3' },
-                { day: 'JUE', color: '#ffcd1e' },
+                { day: 'HOY', color: THEME.ratings.fair },
+                { day: 'SÁB', color: THEME.ratings.poorfair },
+                { day: 'DOM', color: THEME.ratings.fairgood },
+                { day: 'LUN', color: THEME.ratings.poor },
+                { day: 'MAR', color: THEME.ratings.flat },
+                { day: 'MIÉ', color: THEME.ratings.flat },
+                { day: 'JUE', color: THEME.ratings.poorfair },
               ].map((item, idx) => (
                 <View key={idx} style={styles.sparkItem}>
                   <View style={[styles.sparkBar, { backgroundColor: item.color }]} />

@@ -11,7 +11,7 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 
 ## Preferencias de Jordi
 - Como Surfline y Surf-Forecast pero con los spots de Castellón; móvil primero, profesional, directo, poco texto (partes plegables).
-- Nada de emojis ni símbolos tipo check en la web.
+- Nada de emojis ni símbolos tipo check en la web ni en textos.
 - Planetario es el spot por defecto (primero en listas).
 - Escala mediterránea: 0.5–0.7 m con poco viento ya es buen baño; periodo 4–6 s es normal.
 - Tracking de sesiones en el agua: detección de olas por encima de 11 km/h, medición de pulsaciones, oxígeno y calorías mediante Apple Watch / HealthKit, giros (bottom turn, cutback, snap) y contador de remadas. Disponible en pestaña dedicada de la app móvil y en la app nativa de Apple Watch.
@@ -19,6 +19,11 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Visualizador de mapa en 3D (`SurfTrack3DMap.tsx`): perspectiva con inclinación 55°, rotación de cámara (playa, mar o isométrica), elevación de olas 3D, colores según velocidad (verde, cian y dorado), balizas de takeoff y reproducción animada de cada ola.
 - Simulación multi-usuario validada: script `scripts/simulacion_200_usuarios.ts` con 200 usuarios y 5 ciclos estacionales (otoño levante, invierno temporal gregal, verano calma térmica, primavera poniente y fin de semana clásico ESE) ejecutado con 0 errores y 100% de consistencia.
 - Entorno de simulación emparejado en este Mac: iPhone virtual y Apple Watch Series 7 45mm (176832A8) enlazados oficialmente. Servidor Metro activo en puerto 8081 sirviendo la aplicación MeteoSurf CS en vivo, con todas las pantallas (Spots, Previsiones, Vigía, Sesión 3D y Comunidad) funcionales. La app de Apple Watch es 100% nativa en Swift/SwiftUI (binario universal arm64 + x86_64, HealthKit, WCSession, Water Lock y 4 pestañas de navegación), instalada y ejecutándose en vivo en el simulador.
+- Diagnóstico de cuelgues/atascos de simulador ("se quedan atascados"):
+  - Causa raíz 1 (Hardware / Metal GPU): Este equipo es un MacBook Pro 15" Retina Mid-2015 (`MacBookPro11,4`) con gráfica Intel Iris Pro 5200 (Haswell, Metal 2) ejecutando macOS 15.8.1 Sequoia vía OpenCore Legacy Patcher. El compilador de Metal para Intel (`MTLIntelCompiler::generateIGIL` en `libMTLIntelCompilerPlugin.dylib`) presenta un fallo de segmentación (código 11) al compilar shaders de RenderBox (efectos translúcidos de iOS 26), provocando que SpringBoard se bloquee periódicamente en el iPhone virtual. En Apple Watch no se manifiesta porque watchOS utiliza componentes CoreAnimation estándar sin la capa RenderBox pesada.
+  - Causa raíz 2 (Permisos): El diálogo modal de permisos de ubicación en Apple Watch bloqueaba el bucle de eventos; se soluciona inyectando `Authorization = 2` y `Authorized = true` en `clients.plist` de `locationd`.
+  - Causa raíz 3 (Procesos zombies): El proceso `Simulator.app` (PID 53022) permanecía colgado desde días atrás en modo display externo. Limpiado y reiniciado limpiamente.
+  - El Apple Watch Series 7 funciona al 100% sin atascos, con tracking en tiempo real, cronómetro activo y cambio entre sus 4 pestañas verificado mediante capturas reales en el cerebro.
 - Diagnóstico Xcode "no funciona la aplicación": Al pulsar Play en `MeteoSurfCs.xcodeproj`, Xcode falla con `[CP] Check Pods Manifest.lock` porque CocoaPods no está instalado (la versión del Ruby del sistema es 2.6 y las gemas actuales de CocoaPods requieren Ruby >= 3.3; para no pedir permisos de administrador no se altera el sistema). La app móvil se ejecuta limpiamente mediante Expo Go + Metro en puerto 8081, y la app de Apple Watch funciona como binario nativo compilado con SDK watchOS 26.2.
 - Publicar directo en main (tras verificar en móvil); trabajo en rama o worktree y fusión rápida.
 - **Publicar siempre:** cada cambio verificado se despliega en el momento (push a main y comprobar la web online). Lo que no esté listo permanece en su rama y se avisa. Cada norma nueva de Jordi se apunta aquí y en las globales.

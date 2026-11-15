@@ -1,6 +1,26 @@
 # Tablero de Estado · Surfline Castellón
 
-## 2026-11-15 — Rediseño completo app móvil
+## 2026-11-15 — Resolución de bloqueo y atasco en simuladores (Watch Series 7 en vivo)
+
+- Diagnóstico exacto del bloqueo:
+  1. Proceso de Simulator.app (PID 53022) colgado en segundo plano desde el viernes, enlazado en modo "External Display" y bloqueando puertos Mach de CoreSimulator.
+  2. Cuadro modal de permisos de ubicación en Apple Watch sin responder bloqueando el bucle de eventos de Carousel.
+  3. Limitación gráfica hardware del chip Intel Iris Pro (MacBookPro11,4) en macOS Sequoia parcheado con OCLP: el compilador Metal de Intel (`MTLIntelCompiler::generateIGIL`) falla con violación de segmento al intentar compilar shaders de RenderBox (efectos de cristal de iOS 26), congelando SpringBoard en el iPhone virtual.
+- Correcciones ejecutadas:
+  - Finalización limpia de procesos huérfanos de Simulator, SimMetalHost y MTLCompilerService.
+  - Pre-autorización de permisos en clients.plist (`Authorization = 2`, `Authorized = true`, `InUseLevel = 2`) para la app del reloj.
+  - Reinicio limpio de locationd y Carousel en watchOS.
+  - Conexión directa mediante Orca emulator con el simulador del Apple Watch Series 7 (176832A8).
+- Verificación en vivo del Apple Watch Series 7:
+  - App MeteoSurfWatch iniciada con éxito (PID 86578).
+  - Inicio de tracking pulsando "ENTRAR AL AGUA".
+  - Pantalla 1 (HUD principal): cronómetro avanzando en vivo (verificado de 00:22 a 02:19), contador gigante de olas, estado ESPERANDO, pulsaciones y remadas.
+  - Pantalla 2 (Biometría): pulsaciones BPM con zona de esfuerzo (Calentamiento), oxígeno 98%, calorías y distancia.
+  - Pantalla 3 (Historial): mensaje orientativo de umbral (>11 km/h) y registro de olas.
+  - Pantalla 4 (Controles): Bloqueo de agua (Water Lock), pausar y finalizar sesión.
+  - Desplazamiento fluido entre las 4 pestañas sin ningún cuelgue ni congelación.
+- Evidencias gráficas guardadas en el cerebro del proyecto:
+  - watch_launched_live.png, watch_session_live.png, watch_tab2_biometrics_live.png, watch_tab3_waves_live.png, watch_tab4_controls_live.png y watch_tab1_timer_progress.png.
 
 - TEMA oscuro profesional usando THEME desde src/theme/colors.ts
 - Todos los archivos migrados: app/(tabs)/index.tsx, forecasts.tsx, tracking.tsx, vigia.tsx, community.tsx, _layout.tsx

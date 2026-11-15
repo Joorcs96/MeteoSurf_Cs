@@ -2,7 +2,8 @@ import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { THEME } from '../../src/theme/colors';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -25,13 +26,18 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#4fc3f7',
-        tabBarInactiveTintColor: '#7a8fa6',
+        tabBarActiveTintColor: THEME.accent,
+        tabBarInactiveTintColor: THEME.textFaint,
         tabBarStyle: {
           position: 'absolute',
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           elevation: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '700',
+          letterSpacing: 0.2,
         },
         tabBarBackground: () => <TabBarBackground />,
       }}
@@ -45,8 +51,8 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Spots',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="water-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'water' : 'water-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -54,8 +60,8 @@ export default function TabsLayout() {
         name="forecasts"
         options={{
           title: 'Previsión',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="analytics-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'partly-sunny' : 'partly-sunny-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -63,8 +69,17 @@ export default function TabsLayout() {
         name="vigia"
         options={{
           title: 'Vigía',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="videocam-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'videocam' : 'videocam-outline'} color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tracking"
+        options={{
+          title: 'Sesión',
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'stopwatch' : 'stopwatch-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -72,8 +87,8 @@ export default function TabsLayout() {
         name="community"
         options={{
           title: 'Comunidad',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="people-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'people' : 'people-outline'} color={color} size={size} />
           ),
         }}
       />

@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { SPOTS } from '../../src/data/spotsData';
 import { useSpotStore } from '../../src/store/useSpotStore';
 import { useNearestSpots, haversineDistance } from '../../src/services/sensors/useNearestSpots';
+import { THEME } from '../../src/theme/colors';
 
 interface Report {
   id: string;
@@ -28,7 +29,6 @@ export default function CommunityScreen() {
   const currentSpot = SPOTS.find((s) => s.id === selectedSpotId) || SPOTS[0];
   const { userLocation } = useNearestSpots();
 
-  // Comprobar si el usuario está a pie de playa (< 500 m = 0.5 km)
   const distanceKm = userLocation
     ? haversineDistance(userLocation.lat, userLocation.lon, currentSpot.lat, currentSpot.lon)
     : 999;
@@ -39,7 +39,7 @@ export default function CommunityScreen() {
       id: 'rep_1',
       spotName: 'Planetario',
       timeAgo: 'Hace 15 min',
-      condition: '🏄‍♂️ Olas de medio metro limpias con terral',
+      condition: 'Olas de medio metro limpias con terral suave',
       isVerifiedAtBeach: true,
       author: 'Carlos S.',
       votes: 7,
@@ -48,7 +48,7 @@ export default function CommunityScreen() {
       id: 'rep_2',
       spotName: 'Voramar',
       timeAgo: 'Hace 1 hora',
-      condition: '🌊 Pico en el espigón funcionando',
+      condition: 'Pico en el espigón funcionando con marea subiendo',
       isVerifiedAtBeach: true,
       author: 'Javi M.',
       votes: 4,
@@ -57,39 +57,38 @@ export default function CommunityScreen() {
       id: 'rep_3',
       spotName: 'Morro de Gos',
       timeAgo: 'Hace 3 horas',
-      condition: '〰️ Mar bastante desordenado',
+      condition: 'Mar cruzado con viento de mar moderado',
       isVerifiedAtBeach: false,
-      author: 'Marcos R.',
+      author: 'David R.',
       votes: 2,
     },
   ]);
 
-  const handleVote = (condition: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  const handleVote = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setReports((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, votes: r.votes + 1 } : r))
+    );
+  };
 
-    const newReport: Report = {
+  const handleCreateReport = (rating: string) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const newRep: Report = {
       id: `rep_${Date.now()}`,
       spotName: currentSpot.name,
       timeAgo: 'Ahora mismo',
-      condition,
+      condition: `Reporte: ${rating}`,
       isVerifiedAtBeach: isAtBeach,
-      author: 'Tú',
+      author: 'Tu',
       votes: 1,
     };
-
-    setReports([newReport, ...reports]);
-
-    if (isAtBeach) {
-      Alert.alert(
-        '📍 Reporte Verificado',
-        '¡Tu reporte ha sido publicado con la insignia oficial [A pie de playa]!'
-      );
-    } else {
-      Alert.alert(
-        'Reporte Publicado',
-        'Gracias por compartir las condiciones con la comunidad de surfistas.'
-      );
-    }
+    setReports([newRep, ...reports]);
+    Alert.alert(
+      'Reporte Enviado',
+      isAtBeach
+        ? 'Tu reporte incluye la insignia oficial "A pie de playa" verificada por GPS.'
+        : 'Tu reporte ha sido publicado.'
+    );
   };
 
   return (
@@ -97,83 +96,82 @@ export default function CommunityScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Encabezado */}
         <View style={styles.header}>
-          <Text style={styles.title}>COMUNIDAD & REPORTES</Text>
-          <Text style={styles.subtitle}>Reportes a pie de playa verificados por GPS</Text>
+          <Text style={styles.title}>REPORTES COMUNITARIOS</Text>
+          <Text style={styles.subtitle}>Verificación física a pie de playa por GPS</Text>
         </View>
 
-        {/* Tarjeta de estado GPS para el spot actual */}
-        <View style={styles.gpsCard}>
-          <View style={styles.gpsRow}>
+        {/* Panel de votación rápida en el spot actual */}
+        <View style={styles.voteCard}>
+          <View style={styles.voteTop}>
             <View>
-              <Text style={styles.gpsSpotTitle}>{currentSpot.name}</Text>
-              <Text style={styles.gpsDist}>
-                {userLocation
-                  ? `Estás a ${distanceKm} km del spot`
-                  : 'Obteniendo señal GPS...'}
+              <Text style={styles.voteSpotTitle}>{currentSpot.name.toUpperCase()}</Text>
+              <Text style={styles.voteSpotSub}>
+                {isAtBeach
+                  ? 'Ubicación verificada a pie de playa (< 500 m)'
+                  : `A ${distanceKm > 100 ? '--' : distanceKm.toFixed(1)} km del spot`}
               </Text>
             </View>
-            <View
-              style={[
-                styles.gpsBadge,
-                isAtBeach ? styles.gpsBadgeVerified : styles.gpsBadgeRemote,
-              ]}
-            >
-              <Text style={styles.gpsBadgeText}>
-                {isAtBeach ? '✓ A pie de playa' : 'Observador remoto'}
+            <View style={[styles.badgeGps, isAtBeach && styles.badgeGpsActive]}>
+              <Text style={[styles.badgeGpsText, isAtBeach && styles.badgeGpsTextActive]}>
+                {isAtBeach ? 'EN EL SPOT' : 'REMOTO'}
               </Text>
             </View>
           </View>
 
-          {/* Botones de reporte rápido */}
-          <Text style={styles.votePrompt}>¿Cómo está rompiendo ahora mismo?</Text>
-          <View style={styles.voteGrid}>
-            <TouchableOpacity
-              style={styles.voteBtn}
-              onPress={() => handleVote('🏄‍♂️ Olas buenas y limpias')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.voteBtnText}>🏄‍♂️ Olas buenas</Text>
-            </TouchableOpacity>
+          <Text style={styles.voteQuestion}>¿COMO ESTA ROMPIENDO AHORA?</Text>
 
-            <TouchableOpacity
-              style={styles.voteBtn}
-              onPress={() => handleVote('🌊 Olas surfeables')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.voteBtnText}>🌊 Surfeable</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.voteBtn}
-              onPress={() => handleVote('〰️ Mar plato o picado')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.voteBtnText}>〰️ Mar plato</Text>
-            </TouchableOpacity>
+          <View style={styles.voteButtonsGrid}>
+            {[
+              { label: 'Epico', stars: 5, color: THEME.ratings.epic },
+              { label: 'Bueno', stars: 4, color: THEME.ratings.fairgood },
+              { label: 'Regular', stars: 3, color: THEME.ratings.fair },
+              { label: 'Malo', stars: 2, color: THEME.ratings.poor },
+              { label: 'Plato', stars: 0, color: THEME.ratings.flat },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.label}
+                style={styles.voteBtn}
+                onPress={() => handleCreateReport(opt.label)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.voteDot, { backgroundColor: opt.color }]} />
+                <Text style={styles.voteBtnText}>{opt.label.toUpperCase()}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        {/* Feed de reportes recientes */}
-        <Text style={styles.sectionTitle}>Últimos Reportes en Vivo</Text>
+        {/* Lista de reportes de la comunidad */}
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>REPORTES RECIENTES</Text>
+          <Text style={styles.sectionCount}>{reports.length} reportes</Text>
+        </View>
 
-        {reports.map((r) => (
-          <View key={r.id} style={styles.reportCard}>
-            <View style={styles.reportHeader}>
-              <View>
-                <Text style={styles.reportAuthor}>
-                  {r.author} · <Text style={styles.reportSpot}>{r.spotName}</Text>
-                </Text>
-                <Text style={styles.reportTime}>{r.timeAgo}</Text>
+        {reports.map((rep) => (
+          <View key={rep.id} style={styles.reportCard}>
+            <View style={styles.reportTop}>
+              <View style={styles.reportAuthorRow}>
+                <Text style={styles.reportAuthor}>{rep.author}</Text>
+                <Text style={styles.reportTime}>· {rep.timeAgo}</Text>
               </View>
-              {r.isVerifiedAtBeach && (
-                <View style={styles.verifiedTag}>
-                  <Text style={styles.verifiedTagText}>✓ En la playa</Text>
+              {rep.isVerifiedAtBeach && (
+                <View style={styles.verifiedPill}>
+                  <Text style={styles.verifiedText}>A PIE DE PLAYA</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.reportCondition}>{r.condition}</Text>
-            <View style={styles.reportFooter}>
-              <Text style={styles.voteCount}>👍 {r.votes} confirmaciones</Text>
+
+            <Text style={styles.reportSpotName}>{rep.spotName.toUpperCase()}</Text>
+            <Text style={styles.reportCondition}>{rep.condition}</Text>
+
+            <View style={styles.reportBottom}>
+              <TouchableOpacity
+                style={styles.voteActionBtn}
+                onPress={() => handleVote(rep.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.voteActionText}>Util ({rep.votes})</Text>
+              </TouchableOpacity>
             </View>
           </View>
         ))}
@@ -183,74 +181,198 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0a1628' },
-  container: { flex: 1 },
-  content: { padding: 16, paddingBottom: 40 },
-  header: { marginBottom: 16 },
-  title: { color: '#38bdf8', fontSize: 18, fontWeight: '800' },
-  subtitle: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
-  gpsCard: {
-    backgroundColor: '#111e33',
-    borderRadius: 14,
-    padding: 16,
+  safeArea: {
+    flex: 1,
+    backgroundColor: THEME.bg,
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 40,
+  },
+  header: {
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.line,
+    marginBottom: 16,
+  },
+  title: {
+    color: THEME.brand,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: THEME.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  voteCard: {
+    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: THEME.line,
+    borderRadius: 6,
+    padding: 16,
     marginBottom: 20,
   },
-  gpsRow: {
+  voteTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 14,
+    marginBottom: 12,
   },
-  gpsSpotTitle: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  gpsDist: { color: '#94a3b8', fontSize: 12, marginTop: 2 },
-  gpsBadge: {
+  voteSpotTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: THEME.text,
+    letterSpacing: 0.3,
+  },
+  voteSpotSub: {
+    fontSize: 11,
+    color: THEME.textMuted,
+    marginTop: 2,
+  },
+  badgeGps: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  gpsBadgeVerified: { backgroundColor: 'rgba(16, 185, 129, 0.2)' },
-  gpsBadgeRemote: { backgroundColor: 'rgba(100, 116, 139, 0.2)' },
-  gpsBadgeText: { color: '#10b981', fontSize: 11, fontWeight: '700' },
-  votePrompt: { color: '#f0f6fc', fontSize: 13, fontWeight: '600', marginBottom: 10 },
-  voteGrid: { flexDirection: 'row', gap: 8 },
-  voteBtn: {
-    flex: 1,
-    backgroundColor: '#1e293b',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
+    paddingVertical: 3,
+    borderRadius: 3,
+    backgroundColor: THEME.surface2,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.line,
   },
-  voteBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
-  sectionTitle: { color: '#ffffff', fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  reportCard: {
-    backgroundColor: '#111e33',
-    borderRadius: 12,
-    padding: 14,
+  badgeGpsActive: {
+    backgroundColor: 'rgba(11, 214, 116, 0.15)',
+    borderColor: THEME.wind.offshore,
+  },
+  badgeGpsText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: THEME.textMuted,
+    letterSpacing: 0.5,
+  },
+  badgeGpsTextActive: {
+    color: THEME.wind.offshore,
+  },
+  voteQuestion: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: THEME.textMuted,
+    letterSpacing: 0.8,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#1e293b',
   },
-  reportHeader: {
+  voteButtonsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    flexWrap: 'wrap',
+    gap: 6,
   },
-  reportAuthor: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
-  reportSpot: { color: '#38bdf8' },
-  reportTime: { color: '#64748b', fontSize: 11, marginTop: 2 },
-  verifiedTag: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  voteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: THEME.surface2,
+    borderWidth: 1,
+    borderColor: THEME.line,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 4,
   },
-  verifiedTagText: { color: '#10b981', fontSize: 10, fontWeight: '700' },
-  reportCondition: { color: '#e2e8f0', fontSize: 14, lineHeight: 19, marginBottom: 8 },
-  reportFooter: { flexDirection: 'row', justifyContent: 'flex-end' },
-  voteCount: { color: '#64748b', fontSize: 11 },
+  voteDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  voteBtnText: {
+    color: THEME.text,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: THEME.textMuted,
+    letterSpacing: 1,
+  },
+  sectionCount: {
+    fontSize: 11,
+    color: THEME.textFaint,
+    fontWeight: '600',
+  },
+  reportCard: {
+    backgroundColor: THEME.surface,
+    borderWidth: 1,
+    borderColor: THEME.line,
+    borderRadius: 6,
+    padding: 14,
+    marginBottom: 8,
+  },
+  reportTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  reportAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reportAuthor: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: THEME.text,
+  },
+  reportTime: {
+    fontSize: 11,
+    color: THEME.textFaint,
+    marginLeft: 4,
+  },
+  verifiedPill: {
+    backgroundColor: 'rgba(11, 214, 116, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
+  verifiedText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: THEME.wind.offshore,
+    letterSpacing: 0.5,
+  },
+  reportSpotName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: THEME.accent,
+    marginBottom: 4,
+  },
+  reportCondition: {
+    fontSize: 13,
+    color: THEME.textSecondary,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  reportBottom: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  voteActionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 3,
+    backgroundColor: THEME.surface2,
+    borderWidth: 1,
+    borderColor: THEME.line,
+  },
+  voteActionText: {
+    color: THEME.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+  },
 });

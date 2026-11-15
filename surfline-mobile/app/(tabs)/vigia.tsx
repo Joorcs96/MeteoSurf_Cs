@@ -12,6 +12,8 @@ import * as Haptics from 'expo-haptics';
 import { useVigiaStore, VigiaClip } from '../../src/store/useVigiaStore';
 import { SurfCamPlayer } from '../../src/components/video/SurfCamPlayer';
 import { saveClipToGallery, shareClip } from '../../src/services/video/clipExporter';
+import { RatingPill } from '../../src/components/ui/RatingPill';
+import { THEME } from '../../src/theme/colors';
 
 export default function VigiaScreen() {
   const { clips, removeClip } = useVigiaStore();
@@ -21,7 +23,7 @@ export default function VigiaScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const success = await saveClipToGallery(clip.uri);
     if (success) {
-      Alert.alert('✅ Guardado en Fotos', 'El clip de ola está ahora disponible en tu carrete.');
+      Alert.alert('Guardado en Fotos', 'El clip de ola está ahora disponible en tu carrete.');
     } else {
       Alert.alert(
         'Aviso de Permisos',
@@ -32,7 +34,7 @@ export default function VigiaScreen() {
 
   const handleShare = async (clip: VigiaClip) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await shareClip(clip.uri, `🌊 Serie de olas en ${clip.spotName}`);
+    await shareClip(clip.uri, `Serie de olas en ${clip.spotName}`);
   };
 
   const handleDelete = (id: string) => {
@@ -48,11 +50,11 @@ export default function VigiaScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Encabezado */}
         <View style={styles.header}>
-          <Text style={styles.title}>VIGÍA CLIP STUDIO</Text>
-          <Text style={styles.subtitle}>Captura automática y repetición de olas</Text>
+          <Text style={styles.title}>VIGIA · CLIPS DE OLAS</Text>
+          <Text style={styles.subtitle}>Grabaciones automáticas y repetición en el spot</Text>
         </View>
 
-        {/* Reproductor principal de clip activo */}
+        {/* Reproductor de clip activo */}
         {selectedClip ? (
           <View style={styles.playerWrapper}>
             <SurfCamPlayer
@@ -60,14 +62,14 @@ export default function VigiaScreen() {
               spotName={`${selectedClip.spotName} · 20s`}
             />
 
-            {/* Acciones del clip seleccionado */}
+            {/* Acciones del clip */}
             <View style={styles.actionRow}>
               <TouchableOpacity
                 style={styles.actionBtnPrimary}
                 onPress={() => handleSaveGallery(selectedClip)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.actionBtnPrimaryText}>📥 Guardar en Fotos</Text>
+                <Text style={styles.actionBtnPrimaryText}>GUARDAR EN FOTOS</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -75,189 +77,249 @@ export default function VigiaScreen() {
                 onPress={() => handleShare(selectedClip)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.actionBtnSecondaryText}>📤 Compartir</Text>
+                <Text style={styles.actionBtnSecondaryText}>COMPARTIR</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtnDanger}
+                onPress={() => handleDelete(selectedClip.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.actionBtnDangerText}>BORRAR</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
-          <View style={styles.emptyPlayer}>
-            <Text style={styles.emptyPlayerText}>No hay ningún clip seleccionado</Text>
-          </View>
-        )}
-
-        {/* Galería de clips archivados */}
-        <Text style={styles.sectionTitle}>Tus Grabaciones de Olas</Text>
-
-        {clips.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>Sin clips todavía</Text>
-            <Text style={styles.emptyText}>
-              Ve a la pestaña Spots y pulsa "📹 Grabar 20s" en la cámara para capturar tu serie.
+            <Text style={styles.emptyTitle}>NO HAY CLIPS GUARDADOS</Text>
+            <Text style={styles.emptyDesc}>
+              Pulsa el botón de captura rápida en el reproductor de cualquier spot para guardar
+              repeticiones de tus series de olas.
             </Text>
           </View>
-        ) : (
-          clips.map((clip) => {
-            const isSelected = selectedClip?.id === clip.id;
-            const dateStr = new Date(clip.capturedAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
-
-            return (
-              <TouchableOpacity
-                key={clip.id}
-                style={[styles.clipCard, isSelected && styles.clipCardActive]}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setSelectedClip(clip);
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.clipThumbnail}>
-                  <Text style={styles.clipPlayIcon}>▶</Text>
-                </View>
-
-                <View style={styles.clipInfo}>
-                  <Text style={styles.clipTitle}>{clip.spotName}</Text>
-                  <Text style={styles.clipMeta}>
-                    Hoy a las {dateStr} · {clip.waveHeight || 0.6}m · {'★'.repeat(Math.round(clip.stars || 4))}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => handleDelete(clip.id)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.deleteBtnText}>✕</Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          })
         )}
+
+        {/* Lista de clips capturados */}
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>HISTORIAL DE REPETICIONES</Text>
+          <Text style={styles.sectionBadge}>{clips.length} clips</Text>
+        </View>
+
+        {clips.map((item) => {
+          const isSelected = selectedClip?.id === item.id;
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.clipCard, isSelected && styles.clipCardActive]}
+              onPress={() => setSelectedClip(item)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.clipThumb}>
+                <View style={styles.clipPlayIcon} />
+                <Text style={styles.clipDuration}>20s</Text>
+              </View>
+
+              <View style={styles.clipInfo}>
+                <View style={styles.clipTitleRow}>
+                  <Text style={styles.clipSpotName}>{item.spotName}</Text>
+                  <RatingPill rating={item.stars || 3.5} showLabel={false} />
+                </View>
+
+                <Text style={styles.clipMeta}>
+                  {new Date(item.capturedAt).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}{' '}
+                  · {item.waveHeight}m · {((item.sizeBytes ?? 1024 * 1024) / (1024 * 1024)).toFixed(1)} MB
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0a1628' },
-  container: { flex: 1 },
-  content: { padding: 16, paddingBottom: 40 },
-  header: { marginBottom: 16 },
-  title: { color: '#38bdf8', fontSize: 18, fontWeight: '800' },
-  subtitle: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
-  playerWrapper: { marginBottom: 20 },
-  emptyPlayer: {
-    height: 180,
-    backgroundColor: '#111e33',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  safeArea: {
+    flex: 1,
+    backgroundColor: THEME.bg,
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 40,
+  },
+  header: {
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.line,
+    marginBottom: 16,
+  },
+  title: {
+    color: THEME.brand,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: THEME.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  playerWrapper: {
     marginBottom: 20,
   },
-  emptyPlayerText: { color: '#64748b', fontSize: 14 },
   actionRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
+    gap: 8,
+    marginTop: -8,
   },
   actionBtnPrimary: {
-    flex: 1,
-    backgroundColor: '#0284c7',
-    paddingVertical: 12,
-    borderRadius: 10,
+    flex: 2,
+    backgroundColor: THEME.text,
+    paddingVertical: 10,
+    borderRadius: 4,
     alignItems: 'center',
   },
   actionBtnPrimaryText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
+    color: THEME.bg,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   actionBtnSecondary: {
-    flex: 1,
-    backgroundColor: '#1e293b',
+    flex: 1.5,
+    backgroundColor: THEME.surface2,
     borderWidth: 1,
-    borderColor: '#334155',
-    paddingVertical: 12,
-    borderRadius: 10,
+    borderColor: THEME.line,
+    paddingVertical: 10,
+    borderRadius: 4,
     alignItems: 'center',
   },
   actionBtnSecondaryText: {
-    color: '#38bdf8',
-    fontSize: 14,
+    color: THEME.text,
     fontWeight: '700',
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
-  sectionTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  emptyBox: {
-    backgroundColor: '#111e33',
-    borderRadius: 14,
-    padding: 24,
+  actionBtnDanger: {
+    backgroundColor: 'rgba(225, 29, 72, 0.1)',
+    borderWidth: 1,
+    borderColor: THEME.danger,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 4,
     alignItems: 'center',
   },
+  actionBtnDangerText: {
+    color: THEME.danger,
+    fontWeight: '800',
+    fontSize: 10,
+    letterSpacing: 0.5,
+  },
+  emptyBox: {
+    backgroundColor: THEME.surface,
+    borderWidth: 1,
+    borderColor: THEME.line,
+    borderRadius: 6,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   emptyTitle: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
+    color: THEME.textMuted,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
     marginBottom: 6,
   },
-  emptyText: {
-    color: '#94a3b8',
-    fontSize: 13,
+  emptyDesc: {
+    color: THEME.textFaint,
+    fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: THEME.textMuted,
+    letterSpacing: 1,
+  },
+  sectionBadge: {
+    fontSize: 11,
+    color: THEME.textFaint,
+    fontWeight: '600',
   },
   clipCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111e33',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
+    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: THEME.line,
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 8,
   },
   clipCardActive: {
-    borderColor: '#0284c7',
-    backgroundColor: '#0c2340',
+    borderColor: THEME.accent,
+    backgroundColor: THEME.surface2,
   },
-  clipThumbnail: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: '#0284c7',
-    alignItems: 'center',
+  clipThumb: {
+    width: 60,
+    height: 42,
+    backgroundColor: THEME.surface3,
+    borderRadius: 4,
     justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   clipPlayIcon: {
-    color: '#ffffff',
-    fontSize: 16,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 10,
+    borderTopWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftColor: THEME.text,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+  },
+  clipDuration: {
+    position: 'absolute',
+    bottom: 2,
+    right: 4,
+    fontSize: 8,
+    color: THEME.textMuted,
+    fontWeight: '700',
   },
   clipInfo: {
     flex: 1,
-    paddingHorizontal: 12,
+    marginLeft: 12,
   },
-  clipTitle: {
-    color: '#ffffff',
+  clipTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  clipSpotName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: THEME.text,
   },
   clipMeta: {
-    color: '#94a3b8',
-    fontSize: 12,
+    fontSize: 11,
+    color: THEME.textMuted,
     marginTop: 2,
-  },
-  deleteBtn: {
-    padding: 8,
-  },
-  deleteBtnText: {
-    color: '#ef4444',
-    fontSize: 16,
-    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
 });

@@ -50,7 +50,7 @@ export default function VigiaScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Encabezado */}
         <View style={styles.header}>
-          <Text style={styles.title}>VIGÍA · CLIPS DE OLAS</Text>
+          <Text style={styles.title}>VIGIA · CLIPS DE OLAS</Text>
           <Text style={styles.subtitle}>Grabaciones automáticas y repetición en el spot</Text>
         </View>
 
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   clipThumb: {
     width: 60,
     height: 42,
-    backgroundColor: '#171b1e',
+    backgroundColor: THEME.surface3,
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 10,
     borderTopWidth: 6,
     borderBottomWidth: 6,
-    borderLeftColor: '#ffffff',
+    borderLeftColor: THEME.text,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
   },
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     bottom: 2,
     right: 4,
     fontSize: 8,
-    color: '#94a3b8',
+    color: THEME.textMuted,
     fontWeight: '700',
   },
   clipInfo: {

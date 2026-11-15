@@ -79,7 +79,7 @@ export default function CommunityScreen() {
       timeAgo: 'Ahora mismo',
       condition: `Reporte: ${rating}`,
       isVerifiedAtBeach: isAtBeach,
-      author: 'Tú',
+      author: 'Tu',
       votes: 1,
     };
     setReports([newRep, ...reports]);
@@ -118,15 +118,15 @@ export default function CommunityScreen() {
             </View>
           </View>
 
-          <Text style={styles.voteQuestion}>¿CÓMO ESTÁ ROMPIENDO AHORA?</Text>
+          <Text style={styles.voteQuestion}>¿COMO ESTA ROMPIENDO AHORA?</Text>
 
           <View style={styles.voteButtonsGrid}>
             {[
-              { label: 'Épico', stars: 5, color: '#5c00d0' },
-              { label: 'Bueno', stars: 4, color: '#009371' },
-              { label: 'Regular', stars: 3, color: '#0bd674' },
-              { label: 'Malo', stars: 2, color: '#ff9500' },
-              { label: 'Plato', stars: 0, color: '#c3cad3' },
+              { label: 'Epico', stars: 5, color: THEME.ratings.epic },
+              { label: 'Bueno', stars: 4, color: THEME.ratings.fairgood },
+              { label: 'Regular', stars: 3, color: THEME.ratings.fair },
+              { label: 'Malo', stars: 2, color: THEME.ratings.poor },
+              { label: 'Plato', stars: 0, color: THEME.ratings.flat },
             ].map((opt) => (
               <TouchableOpacity
                 key={opt.label}
@@ -170,7 +170,7 @@ export default function CommunityScreen() {
                 onPress={() => handleVote(rep.id)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.voteActionText}>Útil ({rep.votes})</Text>
+                <Text style={styles.voteActionText}>Util ({rep.votes})</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   badgeGpsActive: {
     backgroundColor: 'rgba(11, 214, 116, 0.15)',
-    borderColor: '#0bd674',
+    borderColor: THEME.wind.offshore,
   },
   badgeGpsText: {
     fontSize: 9,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   badgeGpsTextActive: {
-    color: '#0bd674',
+    color: THEME.wind.offshore,
   },
   voteQuestion: {
     fontSize: 11,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   verifiedText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#0bd674',
+    color: THEME.wind.offshore,
     letterSpacing: 0.5,
   },
   reportSpotName: {

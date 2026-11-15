@@ -14,6 +14,7 @@ import { useSurfSessionTracker } from '../../src/services/sensors/useSurfSession
 import { SPOTS, Spot } from '../../src/data/spotsData';
 import { SurfSession, WaveRide } from '../../src/core/surfTracker/sessionTypes';
 import { SurfTrack3DMap } from '../../src/components/map/SurfTrack3DMap';
+import { THEME } from '../../src/theme/colors';
 
 export default function TrackingScreen() {
   // Activa sensores automáticos (GPS, acelerómetro y giroscopio) cuando isTracking es true
@@ -58,13 +59,13 @@ export default function TrackingScreen() {
   const getStatusColor = () => {
     switch (currentStatus) {
       case 'riding_wave':
-        return '#10b981'; // Verde esmeralda
+        return THEME.ratings.fair;    // verde — surfeando activamente
       case 'paddling':
-        return '#0284c7'; // Azul océano
+        return THEME.accentMuted;     // azul oceánico — remando
       case 'waiting':
-        return '#64748b'; // Pizarra neutro
+        return THEME.textFaint;       // gris neutro — esperando
       default:
-        return '#475569';
+        return THEME.textFaint;
     }
   };
 
@@ -117,7 +118,7 @@ export default function TrackingScreen() {
 
               {/* Pulsaciones (Apple Watch / Sensor) */}
               <View style={styles.metricCard}>
-                <Text style={[styles.metricValue, { color: '#f43f5e' }]}>
+                <Text style={[styles.metricValue, { color: THEME.danger }]}>
                   {activeSession.biometrics.currentHeartRate > 0
                     ? activeSession.biometrics.currentHeartRate
                     : '--'}
@@ -383,7 +384,7 @@ export default function TrackingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a1628',
+    backgroundColor: THEME.bg,
   },
   scrollContent: {
     padding: 16,
@@ -396,13 +397,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#f8fafc',
+    color: THEME.text,
     letterSpacing: 0.5,
   },
   headerSubtitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#38bdf8',
+    color: THEME.accent,
     marginTop: 2,
     letterSpacing: 1,
   },
@@ -422,11 +423,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ffffff',
+    backgroundColor: THEME.text,
     marginRight: 8,
   },
   statusBadgeText: {
-    color: '#ffffff',
+    color: THEME.text,
     fontWeight: '800',
     fontSize: 13,
     letterSpacing: 0.8,
@@ -434,13 +435,13 @@ const styles = StyleSheet.create({
   timerDisplay: {
     fontSize: 54,
     fontWeight: '900',
-    color: '#ffffff',
+    color: THEME.text,
     letterSpacing: 2,
   },
   spotActiveLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#94a3b8',
+    color: THEME.textSecondary,
     letterSpacing: 1,
     marginBottom: 24,
   },
@@ -453,8 +454,8 @@ const styles = StyleSheet.create({
   },
   metricCardPrimary: {
     width: '100%',
-    backgroundColor: '#0f2744',
-    borderColor: '#0284c7',
+    backgroundColor: THEME.surface3,
+    borderColor: THEME.accentMuted,
     borderWidth: 1.5,
     borderRadius: 16,
     padding: 20,
@@ -463,8 +464,8 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: '48%',
-    backgroundColor: '#132035',
-    borderColor: '#1e293b',
+    backgroundColor: THEME.surface2,
+    borderColor: THEME.line,
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
@@ -474,48 +475,48 @@ const styles = StyleSheet.create({
   metricValueLarge: {
     fontSize: 48,
     fontWeight: '900',
-    color: '#38bdf8',
+    color: THEME.accent,
   },
   metricValue: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#f8fafc',
+    color: THEME.text,
   },
   metricUnit: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: THEME.textSecondary,
     marginTop: -2,
     marginBottom: 4,
   },
   metricLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#cbd5e1',
+    color: THEME.textSecondary,
     letterSpacing: 0.5,
     textAlign: 'center',
   },
   metricSub: {
     fontSize: 10,
-    color: '#64748b',
+    color: THEME.textFaint,
     marginTop: 4,
   },
   stopButton: {
     width: '100%',
-    backgroundColor: '#e11d48',
+    backgroundColor: THEME.danger,
     paddingVertical: 18,
     borderRadius: 14,
     alignItems: 'center',
   },
   stopButtonText: {
-    color: '#ffffff',
+    color: THEME.text,
     fontWeight: '800',
     fontSize: 14,
     letterSpacing: 1,
   },
   startCard: {
-    backgroundColor: '#132035',
-    borderColor: '#1e293b',
+    backgroundColor: THEME.surface2,
+    borderColor: THEME.line,
     borderWidth: 1,
     borderRadius: 16,
     padding: 18,
@@ -524,20 +525,20 @@ const styles = StyleSheet.create({
   cardSectionTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#f8fafc',
+    color: THEME.text,
     marginBottom: 6,
     letterSpacing: 0.5,
   },
   cardDesc: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: THEME.textSecondary,
     lineHeight: 18,
     marginBottom: 16,
   },
   spotSelectLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748b',
+    color: THEME.textFaint,
     letterSpacing: 0.8,
     marginBottom: 10,
   },
@@ -545,32 +546,35 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   spotChip: {
-    backgroundColor: '#1e293b',
+    backgroundColor: THEME.surface3,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: THEME.line,
   },
   spotChipActive: {
-    backgroundColor: '#0284c7',
+    backgroundColor: THEME.accentMuted,
+    borderColor: THEME.accentMuted,
   },
   spotChipText: {
-    color: '#cbd5e1',
+    color: THEME.textSecondary,
     fontSize: 13,
     fontWeight: '600',
   },
   spotChipTextActive: {
-    color: '#ffffff',
+    color: THEME.text,
     fontWeight: '700',
   },
   startButton: {
-    backgroundColor: '#0284c7',
+    backgroundColor: THEME.accentMuted,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
   },
   startButtonText: {
-    color: '#ffffff',
+    color: THEME.text,
     fontWeight: '800',
     fontSize: 14,
     letterSpacing: 1,
@@ -581,25 +585,27 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#64748b',
+    color: THEME.textFaint,
     letterSpacing: 1,
     marginBottom: 12,
   },
   emptyCard: {
-    backgroundColor: '#132035',
+    backgroundColor: THEME.surface2,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: THEME.line,
   },
   emptyText: {
-    color: '#64748b',
+    color: THEME.textFaint,
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 19,
   },
   sessionHistoryCard: {
-    backgroundColor: '#132035',
-    borderColor: '#1e293b',
+    backgroundColor: THEME.surface2,
+    borderColor: THEME.line,
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
@@ -614,17 +620,17 @@ const styles = StyleSheet.create({
   sessionSpotName: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#38bdf8',
+    color: THEME.accent,
     letterSpacing: 0.5,
   },
   sessionDate: {
     fontSize: 12,
-    color: '#64748b',
+    color: THEME.textFaint,
   },
   sessionMetricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderTopColor: '#1e293b',
+    borderTopColor: THEME.line,
     borderTopWidth: 1,
     paddingTop: 10,
   },
@@ -634,16 +640,16 @@ const styles = StyleSheet.create({
   sessionMiniValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#f8fafc',
+    color: THEME.text,
   },
   sessionMiniLabel: {
     fontSize: 10,
-    color: '#64748b',
+    color: THEME.textFaint,
     marginTop: 2,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0a1628',
+    backgroundColor: THEME.bg,
   },
   modalScroll: {
     padding: 18,
@@ -658,31 +664,33 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#ffffff',
+    color: THEME.text,
     letterSpacing: 0.5,
   },
   modalSubtitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#38bdf8',
+    color: THEME.accent,
     letterSpacing: 1,
   },
   modalCloseButton: {
-    backgroundColor: '#1e293b',
+    backgroundColor: THEME.surface2,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: THEME.line,
   },
   modalCloseText: {
-    color: '#94a3b8',
+    color: THEME.textSecondary,
     fontWeight: '700',
     fontSize: 11,
   },
   biometricsBanner: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#132035',
-    borderColor: '#1e293b',
+    backgroundColor: THEME.surface2,
+    borderColor: THEME.line,
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
@@ -694,28 +702,28 @@ const styles = StyleSheet.create({
   bioValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#f8fafc',
+    color: THEME.text,
   },
   bioLabel: {
     fontSize: 10,
-    color: '#64748b',
+    color: THEME.textFaint,
     marginTop: 2,
   },
   wavesSectionTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#64748b',
+    color: THEME.textFaint,
     letterSpacing: 1,
     marginBottom: 12,
   },
   emptyWavesText: {
-    color: '#64748b',
+    color: THEME.textFaint,
     fontSize: 13,
     fontStyle: 'italic',
   },
   waveItemCard: {
-    backgroundColor: '#132035',
-    borderColor: '#1e293b',
+    backgroundColor: THEME.surface2,
+    borderColor: THEME.line,
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
@@ -729,12 +737,12 @@ const styles = StyleSheet.create({
   waveNumberText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#38bdf8',
+    color: THEME.accent,
   },
   waveTopSpeedText: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#10b981',
+    color: THEME.ratings.fair,
   },
   waveMetricsRow: {
     flexDirection: 'row',
@@ -743,23 +751,23 @@ const styles = StyleSheet.create({
   },
   waveMetricText: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: THEME.textSecondary,
   },
   boldText: {
-    color: '#f8fafc',
+    color: THEME.text,
     fontWeight: '700',
   },
   turnsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 6,
-    borderTopColor: '#1e293b',
+    borderTopColor: THEME.line,
     borderTopWidth: 1,
     paddingTop: 8,
   },
   turnBadge: {
-    backgroundColor: '#0f2744',
-    borderColor: '#0284c7',
+    backgroundColor: THEME.surface3,
+    borderColor: THEME.accentMuted,
     borderWidth: 1,
     borderRadius: 6,
     paddingHorizontal: 8,
@@ -768,7 +776,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   turnBadgeText: {
-    color: '#38bdf8',
+    color: THEME.accent,
     fontSize: 10,
     fontWeight: '700',
   },

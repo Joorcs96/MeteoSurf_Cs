@@ -13,6 +13,7 @@ import { SPOTS, Spot } from '../../src/data/spotsData';
 import { useSpotStore } from '../../src/store/useSpotStore';
 import {
   generateOfflineForecast,
+  fetchSpotForecast,
   SpotForecastResult,
   HourlyForecast,
 } from '../../src/core/parsers/forecastParser';
@@ -37,32 +38,44 @@ export default function ForecastsScreen() {
     setLoading(true);
 
     (async () => {
-      const cached = await getForecastFromCache(currentSpot.id);
+      let cached: SpotForecastResult | null = null;
+      try {
+        cached = await getForecastFromCache(currentSpot.id);
+      } catch {
+        cached = null;
+      }
       if (cached && isMounted) {
         setForecast(cached);
         setLoading(false);
       }
 
-      try {
-        const fresh = generateOfflineForecast(currentSpot);
+      if (isOfflineMode) {
         if (isMounted) {
-          setForecast(fresh);
+          setForecast(cached || generateOfflineForecast(currentSpot));
           setLoading(false);
         }
+        return;
+      }
+
+      try {
+        const fresh = await fetchSpotForecast(currentSpot);
+        if (!isMounted) return;
+        setForecast(fresh);
+        setLoading(false);
         await saveForecastToCache(fresh);
       } catch {
-        if (!cached && isMounted) {
-          const fallback = generateOfflineForecast(currentSpot);
-          setForecast(fallback);
-          setLoading(false);
+        if (!isMounted) return;
+        if (!cached) {
+          setForecast(generateOfflineForecast(currentSpot));
         }
+        setLoading(false);
       }
     })();
 
     return () => {
       isMounted = false;
     };
-  }, [currentSpot]);
+  }, [currentSpot, isOfflineMode]);
 
   const toggleOffline = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -75,8 +88,16 @@ export default function ForecastsScreen() {
     (selectedDayOffset + 1) * 24
   );
 
-  const bestHourData =
-    forecast?.hours.find((h) => h.hour === forecast.summary.bestHour) || forecast?.hours[0];
+  const bestHourData: HourlyForecast | undefined = hoursForSelectedDay.reduce<
+    HourlyForecast | undefined
+  >((best, h) => (!best || h.rating.stars > best.rating.stars ? h : best), undefined);
+
+  const dayMaxStars = bestHourData?.rating.stars ?? 0;
+  const dayMaxHeight = hoursForSelectedDay.reduce(
+    (max, h) => Math.max(max, h.surfHeight.max),
+    0
+  );
+  const isLiveData = forecast != null && !forecast.isOffline && !isOfflineMode;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -139,23 +160,23 @@ export default function ForecastsScreen() {
                   <Text style={styles.summarySpot}>{currentSpot.name.toUpperCase()}</Text>
                   <Text style={styles.summaryZone}>{currentSpot.zoneName || currentSpot.zone}</Text>
                 </View>
-                <RatingPill rating={forecast?.summary?.maxStars || 3.5} />
+                <RatingPill rating={dayMaxStars} />
               </View>
 
               <View style={styles.summaryMainRow}>
                 <View>
                   <Text style={styles.bestTimeTitle}>MEJOR FRANJA</Text>
                   <Text style={styles.bestTimeValue}>
-                    {forecast?.summary?.bestHour != null
-                      ? `${String(forecast.summary.bestHour).padStart(2, '0')}:00 - ${String(
-                          (forecast.summary.bestHour + 3) % 24
+                    {bestHourData != null
+                      ? `${String(bestHourData.hour).padStart(2, '0')}:00 - ${String(
+                          (bestHourData.hour + 3) % 24
                         ).padStart(2, '0')}:00 h`
-                      : '07:00 - 10:00 h'}
+                      : 'Sin datos'}
                   </Text>
                 </View>
                 <View style={styles.bestHeightBox}>
                   <Text style={styles.bestHeightVal}>
-                    {forecast?.summary?.maxHeight?.toFixed(2) || '0.65'} m
+                    {hoursForSelectedDay.length > 0 ? `${dayMaxHeight.toFixed(2)} m` : '-- m'}
                   </Text>
                   <Text style={styles.bestHeightLabel}>Rompiente</Text>
                 </View>
@@ -164,17 +185,22 @@ export default function ForecastsScreen() {
               <View style={styles.conditionsPillRow}>
                 <View style={styles.condPill}>
                   <Text style={styles.condPillText}>
-                    Viento: {bestHourData?.windState?.label || 'Terral'} {bestHourData?.windSpeed || 8} km/h
+                    {isLiveData ? 'Datos en vivo' : 'Modo playa (sin conexión)'}
                   </Text>
                 </View>
                 <View style={styles.condPill}>
                   <Text style={styles.condPillText}>
-                    Energía: {bestHourData?.energy?.powerKwM ?? 1.8} kW/m
+                    Viento: {bestHourData?.windState?.label || '--'} {bestHourData?.windSpeed ?? '--'} km/h
                   </Text>
                 </View>
                 <View style={styles.condPill}>
                   <Text style={styles.condPillText}>
-                    Periodo: {bestHourData?.period?.toFixed(1) || '5.4'} s
+                    Energía: {bestHourData?.energy?.powerKwM?.toFixed(1) ?? '--'} kW/m
+                  </Text>
+                </View>
+                <View style={styles.condPill}>
+                  <Text style={styles.condPillText}>
+                    Periodo: {bestHourData?.period?.toFixed(1) ?? '--'} s
                   </Text>
                 </View>
               </View>

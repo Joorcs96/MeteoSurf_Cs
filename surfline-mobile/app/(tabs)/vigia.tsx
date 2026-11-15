@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,126 +16,94 @@ import { RatingPill } from '../../src/components/ui/RatingPill';
 import { THEME } from '../../src/theme/colors';
 
 export default function VigiaScreen() {
-  const { clips, removeClip } = useVigiaStore();
-  const [selectedClip, setSelectedClip] = useState<VigiaClip | null>(clips[0] || null);
+  const { clips, removeClip, loadClips } = useVigiaStore();
+  const [selectedClip, setSelectedClip] = useState<VigiaClip | null>(null);
 
-  const handleSaveGallery = async (clip: VigiaClip) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  useEffect(() => {
+    loadClips();
+  }, [loadClips]);
+
+  const handleSaveGallery = useCallback(async (clip: VigiaClip) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const success = await saveClipToGallery(clip.uri);
     if (success) {
       Alert.alert('Guardado en Fotos', 'El clip de ola está ahora disponible en tu carrete.');
     } else {
-      Alert.alert(
-        'Aviso de Permisos',
-        'No se ha podido guardar el clip. Comprueba los permisos de Fotos en Ajustes.'
-      );
+      Alert.alert('Aviso de Permisos', 'No se ha podido guardar el clip. Comprueba los permisos de Fotos en Ajustes.');
     }
-  };
+  }, []);
 
-  const handleShare = async (clip: VigiaClip) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleShare = useCallback(async (clip: VigiaClip) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await shareClip(clip.uri, `Serie de olas en ${clip.spotName}`);
-  };
+  }, []);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     removeClip(id);
-    if (selectedClip?.id === id) {
-      setSelectedClip(clips.find((c) => c.id !== id) || null);
-    }
-  };
+    setSelectedClip(null);
+  }, [removeClip]);
+
+  const handlePlay = useCallback((clip: VigiaClip) => {
+    setSelectedClip(clip);
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Encabezado */}
         <View style={styles.header}>
-          <Text style={styles.title}>VIGIA · CLIPS DE OLAS</Text>
-          <Text style={styles.subtitle}>Grabaciones automáticas y repetición en el spot</Text>
+          <Text style={styles.title}>VIGÍA</Text>
+          <Text style={styles.subtitle}>Clips de olas capturados</Text>
         </View>
 
-        {/* Reproductor de clip activo */}
-        {selectedClip ? (
-          <View style={styles.playerWrapper}>
-            <SurfCamPlayer
-              streamUrl={selectedClip.uri}
-              spotName={`${selectedClip.spotName} · 20s`}
-            />
-
-            {/* Acciones del clip */}
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.actionBtnPrimary}
-                onPress={() => handleSaveGallery(selectedClip)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.actionBtnPrimaryText}>GUARDAR EN FOTOS</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtnSecondary}
-                onPress={() => handleShare(selectedClip)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.actionBtnSecondaryText}>COMPARTIR</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtnDanger}
-                onPress={() => handleDelete(selectedClip.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.actionBtnDangerText}>BORRAR</Text>
-              </TouchableOpacity>
-            </View>
+        {clips.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>Sin capturas todavía</Text>
+            <Text style={styles.emptyDesc}>Captura clips desde la pestaña Spots</Text>
           </View>
         ) : (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>NO HAY CLIPS GUARDADOS</Text>
-            <Text style={styles.emptyDesc}>
-              Pulsa el botón de captura rápida en el reproductor de cualquier spot para guardar
-              repeticiones de tus series de olas.
-            </Text>
-          </View>
-        )}
-
-        {/* Lista de clips capturados */}
-        <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>HISTORIAL DE REPETICIONES</Text>
-          <Text style={styles.sectionBadge}>{clips.length} clips</Text>
-        </View>
-
-        {clips.map((item) => {
-          const isSelected = selectedClip?.id === item.id;
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.clipCard, isSelected && styles.clipCardActive]}
-              onPress={() => setSelectedClip(item)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.clipThumb}>
-                <View style={styles.clipPlayIcon} />
-                <Text style={styles.clipDuration}>20s</Text>
-              </View>
-
-              <View style={styles.clipInfo}>
-                <View style={styles.clipTitleRow}>
-                  <Text style={styles.clipSpotName}>{item.spotName}</Text>
-                  <RatingPill rating={item.stars || 3.5} showLabel={false} />
+          <>
+            {selectedClip ? (
+              <View style={styles.playerWrapper}>
+                <SurfCamPlayer streamUrl={selectedClip.uri} spotName={selectedClip.spotName} />
+                <View style={styles.actionRow}>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => handleSaveGallery(selectedClip)} activeOpacity={0.8}>
+                    <Text style={styles.actionBtnText}>Guardar en Fotos</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionBtnOutline} onPress={() => handleShare(selectedClip)} activeOpacity={0.8}>
+                    <Text style={styles.actionBtnText}>Compartir</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionBtnDanger} onPress={() => handleDelete(selectedClip.id)} activeOpacity={0.8}>
+                    <Text style={styles.actionBtnDangerText}>Borrar</Text>
+                  </TouchableOpacity>
                 </View>
-
-                <Text style={styles.clipMeta}>
-                  {new Date(item.capturedAt).toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}{' '}
-                  · {item.waveHeight}m · {((item.sizeBytes ?? 1024 * 1024) / (1024 * 1024)).toFixed(1)} MB
-                </Text>
               </View>
-            </TouchableOpacity>
-          );
-        })}
+            ) : null}
+
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>Historial de repeticiones</Text>
+              <Text style={styles.sectionCount}>{clips.length} clips</Text>
+            </View>
+
+            {clips.map((item) => (
+              <TouchableOpacity key={item.id} style={[styles.clipCard, selectedClip?.id === item.id && styles.clipCardActive]} onPress={() => handlePlay(item)} activeOpacity={0.8}>
+                <View style={styles.clipThumb}>
+                  <View style={styles.clipPlay} />
+                  <Text style={styles.clipDuration}>{Math.round(item.durationMs / 1000)}s</Text>
+                </View>
+                <View style={styles.clipInfo}>
+                  <View style={styles.clipTitleRow}>
+                    <Text style={styles.clipSpotName}>{item.spotName}</Text>
+                    <RatingPill rating={item.stars ?? 3} showLabel={false} />
+                  </View>
+                  <Text style={styles.clipMeta}>
+                    {new Date(item.capturedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · {item.waveHeight?.toFixed(1) ?? '--'}m
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -152,17 +120,17 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   header: {
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: THEME.line,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   title: {
     color: THEME.brand,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
@@ -177,43 +145,37 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: -8,
+    marginTop: 8,
   },
-  actionBtnPrimary: {
-    flex: 2,
-    backgroundColor: THEME.text,
+  actionBtn: {
+    flex: 1,
+    backgroundColor: THEME.accent,
     paddingVertical: 10,
-    borderRadius: 4,
+    borderRadius: 6,
     alignItems: 'center',
   },
-  actionBtnPrimaryText: {
+  actionBtnText: {
     color: THEME.bg,
     fontWeight: '800',
     fontSize: 11,
     letterSpacing: 0.5,
   },
-  actionBtnSecondary: {
-    flex: 1.5,
+  actionBtnOutline: {
+    flex: 1,
     backgroundColor: THEME.surface2,
     borderWidth: 1,
     borderColor: THEME.line,
     paddingVertical: 10,
-    borderRadius: 4,
+    borderRadius: 6,
     alignItems: 'center',
   },
-  actionBtnSecondaryText: {
-    color: THEME.text,
-    fontWeight: '700',
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
   actionBtnDanger: {
-    backgroundColor: 'rgba(225, 29, 72, 0.1)',
+    backgroundColor: THEME.surface2,
     borderWidth: 1,
     borderColor: THEME.danger,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 4,
+    borderRadius: 6,
     alignItems: 'center',
   },
   actionBtnDangerText: {
@@ -226,14 +188,14 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.surface,
     borderWidth: 1,
     borderColor: THEME.line,
-    borderRadius: 6,
-    padding: 24,
+    borderRadius: 8,
+    padding: 26,
     alignItems: 'center',
     marginBottom: 20,
   },
   emptyTitle: {
     color: THEME.textMuted,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -256,7 +218,7 @@ const styles = StyleSheet.create({
     color: THEME.textMuted,
     letterSpacing: 1,
   },
-  sectionBadge: {
+  sectionCount: {
     fontSize: 11,
     color: THEME.textFaint,
     fontWeight: '600',
@@ -267,8 +229,8 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.surface,
     borderWidth: 1,
     borderColor: THEME.line,
-    borderRadius: 6,
-    padding: 10,
+    borderRadius: 8,
+    padding: 12,
     marginBottom: 8,
   },
   clipCardActive: {
@@ -276,15 +238,15 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.surface2,
   },
   clipThumb: {
-    width: 60,
-    height: 42,
+    width: 64,
+    height: 44,
     backgroundColor: THEME.surface3,
-    borderRadius: 4,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
-  clipPlayIcon: {
+  clipPlay: {
     width: 0,
     height: 0,
     borderLeftWidth: 10,
@@ -320,6 +282,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: THEME.textMuted,
     marginTop: 2,
-    fontVariant: ['tabular-nums'],
   },
 });

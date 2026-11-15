@@ -2,6 +2,16 @@
 
 Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar cada tarea.
 
+## App móvil: datos reales y pantallas cerradas (2026-11-16)
+- [VERIFICADO] `src/core/parsers/forecastParser.ts` incorpora `fetchSpotForecast(spot)`: descarga Open-Meteo marina (punto `seaLat/seaLon`, `cell_selection=sea`) y viento en `lat/lon`, con `fetch_days=7`, zona `Europe/Madrid` y viento en km/h. Lanza error si falla; quien llama usa caché (`getForecastFromCache`) y luego `generateOfflineForecast`.
+- [VERIFICADO] Inicio (`app/(tabs)/index.tsx`) y Previsiones (`forecasts.tsx`) ya no muestran cifras fijas: altura, periodo, swell, viento, estrellas y tendencia de 7 días salen del pronóstico real. La tarjeta de Previsiones responde al día seleccionado.
+- [VERIFICADO] Comunidad: publicaciones con spot, valoración y comentario; se guardan en `meteosurf_community_posts` (storageAdapter). Distintivo "A PIE DE PLAYA" si el GPS está a menos de 500 m.
+- [VERIFICADO] Vigía: clips persistidos en `meteosurf_vigia_clips`; el store expone `loadClips()` y guarda al añadir/borrar.
+- [VERIFICADO] Simulación biométrica del reloj (`useWatchSessionReceiver`): las calorías se acumulan por minuto durante la sesión; antes se enviaba una lectura de 6-10 kcal que nunca crecía.
+- Verificación: `npx tsc --noEmit` 0 errores; `npx expo export --platform ios` OK.
+- Trampa: Open-Meteo devuelve el día completo desde las 00:00, así que el primer día incluye horas ya pasadas. Si se quiere ocultar el pasado, filtrar por hora actual.
+- Pendiente: probar en iPhone físico; el guardado en Fotos depende de la URI del clip (los clips de ejemplo apuntan a un HLS remoto y no se pueden guardar como vídeo local).
+
 ## Datos básicos
 - Web: https://joorcs96.github.io/MeteoSurf_Cs/ (GitHub Pages, rama main, raíz). Repo Joorcs96/MeteoSurf_Cs (antes Surfline_CS; Netlify ya no se usa).
 - Carpeta local sigue llamándose C:/Users/Jordi/orca/Surfline_CS. Investigación e informes: C:/Users/Jordi/orca/meteosurf_research.

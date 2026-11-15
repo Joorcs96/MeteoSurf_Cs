@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,17 @@ import { RatingPill } from '../../src/components/ui/RatingPill';
 import { useNearestSpots } from '../../src/services/sensors/useNearestSpots';
 import { circularBufferManager } from '../../src/services/video/circularBufferManager';
 import { checkAndTriggerSwellAlert } from '../../src/services/notifications/swellAlerts';
-import { THEME } from '../../src/theme/colors';
+import {
+  fetchSpotForecast,
+  generateOfflineForecast,
+  SpotForecastResult,
+  HourlyForecast,
+} from '../../src/core/parsers/forecastParser';
+import {
+  getForecastFromCache,
+  saveForecastToCache,
+} from '../../src/services/storage/forecastCache';
+import { THEME, getRatingColor } from '../../src/theme/colors';
 
 export default function SpotsScreen() {
   const { selectedSpotId, selectSpot } = useSpotStore();
@@ -33,6 +43,61 @@ export default function SpotsScreen() {
   const activeStream = streams.find((s) => s.id === activeStreamId) || streams[0] || null;
 
   const [isCapturing, setIsCapturing] = useState(false);
+  const [spotForecast, setSpotForecast] = useState<SpotForecastResult | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      let cached: SpotForecastResult | null = null;
+      try {
+        cached = await getForecastFromCache(currentSpot.id);
+      } catch {
+        cached = null;
+      }
+      if (cached && isMounted) setSpotForecast(cached);
+
+      try {
+        const fresh = await fetchSpotForecast(currentSpot);
+        if (!isMounted) return;
+        setSpotForecast(fresh);
+        saveForecastToCache(fresh).catch(() => {});
+      } catch {
+        if (!isMounted) return;
+        if (!cached) setSpotForecast(generateOfflineForecast(currentSpot));
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentSpot]);
+
+  const todayHours: HourlyForecast[] = (spotForecast?.hours || []).slice(0, 24);
+  const bestToday = todayHours.reduce<HourlyForecast | undefined>(
+    (best, h) => (!best || h.rating.stars > best.rating.stars ? h : best),
+    undefined
+  );
+  const todayMaxStars = bestToday?.rating.stars ?? 0;
+  const todayMinHeight = todayHours.length
+    ? Math.min(...todayHours.map((h) => h.surfHeight.min))
+    : null;
+  const todayMaxHeight = todayHours.length
+    ? Math.max(...todayHours.map((h) => h.surfHeight.max))
+    : null;
+
+  const weeklySpark = Array.from({ length: 7 }, (_, dayOffset) => {
+    const dayHours = (spotForecast?.hours || []).slice(dayOffset * 24, (dayOffset + 1) * 24);
+    const maxStars = dayHours.reduce((max, h) => Math.max(max, h.rating.stars), 0);
+    const label =
+      dayOffset === 0
+        ? 'HOY'
+        : new Date(Date.now() + dayOffset * 86400000)
+            .toLocaleDateString('es-ES', { weekday: 'short' })
+            .toUpperCase()
+            .slice(0, 3);
+    return { day: label, color: getRatingColor(maxStars) };
+  });
 
   const handleSpotPress = (spotId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -165,12 +230,16 @@ export default function SpotsScreen() {
                 {currentSpot.zoneName || currentSpot.zone}
               </Text>
             </View>
-            <RatingPill rating={3.5} />
+            <RatingPill rating={todayMaxStars} />
           </View>
 
           {/* Altura de rompiente principal */}
           <View style={styles.heightRow}>
-            <Text style={styles.heightNumber}>0.5 - 0.7</Text>
+            <Text style={styles.heightNumber}>
+              {todayMinHeight != null && todayMaxHeight != null
+                ? `${todayMinHeight.toFixed(1)} - ${todayMaxHeight.toFixed(1)}`
+                : '--'}
+            </Text>
             <Text style={styles.heightUnit}>m</Text>
           </View>
 
@@ -178,30 +247,30 @@ export default function SpotsScreen() {
           <View style={styles.metaRow}>
             <View style={styles.metaPill}>
               <Text style={styles.metaKey}>Periodo:</Text>
-              <Text style={styles.metaVal}>5.4 s</Text>
+              <Text style={styles.metaVal}>
+                {bestToday?.period != null ? `${bestToday.period.toFixed(1)} s` : '--'}
+              </Text>
             </View>
             <View style={styles.metaPill}>
               <Text style={styles.metaKey}>Swell:</Text>
-              <Text style={styles.metaVal}>102° E</Text>
+              <Text style={styles.metaVal}>
+                {bestToday != null ? `${Math.round(bestToday.waveDirection)}°` : '--'}
+              </Text>
             </View>
             <View style={[styles.metaPill, styles.windPill]}>
-              <Text style={styles.windText}>Terral (O) · 9 km/h</Text>
+              <Text style={styles.windText}>
+                {bestToday?.windState?.label ?? '--'} · {bestToday?.windSpeed ?? '--'} km/h
+              </Text>
             </View>
           </View>
 
           {/* Mini chispa semanal de 7 días (Fiel a .spark de la web) */}
           <View style={styles.sparkContainer}>
-            <Text style={styles.sparkTitle}>TENDENCIA 7 DÍAS</Text>
+            <Text style={styles.sparkTitle}>
+              {spotForecast != null && !spotForecast.isOffline ? 'TENDENCIA 7 DÍAS · DATOS EN VIVO' : 'TENDENCIA 7 DÍAS'}
+            </Text>
             <View style={styles.sparkBars}>
-              {[
-                { day: 'HOY', color: THEME.ratings.fair },
-                { day: 'SÁB', color: THEME.ratings.poorfair },
-                { day: 'DOM', color: THEME.ratings.fairgood },
-                { day: 'LUN', color: THEME.ratings.poor },
-                { day: 'MAR', color: THEME.ratings.flat },
-                { day: 'MIÉ', color: THEME.ratings.flat },
-                { day: 'JUE', color: THEME.ratings.poorfair },
-              ].map((item, idx) => (
+              {weeklySpark.map((item, idx) => (
                 <View key={idx} style={styles.sparkItem}>
                   <View style={[styles.sparkBar, { backgroundColor: item.color }]} />
                   <Text style={styles.sparkLabel}>{item.day}</Text>

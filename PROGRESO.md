@@ -1,5 +1,17 @@
 # Tablero de Estado · Surfline Castellón
 
+## 2026-11-16 — App móvil: rediseño terminado y datos reales en Inicio y Previsiones
+
+- Pantallas rediseñadas y cerradas (Comunidad, Sesiones y Vigía) con el tema oscuro `THEME`:
+  - **Comunidad**: compositor real de avisos (spot, valoración y comentario), publicaciones guardadas en el almacenamiento local y distintivo "A PIE DE PLAYA" cuando el GPS confirma menos de 500 m del spot.
+  - **Sesiones**: HUD con panel biométrico del reloj, cronómetro, velocidad, olas y distancia; resumen histórico acumulado (olas, km y tiempo) y mapa 3D ajustado al alto de pantalla.
+  - **Vigía**: reproductor del clip seleccionado, acciones de guardar/compartir/borrar y clips persistidos entre reinicios de la app.
+- Corregido el simulador biométrico del Apple Watch: las calorías ahora se acumulan durante la sesión en lugar de quedarse en una lectura de 6-10 kcal.
+- **Datos reales**: Inicio y Previsiones descargan la previsión de Open-Meteo (marina en el punto de mar y viento en el spot) con respaldo en caché y en previsión offline. Se eliminaron las cifras fijas (0.5-0.7 m, 3.5 estrellas, tendencia inventada).
+- Previsiones: la tarjeta de resumen ahora responde al día seleccionado (mejor franja, estrellas y altura de rompiente) e indica "Datos en vivo" o "Modo playa".
+- Verificación: `npx tsc --noEmit` con 0 errores y bundle iOS exportado correctamente (`expo export`, 3,7 MB).
+- Pendiente de Jordi: probar en iPhone físico con Expo Go para validar red real y guardado en Fotos.
+
 ## 2026-11-15 — Ejecución simultánea en vivo: iPhone y Apple Watch Series 7 en pantalla
 
 - Entorno en ejecución simultánea en pantalla:
@@ -40,7 +52,7 @@
 - App funcionando en simulador iPhone 12 Pro Max + Apple Watch Series 7
 
 ## 📋 PENDIENTES
-- Ninguna tarea pendiente.
+- Probar en iPhone físico (Expo Go) la previsión real, el compositor de Comunidad y el guardado de clips en Fotos.
 
 ## ⚙️ EN CURSO
 | Tarea | Rol/agente | Cerebro | Pestaña |

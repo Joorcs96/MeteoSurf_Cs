@@ -349,7 +349,7 @@ export function SurfTrack3DMap({
                 top: p1.y,
                 width: len,
                 height: 1.5,
-                backgroundColor: '#38bdf844',
+                backgroundColor: THEME.accent + '44',
                 transform: [{ rotate: `${angle}deg` }],
                 transformOrigin: '0 0',
               }}
@@ -376,10 +376,10 @@ export function SurfTrack3DMap({
 
             const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
-            // Gradiente de color según velocidad de planeo
-            let segColor = '#10b981'; // Verde (11-15 km/h)
-            if (pt.speedKmH > 19) segColor = '#f59e0b'; // Dorado (>19 km/h)
-            else if (pt.speedKmH > 15) segColor = '#06b6d4'; // Cian (15-19 km/h)
+            // Gradiente de color según velocidad de planeo (usando paleta THEME)
+            let segColor = THEME.ratings.fair;        // Verde (11-15 km/h)
+            if (pt.speedKmH > 19) segColor = THEME.ratings.poorfair; // Dorado (>19 km/h)
+            else if (pt.speedKmH > 15) segColor = THEME.accent;      // Cian (15-19 km/h)
 
             return (
               <View
@@ -419,7 +419,7 @@ export function SurfTrack3DMap({
                   left: pos.x - 14,
                   top: pos.y - 14,
                   opacity: isSelected ? 1.0 : 0.35,
-                  borderColor: isSelected ? '#10b981' : '#334155',
+                  borderColor: isSelected ? THEME.ratings.fair : THEME.line,
                 },
               ]}
               onPress={() => setSelectedWaveIndex(wIdx)}
@@ -543,7 +543,7 @@ export function SurfTrack3DMap({
               <Text style={styles.statLbl}>giros</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statVal, { color: '#06b6d4' }]}>
+              <Text style={[styles.statVal, { color: THEME.accent }]}>
                 {currentWave.turns.length > 0
                   ? currentWave.turns[0].type.replace('_', ' ').toUpperCase()
                   : 'PLANEADO'}
@@ -555,19 +555,19 @@ export function SurfTrack3DMap({
       ) : (
         <View style={styles.legendRow}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#38bdf8' }]} />
+            <View style={[styles.legendDot, { backgroundColor: THEME.accent }]} />
             <Text style={styles.legendText}>Remada al pico</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
+            <View style={[styles.legendDot, { backgroundColor: THEME.ratings.fair }]} />
             <Text style={styles.legendText}>Ola (11-15 km/h)</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#06b6d4' }]} />
+            <View style={[styles.legendDot, { backgroundColor: THEME.accent }]} />
             <Text style={styles.legendText}>Velocidad media (15-19)</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
+            <View style={[styles.legendDot, { backgroundColor: THEME.ratings.poorfair }]} />
             <Text style={styles.legendText}>Punta (&gt;19 km/h)</Text>
           </View>
         </View>
@@ -578,10 +578,10 @@ export function SurfTrack3DMap({
 
 const styles = StyleSheet.create({
   cardContainer: {
-    backgroundColor: '#0f172a',
+    backgroundColor: THEME.surface2,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: THEME.line,
     padding: 12,
     marginVertical: 10,
   },
@@ -597,13 +597,13 @@ const styles = StyleSheet.create({
   spotTitle: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#f8fafc',
+    color: THEME.text,
     letterSpacing: 0.5,
   },
   spotSubtitle: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#38bdf8',
+    color: THEME.accent,
     marginTop: 1,
     letterSpacing: 0.5,
   },
@@ -615,37 +615,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#1e293b',
+    backgroundColor: THEME.surface3,
   },
   modeBtnActive: {
-    backgroundColor: '#0284c7',
+    backgroundColor: THEME.accentMuted,
   },
   modeBtnText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94a3b8',
+    color: THEME.textMuted,
   },
   modeBtnTextActive: {
-    color: '#ffffff',
+    color: THEME.text,
   },
   angleBtn: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#1e293b',
+    backgroundColor: THEME.surface3,
   },
   angleBtnText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#cbd5e1',
+    color: THEME.textSecondary,
   },
   canvas3D: {
-    backgroundColor: '#08111e',
+    backgroundColor: THEME.bg,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: THEME.line,
   },
   oceanGridContainer: {
     ...StyleSheet.absoluteFill,
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   gridLineStyle: {
     position: 'absolute',
     height: 1,
-    backgroundColor: '#38bdf8',
+    backgroundColor: THEME.accent,
   },
   beachBanner: {
     position: 'absolute',
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
   beachText: {
     fontSize: 8,
     fontWeight: '800',
-    color: '#fde68a',
+    color: THEME.ratings.poorfair,
     letterSpacing: 0.5,
   },
   lineupBanner: {
@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
   lineupText: {
     fontSize: 8,
     fontWeight: '800',
-    color: '#bae6fd',
+    color: THEME.accent,
     letterSpacing: 0.5,
   },
   takeoffPin: {
@@ -695,11 +695,11 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#064e3b',
+    backgroundColor: THEME.surface3,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#10b981',
+    shadowColor: THEME.ratings.fair,
     shadowRadius: 5,
     shadowOpacity: 0.9,
     elevation: 4,
@@ -707,36 +707,36 @@ const styles = StyleSheet.create({
   takeoffPinText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#ffffff',
+    color: THEME.text,
   },
   turnMarker: {
     position: 'absolute',
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#0284c7',
+    backgroundColor: THEME.accentMuted,
     borderWidth: 1.5,
-    borderColor: '#ffffff',
+    borderColor: THEME.text,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#38bdf8',
+    shadowColor: THEME.accent,
     shadowRadius: 3,
     shadowOpacity: 0.8,
   },
   turnMarkerText: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#ffffff',
+    color: THEME.text,
   },
   replaySurferDot: {
     position: 'absolute',
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#f59e0b',
+    backgroundColor: THEME.ratings.poorfair,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#f59e0b',
+    shadowColor: THEME.ratings.poorfair,
     shadowRadius: 8,
     shadowOpacity: 1.0,
   },
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#ffffff',
+    backgroundColor: THEME.text,
   },
   waveSelectorRow: {
     marginVertical: 8,
@@ -756,22 +756,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
-    backgroundColor: '#1e293b',
+    backgroundColor: THEME.surface3,
     marginRight: 6,
   },
   waveChipActive: {
-    backgroundColor: '#10b981',
+    backgroundColor: THEME.ratings.fair,
   },
   waveChipText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94a3b8',
+    color: THEME.textMuted,
   },
   waveChipTextActive: {
-    color: '#ffffff',
+    color: THEME.text,
   },
   waveDetailCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: THEME.surface3,
     borderRadius: 8,
     padding: 10,
     marginTop: 4,
@@ -785,33 +785,33 @@ const styles = StyleSheet.create({
   waveDetailTitle: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#10b981',
+    color: THEME.ratings.fair,
   },
   waveDetailSub: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: THEME.textMuted,
     marginTop: 1,
   },
   replayBtn: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
-    backgroundColor: '#0284c7',
+    backgroundColor: THEME.accentMuted,
   },
   replayBtnActive: {
-    backgroundColor: '#e11d48',
+    backgroundColor: THEME.danger,
   },
   replayBtnText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#ffffff',
+    color: THEME.text,
   },
   waveStatsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: THEME.line,
     paddingTop: 8,
   },
   statBox: {
@@ -820,12 +820,12 @@ const styles = StyleSheet.create({
   statVal: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#f8fafc',
+    color: THEME.text,
   },
   statLbl: {
     fontSize: 8,
     fontWeight: '700',
-    color: '#64748b',
+    color: THEME.textFaint,
     marginTop: 1,
   },
   legendRow: {
@@ -848,6 +848,6 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 9,
     fontWeight: '600',
-    color: '#64748b',
+    color: THEME.textFaint,
   },
 });

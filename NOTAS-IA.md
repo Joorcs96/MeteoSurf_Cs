@@ -14,6 +14,12 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Nada de emojis ni símbolos tipo check en la web.
 - Planetario es el spot por defecto (primero en listas).
 - Escala mediterránea: 0.5–0.7 m con poco viento ya es buen baño; periodo 4–6 s es normal.
+- Tracking de sesiones en el agua: detección de olas por encima de 11 km/h, medición de pulsaciones, oxígeno y calorías mediante Apple Watch / HealthKit, giros (bottom turn, cutback, snap) y contador de remadas. Disponible en pestaña dedicada de la app móvil y en la app nativa de Apple Watch.
+- Experiencia Apple Watch en mar: bloqueo de agua automático (Water Lock) al iniciar, 4 pestañas deslizables (HUD de ola con números gigantescos para sol/salpicaduras, biometría completa con zonas de pulso, historial de olas y controles de pausa/bloqueo manual). Sincronización con iPhone vía WCSession con coordenadas GPS en mar.
+- Visualizador de mapa en 3D (`SurfTrack3DMap.tsx`): perspectiva con inclinación 55°, rotación de cámara (playa, mar o isométrica), elevación de olas 3D, colores según velocidad (verde, cian y dorado), balizas de takeoff y reproducción animada de cada ola.
+- Simulación multi-usuario validada: script `scripts/simulacion_200_usuarios.ts` con 200 usuarios y 5 ciclos estacionales (otoño levante, invierno temporal gregal, verano calma térmica, primavera poniente y fin de semana clásico ESE) ejecutado con 0 errores y 100% de consistencia.
+- Entorno de simulación emparejado en este Mac: iPhone virtual y Apple Watch Series 7 45mm (176832A8) enlazados oficialmente. Servidor Metro activo en puerto 8081 sirviendo la aplicación MeteoSurf CS en vivo, con todas las pantallas (Spots, Previsiones, Vigía, Sesión 3D y Comunidad) funcionales. La app de Apple Watch es 100% nativa en Swift/SwiftUI (binario universal arm64 + x86_64, HealthKit, WCSession, Water Lock y 4 pestañas de navegación), instalada y ejecutándose en vivo en el simulador.
+- Diagnóstico Xcode "no funciona la aplicación": Al pulsar Play en `MeteoSurfCs.xcodeproj`, Xcode falla con `[CP] Check Pods Manifest.lock` porque CocoaPods no está instalado (la versión del Ruby del sistema es 2.6 y las gemas actuales de CocoaPods requieren Ruby >= 3.3; para no pedir permisos de administrador no se altera el sistema). La app móvil se ejecuta limpiamente mediante Expo Go + Metro en puerto 8081, y la app de Apple Watch funciona como binario nativo compilado con SDK watchOS 26.2.
 - Publicar directo en main (tras verificar en móvil); trabajo en rama o worktree y fusión rápida.
 - **Publicar siempre:** cada cambio verificado se despliega en el momento (push a main y comprobar la web online). Lo que no esté listo permanece en su rama y se avisa. Cada norma nueva de Jordi se apunta aquí y en las globales.
 
@@ -40,8 +46,9 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Surfers Castellón: cámara IPCamLive del club (alias 609a27d8a9c83, embedType 'iframe'). No requiere credenciales ni login (domain lock desactivado en IPCamLive). Enfoca la rompiente de Playa del Pinar; asociada con prioridad 1 a Planetario, Pirámides y Gurugú.
 - El cron de webcams (.github/workflows/webcams.yml, cada 30 min) solo reescribe webcams.json si cambia algo real.
 - CARTO pide API key: el mapa usa OSM + Esri satélite.
-- Orca: workers gemini en worktree distinto fallan en agent_readiness; usar `--agent antigravity --model gemini-3.1-pro-high`. Worktrees nuevos de Orca parten de un commit viejo: resetear a main antes.
-- Si un worker Antigravity queda quieto, leer su terminal: puede ser 'Individual quota reached' (Gemini 3.1 Pro, reset ~2 h) o el prompt sin enviar (mandar Intro con `orca terminal send --enter`). Relevo: `--agent antigravity --model claude-sonnet-4-6`.
+- **MODELO OBLIGATORIO PARA ANTIGRAVITY: `--agent antigravity --model claude-sonnet-4-6`**. NUNCA usar gemini-3.1-pro-high, gemini-3.8-flash-high ni ningún modelo Gemini. Gemini agota su cuota individual en minutos, el agente confirma el prompt pero no ejecuta nada (worktree vacío, sin commits). claude-sonnet-4-6 es el único modelo verificado que funciona.
+- Worktrees nuevos de Orca parten de un commit viejo: resetear a main antes.
+- Si un worker Antigravity queda quieto: leer su terminal. Si dice 'Individual quota reached' → era Gemini, cambiar a claude-sonnet-4-6. Si el prompt no se envió → `orca terminal send --enter`.
 - Los workers a veces escriben sin tildes: revisar textos visibles antes de publicar.
 
 ## Rewinds (clips de las cámaras)

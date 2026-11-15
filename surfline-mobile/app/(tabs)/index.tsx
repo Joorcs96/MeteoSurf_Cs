@@ -9,29 +9,38 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { SPOTS } from '../../src/data/spotsData';
+import { SPOTS, Spot } from '../../src/data/spotsData';
 import { useSpotStore } from '../../src/store/useSpotStore';
 import { useVigiaStore } from '../../src/store/useVigiaStore';
 import { getStreamsForSpot, ResolvedStream } from '../../src/core/parsers/streamParser';
-import { SurfCamPlayer } from '../../src/components/video/SurfCamPlayer';
+import { SurfCamPlayer, CamStreamOption } from '../../src/components/video/SurfCamPlayer';
+import { RatingPill } from '../../src/components/ui/RatingPill';
 import { useNearestSpots } from '../../src/services/sensors/useNearestSpots';
 import { circularBufferManager } from '../../src/services/video/circularBufferManager';
 import { checkAndTriggerSwellAlert } from '../../src/services/notifications/swellAlerts';
+import { THEME } from '../../src/theme/colors';
 
 export default function SpotsScreen() {
   const { selectedSpotId, selectSpot } = useSpotStore();
   const { addClip } = useVigiaStore();
   const { spots: nearestSpots, pressureHpa } = useNearestSpots();
 
-  const currentSpot = SPOTS.find((s) => s.id === selectedSpotId) || SPOTS[0];
-  const streams = getStreamsForSpot(currentSpot.id);
-  const activeStream: ResolvedStream | null = streams[0] || null;
+  const currentSpot: Spot = SPOTS.find((s) => s.id === selectedSpotId) || SPOTS[0];
+  const streams: ResolvedStream[] = getStreamsForSpot(currentSpot.id);
+  const [activeStreamId, setActiveStreamId] = useState<string>(streams[0]?.id || '');
+
+  // Mantener stream activo sincronizado con el spot seleccionado
+  const activeStream = streams.find((s) => s.id === activeStreamId) || streams[0] || null;
 
   const [isCapturing, setIsCapturing] = useState(false);
 
   const handleSpotPress = (spotId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     selectSpot(spotId);
+    const spotStreams = getStreamsForSpot(spotId);
+    if (spotStreams.length > 0) {
+      setActiveStreamId(spotStreams[0].id);
+    }
   };
 
   const handleCaptureVigia = async () => {
@@ -53,7 +62,6 @@ export default function SpotsScreen() {
         sizeBytes: clip.sizeBytes,
       });
 
-      // Disparar notificación si cumple el trigger
       await checkAndTriggerSwellAlert(
         currentSpot.id,
         currentSpot.name,
@@ -63,38 +71,53 @@ export default function SpotsScreen() {
       );
 
       Alert.alert(
-        '📹 Clip Vigía Guardado',
-        `Se han grabado los últimos 20 segundos de ${currentSpot.name}. Puedes revisarlo y compartirlo en la pestaña Vigía.`
+        'Clip Vigía Guardado',
+        `Se han grabado los últimos 20 segundos de ${currentSpot.name}. Puedes revisarlo en la pestaña Vigía.`
       );
     } catch {
-      Alert.alert('Error', 'No se ha podido procesar el clip');
+      Alert.alert('Aviso', 'No se ha podido procesar el clip en este momento.');
     } finally {
       setIsCapturing(false);
     }
   };
 
+  const streamOptions: CamStreamOption[] = streams.map((s) => ({
+    id: s.id,
+    name: s.short || s.name,
+    type: s.type,
+    streamUrl: s.streamUrl,
+    fallbackUrl: s.fallbackUrl,
+  }));
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Encabezado */}
-        <View style={styles.header}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Cabecera idéntica a .topbar de la web */}
+        <View style={styles.topbar}>
           <View>
-            <Text style={styles.appTitle}>SURFLINE CASTELLÓN</Text>
-            <Text style={styles.headerSub}>Radar & Cámaras en Directo</Text>
+            <View style={styles.logoRow}>
+              <Text style={styles.logoTitle}>METEOSURF</Text>
+              <Text style={styles.logoSuffix}>CS</Text>
+            </View>
+            <Text style={styles.headerSub}>Costa de Castellón · Previsión & Webcams</Text>
           </View>
           {pressureHpa && (
-            <View style={styles.barometerBadge}>
-              <Text style={styles.barometerText}>🧭 {pressureHpa} hPa</Text>
+            <View style={styles.pressureBadge}>
+              <Text style={styles.pressureText}>{pressureHpa} hPa</Text>
             </View>
           )}
         </View>
 
-        {/* Selector horizontal de spots */}
+        {/* Barra horizontal de spots (Fiel a .quick-spots / .chips) */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.pillsScroll}
-          contentContainerStyle={styles.pillsContent}
+          style={styles.chipsScroll}
+          contentContainerStyle={styles.chipsContent}
         >
           {SPOTS.map((s) => {
             const isSelected = s.id === currentSpot.id;
@@ -102,10 +125,10 @@ export default function SpotsScreen() {
               <TouchableOpacity
                 key={s.id}
                 onPress={() => handleSpotPress(s.id)}
-                style={[styles.pill, isSelected && styles.pillActive]}
+                style={[styles.chip, isSelected && styles.chipActive]}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
+                <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
                   {s.name}
                 </Text>
               </TouchableOpacity>
@@ -113,79 +136,114 @@ export default function SpotsScreen() {
           })}
         </ScrollView>
 
-        {/* Reproductor de cámara en directo */}
-        <View style={styles.playerContainer}>
-          {activeStream ? (
-            <SurfCamPlayer
-              streamUrl={activeStream.streamUrl}
-              fallbackImageUrl={activeStream.fallbackUrl}
-              isImageStream={activeStream.type === 'jpg'}
-              spotName={currentSpot.name}
-              onCaptureClip={handleCaptureVigia}
-            />
-          ) : (
-            <View style={styles.noCameraBox}>
-              <Text style={styles.noCameraText}>Sin emisión en directo configurada</Text>
-            </View>
-          )}
-        </View>
+        {/* Reproductor de cámara en directo (16:9 con soporte multi-cámara y restringidas) */}
+        {activeStream ? (
+          <SurfCamPlayer
+            streamUrl={activeStream.streamUrl}
+            fallbackImageUrl={activeStream.fallbackUrl}
+            isImageStream={activeStream.type === 'jpg'}
+            isRestricted={activeStream.type === 'restricted'}
+            spotName={currentSpot.name}
+            availableStreams={streamOptions}
+            activeStreamId={activeStream.id}
+            onSelectStream={(newId) => setActiveStreamId(newId)}
+            onCaptureClip={handleCaptureVigia}
+          />
+        ) : (
+          <View style={styles.noCameraBox}>
+            <Text style={styles.noCameraTitle}>SIN EMISIÓN EN DIRECTO</Text>
+            <Text style={styles.noCameraSub}>No hay señal de vídeo en este spot</Text>
+          </View>
+        )}
 
-        {/* Ficha de condiciones del spot seleccionado */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
+        {/* Ficha principal de condiciones del spot (Fiel a .spot-card de la web) */}
+        <View style={styles.spotCard}>
+          <View style={styles.cardTop}>
             <View>
-              <Text style={styles.spotName}>{currentSpot.name}</Text>
-              <Text style={styles.spotZone}>{currentSpot.zoneName || currentSpot.zone}</Text>
+              <Text style={styles.cardSpotName}>{currentSpot.name}</Text>
+              <Text style={styles.cardSpotZone}>
+                {currentSpot.zoneName || currentSpot.zone}
+              </Text>
             </View>
-            <View style={styles.ratingBox}>
-              <Text style={styles.ratingStars}>★★★★☆</Text>
-              <Text style={styles.ratingLabel}>Regular-Bueno</Text>
+            <RatingPill rating={3.5} />
+          </View>
+
+          {/* Altura de rompiente principal */}
+          <View style={styles.heightRow}>
+            <Text style={styles.heightNumber}>0.5 - 0.7</Text>
+            <Text style={styles.heightUnit}>m</Text>
+          </View>
+
+          {/* Metadatos: Fondo, Periodo y Viento */}
+          <View style={styles.metaRow}>
+            <View style={styles.metaPill}>
+              <Text style={styles.metaKey}>Periodo:</Text>
+              <Text style={styles.metaVal}>5.4 s</Text>
+            </View>
+            <View style={styles.metaPill}>
+              <Text style={styles.metaKey}>Swell:</Text>
+              <Text style={styles.metaVal}>102° E</Text>
+            </View>
+            <View style={[styles.metaPill, styles.windPill]}>
+              <Text style={styles.windText}>Terral (O) · 9 km/h</Text>
             </View>
           </View>
 
-          <View style={styles.metricsRow}>
-            <View style={styles.metricItem}>
-              <Text style={styles.metricVal}>0.5 - 0.7m</Text>
-              <Text style={styles.metricKey}>Rompiente</Text>
-            </View>
-            <View style={styles.metricItem}>
-              <Text style={styles.metricVal}>5.4s</Text>
-              <Text style={styles.metricKey}>Periodo</Text>
-            </View>
-            <View style={styles.metricItem}>
-              <Text style={styles.metricVal}>9 km/h</Text>
-              <Text style={styles.metricKey}>Terral (O)</Text>
+          {/* Mini chispa semanal de 7 días (Fiel a .spark de la web) */}
+          <View style={styles.sparkContainer}>
+            <Text style={styles.sparkTitle}>TENDENCIA 7 DÍAS</Text>
+            <View style={styles.sparkBars}>
+              {[
+                { day: 'HOY', color: '#0bd674' },
+                { day: 'SÁB', color: '#ffcd1e' },
+                { day: 'DOM', color: '#009371' },
+                { day: 'LUN', color: '#ff9500' },
+                { day: 'MAR', color: '#c3cad3' },
+                { day: 'MIÉ', color: '#c3cad3' },
+                { day: 'JUE', color: '#ffcd1e' },
+              ].map((item, idx) => (
+                <View key={idx} style={styles.sparkItem}>
+                  <View style={[styles.sparkBar, { backgroundColor: item.color }]} />
+                  <Text style={styles.sparkLabel}>{item.day}</Text>
+                </View>
+              ))}
             </View>
           </View>
 
           <Text style={styles.spotDesc}>{currentSpot.desc}</Text>
         </View>
 
-        {/* Radar de spots cercanos por GPS */}
+        {/* Radar de spots cercanos por GPS (Fiel a .spot-grid) */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Radar de Playas Cercanas</Text>
-          <Text style={styles.sectionSub}>Ordenado por distancia GPS</Text>
+          <Text style={styles.sectionTitle}>PLAYAS Y ROMPIENTES DE CASTELLÓN</Text>
+          <Text style={styles.sectionSub}>Ordenado por cercanía geográfica</Text>
         </View>
 
-        {nearestSpots.slice(0, 6).map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[styles.radarItem, item.id === currentSpot.id && styles.radarItemActive]}
-            onPress={() => handleSpotPress(item.id)}
-            activeOpacity={0.7}
-          >
-            <View>
-              <Text style={styles.radarName}>{item.name}</Text>
-              <Text style={styles.radarMeta}>
-                {item.distanceKm > 0 ? `${item.distanceKm} km · ` : ''}
-                {item.level} · {item.bottom}
-              </Text>
-            </View>
-            <View style={styles.radarAction}>
-              <Text style={styles.radarChevron}>›</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        <View style={styles.spotGrid}>
+          {nearestSpots.map((item) => {
+            const isSelected = item.id === currentSpot.id;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.gridRow, isSelected && styles.gridRowActive]}
+                onPress={() => handleSpotPress(item.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.gridRowMain}>
+                  <Text style={styles.gridRowName}>{item.name}</Text>
+                  <Text style={styles.gridRowMeta}>
+                    {item.distanceKm > 0 ? `${item.distanceKm} km · ` : ''}
+                    {item.bottom} · {item.level}
+                  </Text>
+                </View>
+                <View style={styles.gridRowRight}>
+                  <RatingPill rating={3} showLabel={false} />
+                  <Text style={styles.gridChevron}>›</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -194,190 +252,278 @@ export default function SpotsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0a1628',
+    backgroundColor: THEME.bg,
   },
   container: {
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: 40,
   },
-  header: {
+  topbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.line,
+    marginBottom: 12,
   },
-  appTitle: {
-    color: '#38bdf8',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  logoTitle: {
+    color: THEME.brand,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  logoSuffix: {
+    color: THEME.accent,
+    fontSize: 14,
+    fontWeight: '700',
+    marginLeft: 4,
   },
   headerSub: {
-    color: '#94a3b8',
-    fontSize: 13,
+    color: THEME.textMuted,
+    fontSize: 11,
+    marginTop: 2,
   },
-  barometerBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+  pressureBadge: {
+    backgroundColor: THEME.surface2,
+    borderWidth: 1,
+    borderColor: THEME.line,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 4,
   },
-  barometerText: {
-    color: '#38bdf8',
-    fontSize: 12,
+  pressureText: {
+    color: THEME.textSecondary,
+    fontSize: 11,
     fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
-  pillsScroll: {
-    marginBottom: 16,
+  chipsScroll: {
+    marginBottom: 14,
   },
-  pillsContent: {
-    gap: 8,
+  chipsContent: {
+    gap: 6,
+    paddingVertical: 2,
   },
-  pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#1e293b',
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    backgroundColor: THEME.surface2,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: THEME.line,
   },
-  pillActive: {
-    backgroundColor: '#0284c7',
-    borderColor: '#38bdf8',
+  chipActive: {
+    backgroundColor: THEME.text,
+    borderColor: THEME.text,
   },
-  pillText: {
-    color: '#94a3b8',
-    fontSize: 13,
+  chipText: {
+    color: THEME.textSecondary,
+    fontSize: 12,
     fontWeight: '600',
   },
-  pillTextActive: {
-    color: '#ffffff',
+  chipTextActive: {
+    color: THEME.bg,
     fontWeight: '700',
   },
-  playerContainer: {
+  noCameraBox: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#171b1e',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: THEME.line,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  noCameraBox: {
-    height: 180,
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  noCameraTitle: {
+    color: THEME.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-  noCameraText: {
-    color: '#64748b',
-    fontSize: 14,
+  noCameraSub: {
+    color: THEME.textFaint,
+    fontSize: 11,
+    marginTop: 4,
   },
-  card: {
-    backgroundColor: '#111e33',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#1e293b',
+  spotCard: {
+    backgroundColor: THEME.surface,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: THEME.line,
+    paddingVertical: 18,
     marginBottom: 20,
   },
-  cardHeader: {
+  cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  cardSpotName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: THEME.text,
+    letterSpacing: -0.4,
+  },
+  cardSpotZone: {
+    fontSize: 12,
+    color: THEME.textMuted,
+    marginTop: 2,
+  },
+  heightRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginVertical: 4,
+  },
+  heightNumber: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: THEME.text,
+    letterSpacing: -1,
+  },
+  heightUnit: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: THEME.textSecondary,
+    marginLeft: 6,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
     marginBottom: 14,
   },
-  spotName: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: THEME.surface2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: THEME.line,
   },
-  spotZone: {
-    color: '#64748b',
-    fontSize: 13,
-    marginTop: 2,
+  metaKey: {
+    fontSize: 11,
+    color: THEME.textMuted,
   },
-  ratingBox: {
-    alignItems: 'flex-end',
-  },
-  ratingStars: {
-    color: '#facc15',
-    fontSize: 14,
-    letterSpacing: 2,
-  },
-  ratingLabel: {
-    color: '#84cc16',
+  metaVal: {
     fontSize: 11,
     fontWeight: '700',
-    marginTop: 2,
+    color: THEME.text,
   },
-  metricsRow: {
+  windPill: {
+    borderColor: 'rgba(11, 214, 116, 0.3)',
+  },
+  windText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0bd674',
+  },
+  sparkContainer: {
+    marginTop: 6,
+    marginBottom: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: THEME.lineSubtle,
+  },
+  sparkTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: THEME.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  sparkBars: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#0a1628',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
   },
-  metricItem: {
+  sparkItem: {
     alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 2,
   },
-  metricVal: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
+  sparkBar: {
+    width: '100%',
+    height: 4,
+    borderRadius: 1,
+    marginBottom: 4,
   },
-  metricKey: {
-    color: '#64748b',
-    fontSize: 11,
-    marginTop: 2,
+  sparkLabel: {
+    fontSize: 9,
+    color: THEME.textFaint,
+    fontWeight: '600',
   },
   spotDesc: {
-    color: '#94a3b8',
-    fontSize: 13,
+    fontSize: 12,
+    color: THEME.textSecondary,
     lineHeight: 18,
   },
   sectionHeader: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    color: THEME.textMuted,
+    letterSpacing: 1,
   },
   sectionSub: {
-    color: '#64748b',
-    fontSize: 12,
+    fontSize: 11,
+    color: THEME.textFaint,
+    marginTop: 2,
   },
-  radarItem: {
+  spotGrid: {
+    borderTopWidth: 1,
+    borderColor: THEME.line,
+  },
+  gridRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#111e33',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#1e293b',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.line,
   },
-  radarItemActive: {
-    borderColor: '#0284c7',
-    backgroundColor: '#0c2340',
+  gridRowActive: {
+    borderLeftWidth: 3,
+    borderLeftColor: THEME.accent,
+    paddingLeft: 8,
   },
-  radarName: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
+  gridRowMain: {
+    flex: 1,
   },
-  radarMeta: {
-    color: '#64748b',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  radarAction: {
-    paddingLeft: 10,
-  },
-  radarChevron: {
-    color: '#38bdf8',
-    fontSize: 20,
+  gridRowName: {
+    fontSize: 15,
     fontWeight: '700',
+    color: THEME.text,
+  },
+  gridRowMeta: {
+    fontSize: 12,
+    color: THEME.textMuted,
+    marginTop: 3,
+  },
+  gridRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  gridChevron: {
+    fontSize: 18,
+    color: THEME.textMuted,
+    marginLeft: 4,
   },
 });

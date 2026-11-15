@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Surfline Castellón",
-    "slug": "surfline-castellon",
+    "name": "MeteoSurf_Cs",
+    "slug": "meteosurf-cs",
     "version": "1.0.0",
-    "scheme": "surflinecastellon",
+    "scheme": "meteosurfcs",
     "platforms": ["ios", "android"],
     "newArchEnabled": true,
     "orientation": "portrait",
@@ -16,7 +16,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.jordi.surflinecastellon",
+      "bundleIdentifier": "com.jordi.meteosurfcs",
+      "entitlements": {
+        "com.apple.developer.healthkit": true
+      },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
           {
@@ -38,12 +41,17 @@
         ]
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Para ordenar las playas por distancia a tu ubicación actual.",
-        "NSPhotoLibraryAddUsageDescription": "Para guardar clips de olas en tu carrete de fotos."
+        "NSLocationWhenInUseUsageDescription": "Para ordenar los spots por distancia y registrar tus sesiones de surf y olas en el agua.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Para registrar la ruta GPS, olas y velocidad mientras surfeas en el agua.",
+        "NSMotionUsageDescription": "Para detectar automáticamente cuándo coges una ola, los giros y contar las remadas con los sensores de movimiento.",
+        "NSHealthShareUsageDescription": "Para leer tus pulsaciones cardíacas y saturación de oxígeno durante la sesión de surf en el agua con tu Apple Watch.",
+        "NSHealthUpdateUsageDescription": "Para registrar la sesión de surf y las calorías activas en la app Salud de Apple.",
+        "NSPhotoLibraryAddUsageDescription": "Para guardar clips de olas en tu carrete de fotos.",
+        "UIBackgroundModes": ["location"]
       }
     },
     "android": {
-      "package": "com.jordi.surflinecastellon",
+      "package": "com.jordi.meteosurfcs",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a1628"

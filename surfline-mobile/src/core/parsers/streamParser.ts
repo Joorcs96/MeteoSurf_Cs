@@ -6,7 +6,7 @@ export interface ResolvedStream {
   short: string;
   spotId: string;
   priority: number;
-  type: 'hls' | 'mjpeg' | 'jpg' | 'iframe' | 'skyline';
+  type: 'hls' | 'mjpeg' | 'jpg' | 'iframe' | 'skyline' | 'restricted';
   streamUrl: string;
   fallbackUrl?: string;
   credit?: string;

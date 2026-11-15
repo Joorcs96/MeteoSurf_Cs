@@ -12,6 +12,14 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Trampa: Open-Meteo devuelve el día completo desde las 00:00, así que el primer día incluye horas ya pasadas. Si se quiere ocultar el pasado, filtrar por hora actual.
 - Pendiente: probar en iPhone físico; el guardado en Fotos depende de la URI del clip (los clips de ejemplo apuntan a un HLS remoto y no se pueden guardar como vídeo local).
 
+## Simulación 10.000 usuarios × 50 años (2026-11-16)
+- [VERIFICADO] Script `surfline-mobile/scripts/simulacion_10000_50anios.ts`. No usa red ni dependencias nuevas. Se compila con `npx tsc -p tsconfig.sim.json` (salida en `/tmp/meteosurf-sim`) y se ejecuta con `node /tmp/meteosurf-sim/scripts/simulacion_10000_50anios.js --iteracion=N`.
+- [VERIFICADO] `tsconfig.json` de la app excluye este script porque usa `fs`/`path` de Node; sin esa exclusión `npx tsc --noEmit` falla.
+- [VERIFICADO] Cobertura: 26.880 casos climáticos, 10.000 usuarios × 50 años, 6.000 sesiones profundas y contratos de spots/cámaras/previsión. Resultado final: 0 fallos.
+- [VERIFICADO] Fallo real encontrado y corregido (`CAM-001`): Renegà, El Palaciet y Nules no tenían cámara. `streamParser.ts` ahora devuelve la cámara de zona más cercana con `isZoneFallback`, `zoneDistanceKm` y `zoneSourceSpotId`; Inicio y ficha muestran el aviso "Vista de zona a X km".
+- Trampa: las cámaras no guardan lat/lon; la distancia de zona se estima con las coordenadas de los spots que cubre cada cámara. Es una referencia, no una medición exacta.
+- El script es determinista (semilla `20261116`); cambiar la semilla o la iteración cambia la muestra de usuarios y clima.
+
 ## Datos básicos
 - Web: https://joorcs96.github.io/MeteoSurf_Cs/ (GitHub Pages, rama main, raíz). Repo Joorcs96/MeteoSurf_Cs (antes Surfline_CS; Netlify ya no se usa).
 - Carpeta local sigue llamándose C:/Users/Jordi/orca/Surfline_CS. Investigación e informes: C:/Users/Jordi/orca/meteosurf_research.

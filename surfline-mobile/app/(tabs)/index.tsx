@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { SPOTS, Spot } from '../../src/data/spotsData';
 import { useSpotStore } from '../../src/store/useSpotStore';
 import { useVigiaStore } from '../../src/store/useVigiaStore';
@@ -34,6 +35,7 @@ export default function SpotsScreen() {
   const { selectedSpotId, selectSpot } = useSpotStore();
   const { addClip } = useVigiaStore();
   const { spots: nearestSpots, pressureHpa } = useNearestSpots();
+  const router = useRouter();
 
   const currentSpot: Spot = SPOTS.find((s) => s.id === selectedSpotId) || SPOTS[0];
   const streams: ResolvedStream[] = getStreamsForSpot(currentSpot.id);
@@ -203,17 +205,29 @@ export default function SpotsScreen() {
 
         {/* Reproductor de cámara en directo (16:9 con soporte multi-cámara y restringidas) */}
         {activeStream ? (
-          <SurfCamPlayer
+          <>
+            <SurfCamPlayer
             streamUrl={activeStream.streamUrl}
             fallbackImageUrl={activeStream.fallbackUrl}
             isImageStream={activeStream.type === 'jpg'}
             isRestricted={activeStream.type === 'restricted'}
-            spotName={currentSpot.name}
+            spotName={
+              activeStream.isZoneFallback
+                ? `${currentSpot.name} · ZONA`
+                : currentSpot.name
+            }
             availableStreams={streamOptions}
             activeStreamId={activeStream.id}
             onSelectStream={(newId) => setActiveStreamId(newId)}
-            onCaptureClip={handleCaptureVigia}
-          />
+              onCaptureClip={handleCaptureVigia}
+            />
+            {activeStream.isZoneFallback ? (
+            <Text style={styles.zoneNote}>
+              Sin cámara propia en este spot. Vista de zona a{' '}
+              {activeStream.zoneDistanceKm} km (referencia del mar cercano).
+              </Text>
+            ) : null}
+          </>
         ) : (
           <View style={styles.noCameraBox}>
             <Text style={styles.noCameraTitle}>SIN EMISIÓN EN DIRECTO</Text>
@@ -280,6 +294,17 @@ export default function SpotsScreen() {
           </View>
 
           <Text style={styles.spotDesc}>{currentSpot.desc}</Text>
+
+          <TouchableOpacity
+            style={styles.spotDetailBtn}
+            activeOpacity={0.8}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push(`/spot/${currentSpot.id}`);
+            }}
+          >
+            <Text style={styles.spotDetailBtnText}>VER FICHA COMPLETA</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Radar de spots cercanos por GPS (Fiel a .spot-grid) */}
@@ -425,6 +450,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
   },
+  zoneNote: {
+    color: THEME.textFaint,
+    fontSize: 11,
+    marginTop: 6,
+    lineHeight: 15,
+  },
   spotCard: {
     backgroundColor: THEME.surface,
     borderTopWidth: 1,
@@ -540,6 +571,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: THEME.textSecondary,
     lineHeight: 18,
+  },
+  spotDetailBtn: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: THEME.accent,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  spotDetailBtnText: {
+    color: THEME.accent,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   sectionHeader: {
     marginBottom: 10,

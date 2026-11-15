@@ -1,0 +1,40 @@
+{
+  "iteracion": 2,
+  "fecha": "2026-11-15T23:13:28.494Z",
+  "semilla": 20261318,
+  "duracionMs": 675,
+  "metricas": {
+    "climaCasos": 26880,
+    "climaFallos": 0,
+    "usuariosTotales": 10000,
+    "usuariosActivosFinal": 10000,
+    "aniosSimulados": 50,
+    "sesionesTotales": 784688,
+    "olasTotales": 1577707,
+    "clipsGenerados": 55604,
+    "avisosEnviados": 1355,
+    "comunidadPosts": 11498,
+    "previsionesConsultadas": 784688,
+    "sesionesProfundas": 6000,
+    "olasDetectadasProfundas": 4800,
+    "falsosPositivos": 0,
+    "olasPerdidas": 0,
+    "tiempoMs": 132
+  },
+  "fallos": [
+    {
+      "codigo": "TRK-008",
+      "titulo": "Giros claros no detectados",
+      "severidad": "medio",
+      "detalle": "Cambios de rumbo de 55 grados en la ola no generan maniobras.",
+      "ejemplos": [
+        "idx=4 tipo=mixta turns=0",
+        "idx=9 tipo=mixta turns=0",
+        "idx=14 tipo=mixta turns=0",
+        "idx=19 tipo=mixta turns=0",
+        "idx=24 tipo=mixta turns=0"
+      ]
+    }
+  ],
+  "totalFallos": 1
+}

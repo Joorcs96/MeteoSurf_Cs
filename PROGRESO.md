@@ -12,6 +12,16 @@
 - Verificación: `npx tsc --noEmit` con 0 errores y bundle iOS exportado correctamente (`expo export`, 3,7 MB).
 - Pendiente de Jordi: probar en iPhone físico con Expo Go para validar red real y guardado en Fotos.
 
+## 2026-11-16 — Simulación 10.000 usuarios × 50 años (5 iteraciones)
+
+- Creado `surfline-mobile/scripts/simulacion_10000_50anios.ts` + `tsconfig.sim.json`: 26.880 casos climáticos, flota de 10.000 usuarios durante 50 años, 6.000 sesiones profundas de tracking y contratos de datos/previsión.
+- Resultado final: 779.417 sesiones, 1.572.477 olas, 56.215 clips, 3.428 olas detectadas en profundidad, 0 falsos positivos, 0 olas perdidas y **0 fallos abiertos**.
+- Iteración 1 encontró el fallo real `CAM-001` (Renegà, El Palaciet y Nules sin cámara). Corregido con cámara de zona: se usa la cámara más cercana marcada `ZONA` y con su distancia; nunca se presenta como cámara exacta.
+- Iteraciones 2-5 ampliaron comprobaciones (giros, brazadas, picos aislados, sesiones de 2 h, `null` de Open-Meteo, horas exactas, coherencia de resumen y estabilidad con mar constante) y quedaron sin fallos.
+- Verificación: `npx tsc --noEmit` 0 errores y bundle iOS exportado correctamente.
+- Documento: `docs/simulacion-10000-50anios.md`; resultados por iteración en `docs/simulacion-10000-50anios-iteracion-N.json`.
+- Límite: la simulación valida consistencia y contratos, no exactitud oceanográfica contra boyas.
+
 ## 2026-11-15 — Ejecución simultánea en vivo: iPhone y Apple Watch Series 7 en pantalla
 
 - Entorno en ejecución simultánea en pantalla:

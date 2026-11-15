@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,15 @@ import { SPOTS, Spot } from '../../src/data/spotsData';
 import { getStreamsForSpot, ResolvedStream } from '../../src/core/parsers/streamParser';
 import { SurfCamPlayer, CamStreamOption } from '../../src/components/video/SurfCamPlayer';
 import { RatingPill } from '../../src/components/ui/RatingPill';
+import {
+  fetchSpotForecast,
+  generateOfflineForecast,
+  SpotForecastResult,
+} from '../../src/core/parsers/forecastParser';
+import {
+  getForecastFromCache,
+  saveForecastToCache,
+} from '../../src/services/storage/forecastCache';
 import { THEME } from '../../src/theme/colors';
 
 export default function SpotDetailScreen() {
@@ -22,6 +31,39 @@ export default function SpotDetailScreen() {
   const streams: ResolvedStream[] = getStreamsForSpot(spot.id);
   const [activeStreamId, setActiveStreamId] = useState<string>(streams[0]?.id || '');
   const activeStream = streams.find((s) => s.id === activeStreamId) || streams[0] || null;
+  const [forecast, setForecast] = useState<SpotForecastResult | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      let cached: SpotForecastResult | null = null;
+      try {
+        cached = await getForecastFromCache(spot.id);
+      } catch {
+        cached = null;
+      }
+      if (cached && isMounted) setForecast(cached);
+
+      try {
+        const fresh = await fetchSpotForecast(spot);
+        if (!isMounted) return;
+        setForecast(fresh);
+        saveForecastToCache(fresh).catch(() => {});
+      } catch {
+        if (!isMounted) return;
+        if (!cached) setForecast(generateOfflineForecast(spot));
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [spot]);
+
+  const todayMaxStars = (forecast?.hours || [])
+    .slice(0, 24)
+    .reduce((max, h) => Math.max(max, h.rating.stars), 0);
 
   const streamOptions: CamStreamOption[] = streams.map((s) => ({
     id: s.id,
@@ -44,16 +86,23 @@ export default function SpotDetailScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Reproductor de cámara en directo (16:9 con soporte multi-cámara) */}
         {activeStream ? (
-          <SurfCamPlayer
+          <>
+            <SurfCamPlayer
             streamUrl={activeStream.streamUrl}
             fallbackImageUrl={activeStream.fallbackUrl}
             isImageStream={activeStream.type === 'jpg'}
             isRestricted={activeStream.type === 'restricted'}
-            spotName={spot.name}
+            spotName={activeStream.isZoneFallback ? `${spot.name} · ZONA` : spot.name}
             availableStreams={streamOptions}
             activeStreamId={activeStream.id}
-            onSelectStream={(newId) => setActiveStreamId(newId)}
-          />
+              onSelectStream={(newId) => setActiveStreamId(newId)}
+            />
+            {activeStream.isZoneFallback ? (
+            <Text style={styles.zoneNote}>
+              Sin cámara propia. Vista de zona a {activeStream.zoneDistanceKm} km.
+              </Text>
+            ) : null}
+          </>
         ) : (
           <View style={styles.noPlayer}>
             <Text style={styles.noPlayerText}>SIN EMISIÓN EN DIRECTO DISPONIBLE</Text>
@@ -67,7 +116,7 @@ export default function SpotDetailScreen() {
               <Text style={styles.infoTitle}>{spot.name.toUpperCase()}</Text>
               <Text style={styles.infoZone}>{spot.zoneName || spot.zone}</Text>
             </View>
-            <RatingPill rating={3.5} />
+            <RatingPill rating={todayMaxStars} />
           </View>
 
           <View style={styles.grid}>
@@ -132,6 +181,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 40,
+  },
+  zoneNote: {
+    color: THEME.textFaint,
+    fontSize: 11,
+    marginTop: 6,
+    lineHeight: 15,
   },
   noPlayer: {
     width: '100%',

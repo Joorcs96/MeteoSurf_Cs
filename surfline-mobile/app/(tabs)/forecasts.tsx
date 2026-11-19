@@ -24,6 +24,13 @@ import {
 import { RatingPill } from '../../src/components/ui/RatingPill';
 import { THEME } from '../../src/theme/colors';
 
+interface WeekDayForecast {
+  offset: number;
+  label: string;
+  stars: number;
+  color: string;
+}
+
 export default function ForecastsScreen() {
   const { selectedSpotId, selectSpot } = useSpotStore();
   const currentSpot: Spot = SPOTS.find((s) => s.id === selectedSpotId) || SPOTS[0];
@@ -82,7 +89,6 @@ export default function ForecastsScreen() {
     setIsOfflineMode(!isOfflineMode);
   };
 
-  // Filtrar tramos de 24 horas por día
   const hoursForSelectedDay: HourlyForecast[] = (forecast?.hours || []).slice(
     selectedDayOffset * 24,
     (selectedDayOffset + 1) * 24
@@ -93,20 +99,69 @@ export default function ForecastsScreen() {
   >((best, h) => (!best || h.rating.stars > best.rating.stars ? h : best), undefined);
 
   const dayMaxStars = bestHourData?.rating.stars ?? 0;
-  const dayMaxHeight = hoursForSelectedDay.reduce(
-    (max, h) => Math.max(max, h.surfHeight.max),
-    0
-  );
-  const isLiveData = forecast != null && !forecast.isOffline && !isOfflineMode;
+
+  const weekDays: WeekDayForecast[] = Array.from({ length: 7 }, (_, offset) => {
+    const dayHours = (forecast?.hours || []).slice(offset * 24, (offset + 1) * 24);
+    const dayBest = dayHours.reduce<HourlyForecast | undefined>(
+      (best, h) => (!best || h.rating.stars > best.rating.stars ? h : best),
+      undefined
+    );
+    const maxStars = dayBest?.rating.stars ?? 0;
+    const label = offset === 0 ? 'HOY' : `+${offset}`;
+    const color = dayBest ? THEME.ratings[dayBest.rating.key] : THEME.ratings.flat;
+    return { offset, label, stars: maxStars, color };
+  });
+
+  const heroHeightValue = bestHourData ? bestHourData.surfHeight.mid.toFixed(2) : '--';
+  const heroPeriodValue = bestHourData ? bestHourData.period.toFixed(1) : '--';
+  const heroSwellValue = bestHourData ? `${Math.round(bestHourData.waveDirection)}°` : '--';
+  const heroEnergyValue = bestHourData ? bestHourData.energy.powerKwM.toFixed(1) : '--';
+
+  const windColorFor = (key?: string): string => {
+    switch (key) {
+      case 'offshore':
+        return THEME.wind.offshore;
+      case 'onshore':
+        return THEME.wind.onshore;
+      case 'cross':
+        return THEME.wind.cross;
+      case 'crossoff':
+        return THEME.wind.offshore;
+      case 'crosson':
+        return THEME.wind.cross;
+      case 'glassy':
+        return THEME.wind.glassy;
+      default:
+        return THEME.textMuted;
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="small" color={THEME.accent} />
+          <Text style={styles.loadingText}>Calculando física de rompiente...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Encabezado */}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Cabecera: nombre del spot + RatingPill grande */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>PREVISIÓN DE OLAS</Text>
-            <Text style={styles.subtitle}>Física costera · Modelo Mediterráneo</Text>
+          <View style={styles.headerTop}>
+            <View style={styles.headerSpot}>
+              <Text style={styles.headerSpotName}>{currentSpot.name}</Text>
+              <Text style={styles.headerSpotZone}>{currentSpot.zoneName || currentSpot.zone}</Text>
+            </View>
+            <RatingPill rating={dayMaxStars} style={styles.bigRatingPill} />
           </View>
           <TouchableOpacity
             style={[styles.offlineBtn, isOfflineMode && styles.offlineBtnActive]}
@@ -119,150 +174,93 @@ export default function ForecastsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Selector horizontal de spots */}
+        {/* Selector horizontal de 7 días */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.pillsScroll}
-          contentContainerStyle={styles.pillsContent}
+          style={styles.daysScroll}
+          contentContainerStyle={styles.daysContent}
         >
-          {SPOTS.map((s) => {
-            const isSelected = s.id === currentSpot.id;
-            return (
-              <TouchableOpacity
-                key={s.id}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  selectSpot(s.id);
-                }}
-                style={[styles.pill, isSelected && styles.pillActive]}
-                activeOpacity={0.7}
+          {weekDays.map((d) => (
+            <TouchableOpacity
+              key={d.offset}
+              style={[styles.dayPill, d.offset === selectedDayOffset && styles.dayPillActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedDayOffset(d.offset);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.dayPillLabel,
+                  d.offset === selectedDayOffset && styles.dayPillLabelActive,
+                ]}
               >
-                <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
-                  {s.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                {d.label}
+              </Text>
+              <View style={styles.dayPillValue}>
+                <View style={[styles.dayPillDot, { backgroundColor: d.color }]} />
+                <Text style={[styles.dayPillScore, { color: d.color }]}>{d.stars}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
-        {loading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="small" color={THEME.accent} />
-            <Text style={styles.loadingText}>Calculando física de rompiente...</Text>
-          </View>
-        ) : (
-          <View>
-            {/* Tarjeta de Resumen del Baño Óptimo */}
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryTop}>
-                <View>
-                  <Text style={styles.summarySpot}>{currentSpot.name.toUpperCase()}</Text>
-                  <Text style={styles.summaryZone}>{currentSpot.zoneName || currentSpot.zone}</Text>
-                </View>
-                <RatingPill rating={dayMaxStars} />
-              </View>
-
-              <View style={styles.summaryMainRow}>
-                <View>
-                  <Text style={styles.bestTimeTitle}>MEJOR FRANJA</Text>
-                  <Text style={styles.bestTimeValue}>
-                    {bestHourData != null
-                      ? `${String(bestHourData.hour).padStart(2, '0')}:00 - ${String(
-                          (bestHourData.hour + 3) % 24
-                        ).padStart(2, '0')}:00 h`
-                      : 'Sin datos'}
-                  </Text>
-                </View>
-                <View style={styles.bestHeightBox}>
-                  <Text style={styles.bestHeightVal}>
-                    {hoursForSelectedDay.length > 0 ? `${dayMaxHeight.toFixed(2)} m` : '-- m'}
-                  </Text>
-                  <Text style={styles.bestHeightLabel}>Rompiente</Text>
-                </View>
-              </View>
-
-              <View style={styles.conditionsPillRow}>
-                <View style={styles.condPill}>
-                  <Text style={styles.condPillText}>
-                    {isLiveData ? 'Datos en vivo' : 'Modo playa (sin conexión)'}
-                  </Text>
-                </View>
-                <View style={styles.condPill}>
-                  <Text style={styles.condPillText}>
-                    Viento: {bestHourData?.windState?.label || '--'} {bestHourData?.windSpeed ?? '--'} km/h
-                  </Text>
-                </View>
-                <View style={styles.condPill}>
-                  <Text style={styles.condPillText}>
-                    Energía: {bestHourData?.energy?.powerKwM?.toFixed(1) ?? '--'} kW/m
-                  </Text>
-                </View>
-                <View style={styles.condPill}>
-                  <Text style={styles.condPillText}>
-                    Periodo: {bestHourData?.period?.toFixed(1) ?? '--'} s
-                  </Text>
-                </View>
-              </View>
+        {/* Hero del día seleccionado */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            <View style={styles.heroHeightBox}>
+              <Text style={styles.heroHeight}>{heroHeightValue}</Text>
+              <Text style={styles.heroHeightUnit}>m</Text>
             </View>
-
-            {/* Selector de Días de Previsión */}
-            <View style={styles.daysRow}>
-              {['HOY', 'MAÑANA', 'DÍA 3', 'DÍA 4', 'DÍA 5', 'DÍA 6', 'DÍA 7'].map(
-                (dayName, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[
-                      styles.dayBtn,
-                      selectedDayOffset === idx && styles.dayBtnActive,
-                    ]}
-                    onPress={() => setSelectedDayOffset(idx)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.dayBtnText,
-                        selectedDayOffset === idx && styles.dayBtnTextActive,
-                      ]}
-                    >
-                      {dayName}
-                    </Text>
-                  </TouchableOpacity>
-                )
-              )}
-            </View>
-
-            {/* Tabla Horaria Desglosada */}
-            <View style={styles.tableCard}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.colHeader, { width: 44 }]}>HORA</Text>
-                <Text style={[styles.colHeader, { width: 68 }]}>ESTADO</Text>
-                <Text style={[styles.colHeader, { width: 56 }]}>OLA</Text>
-                <Text style={[styles.colHeader, { width: 48 }]}>PER.</Text>
-                <Text style={[styles.colHeader, { flex: 1 }]}>VIENTO</Text>
+            <View style={styles.heroMeta}>
+              <View style={styles.heroMetaRow}>
+                <Text style={styles.heroMetaKey}>PERIODO</Text>
+                <Text style={styles.heroMetaVal}>{`${heroPeriodValue} s`}</Text>
               </View>
-
-              {hoursForSelectedDay.map((h, i) => {
-                const timeLabel = h.time.includes('T')
-                  ? h.time.split('T')[1].slice(0, 5)
-                  : `${String(h.hour).padStart(2, '0')}:00`;
-                return (
-                  <View key={i} style={[styles.tableRow, i % 2 === 1 && styles.tableRowEven]}>
-                    <Text style={styles.colTime}>{timeLabel}</Text>
-                    <View style={{ width: 68 }}>
-                      <RatingPill rating={h.rating.stars} showLabel={false} />
-                    </View>
-                    <Text style={styles.colHeight}>{h.surfHeight.mid.toFixed(2)} m</Text>
-                    <Text style={styles.colPeriod}>{h.period.toFixed(1)} s</Text>
-                    <Text style={styles.colWind}>
-                      {h.windSpeed} km/h {h.windState.label}
-                    </Text>
-                  </View>
-                );
-              })}
+              <View style={styles.heroMetaRow}>
+                <Text style={styles.heroMetaKey}>SWELL</Text>
+                <Text style={styles.heroMetaVal}>{`${heroSwellValue}`}</Text>
+              </View>
+              <View style={styles.heroMetaRow}>
+                <Text style={styles.heroMetaKey}>ENERGÍA</Text>
+                <Text style={styles.heroMetaVal}>{`${heroEnergyValue} kW/m`}</Text>
+              </View>
             </View>
           </View>
-        )}
+        </View>
+
+        {/* Tabla horaria del día seleccionado */}
+        <View style={styles.tableCard}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.colHeader, { width: 40 }]}>HORA</Text>
+            <Text style={[styles.colHeader, { width: 56 }]}>ALTURA</Text>
+            <Text style={[styles.colHeader, { width: 48 }]}>NOTA</Text>
+            <Text style={[styles.colHeader, { width: 44 }]}>PER.</Text>
+            <Text style={[styles.colHeader, { flex: 1 }]}>VIENTO</Text>
+          </View>
+
+          {hoursForSelectedDay.map((h, i) => {
+            const timeLabel = h.time.includes('T')
+              ? h.time.split('T')[1].slice(0, 5)
+              : `${String(h.hour).padStart(2, '0')}:00`;
+            const rowBackground = i % 2 === 1 ? THEME.surface2 : THEME.surface;
+            return (
+              <View key={i} style={[styles.tableRow, { backgroundColor: rowBackground }]}>
+                <Text style={styles.colTime}>{timeLabel}</Text>
+                <Text style={styles.colHeight}>{`${h.surfHeight.mid.toFixed(2)} m`}</Text>
+                <View style={styles.colStars}>
+                  <RatingPill rating={h.rating.stars} showLabel={false} />
+                </View>
+                <Text style={styles.colPeriod}>{`${h.period.toFixed(1)} s`}</Text>
+                <Text style={[styles.colWind, { color: windColorFor(h.windState.key) }]}>
+                  {`${h.windSpeed} km/h ${h.windState.label}`}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -278,36 +276,54 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 40,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.line,
-    marginBottom: 12,
-  },
-  title: {
-    color: THEME.brand,
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    color: THEME.textMuted,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  offlineBtn: {
+    backgroundColor: THEME.surface,
     borderWidth: 1,
     borderColor: THEME.line,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 14,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerSpot: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  headerSpotName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: THEME.text,
+    letterSpacing: -0.4,
+  },
+  headerSpotZone: {
+    fontSize: 11,
+    color: THEME.textMuted,
+    marginTop: 2,
+  },
+  bigRatingPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: THEME.surface2,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: THEME.line,
+  },
+  offlineBtn: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    backgroundColor: THEME.surface2,
+    borderWidth: 1,
+    borderColor: THEME.line,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   offlineBtnActive: {
     backgroundColor: THEME.ratings.fair,
@@ -315,161 +331,116 @@ const styles = StyleSheet.create({
   },
   offlineBtnText: {
     color: THEME.textSecondary,
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   offlineBtnTextActive: {
     color: THEME.bg,
     fontWeight: '800',
   },
-  pillsScroll: {
-    marginBottom: 14,
+  daysScroll: {
+    marginBottom: 16,
   },
-  pillsContent: {
-    gap: 6,
+  daysContent: {
+    gap: 8,
   },
-  pill: {
+  dayPill: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
+    paddingVertical: 10,
+    borderRadius: 8,
     backgroundColor: THEME.surface2,
     borderWidth: 1,
     borderColor: THEME.line,
+    alignItems: 'center',
+    minWidth: 62,
   },
-  pillActive: {
+  dayPillActive: {
     backgroundColor: THEME.text,
     borderColor: THEME.text,
   },
-  pillText: {
+  dayPillLabel: {
+    fontSize: 10,
+    fontWeight: '800',
     color: THEME.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  pillTextActive: {
+  dayPillLabelActive: {
     color: THEME.bg,
-    fontWeight: '700',
   },
-  loadingBox: {
-    paddingVertical: 40,
+  dayPillValue: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
+    marginTop: 6,
   },
-  loadingText: {
-    color: THEME.textMuted,
-    fontSize: 12,
-    marginTop: 10,
+  dayPillDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  summaryCard: {
+  dayPillScore: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: THEME.text,
+    fontVariant: ['tabular-nums'],
+  },
+  heroCard: {
     backgroundColor: THEME.surface,
     borderWidth: 1,
     borderColor: THEME.line,
-    borderRadius: 6,
+    borderRadius: 10,
     padding: 16,
     marginBottom: 16,
   },
-  summaryTop: {
+  heroTop: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
   },
-  summarySpot: {
-    fontSize: 17,
+  heroHeightBox: {
+    flex: 1,
+  },
+  heroHeight: {
+    fontSize: 48,
     fontWeight: '800',
     color: THEME.text,
-    letterSpacing: -0.3,
+    letterSpacing: -1.5,
+    fontVariant: ['tabular-nums'],
   },
-  summaryZone: {
-    fontSize: 11,
-    color: THEME.textMuted,
-    marginTop: 2,
+  heroHeightUnit: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: THEME.textSecondary,
+    marginLeft: 4,
   },
-  summaryMainRow: {
+  heroMeta: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  heroMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: THEME.lineSubtle,
+    paddingVertical: 3,
   },
-  bestTimeTitle: {
-    fontSize: 10,
-    fontWeight: '700',
+  heroMetaKey: {
+    fontSize: 9,
+    fontWeight: '800',
     color: THEME.textMuted,
     letterSpacing: 0.8,
   },
-  bestTimeValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: THEME.text,
-    marginTop: 2,
-    fontVariant: ['tabular-nums'],
-  },
-  bestHeightBox: {
-    alignItems: 'flex-end',
-  },
-  bestHeightVal: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: THEME.accent,
-    fontVariant: ['tabular-nums'],
-  },
-  bestHeightLabel: {
-    fontSize: 10,
-    color: THEME.textMuted,
-  },
-  conditionsPillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 10,
-  },
-  condPill: {
-    backgroundColor: THEME.surface2,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: THEME.line,
-  },
-  condPillText: {
-    fontSize: 10,
-    color: THEME.textSecondary,
-    fontWeight: '600',
-  },
-  daysRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  dayBtn: {
-    flex: 1,
-    paddingVertical: 6,
-    alignItems: 'center',
-    backgroundColor: THEME.surface2,
-    borderWidth: 1,
-    borderColor: THEME.line,
-    borderRadius: 4,
-  },
-  dayBtnActive: {
-    backgroundColor: THEME.text,
-    borderColor: THEME.text,
-  },
-  dayBtnText: {
-    color: THEME.textSecondary,
-    fontSize: 10,
+  heroMetaVal: {
+    fontSize: 13,
     fontWeight: '700',
-  },
-  dayBtnTextActive: {
-    color: THEME.bg,
-    fontWeight: '800',
+    color: THEME.text,
+    fontVariant: ['tabular-nums'],
   },
   tableCard: {
     backgroundColor: THEME.surface,
     borderWidth: 1,
     borderColor: THEME.line,
-    borderRadius: 6,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   tableHeader: {
@@ -482,7 +453,7 @@ const styles = StyleSheet.create({
     borderBottomColor: THEME.line,
   },
   colHeader: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: THEME.textMuted,
     letterSpacing: 0.5,
@@ -495,11 +466,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: THEME.lineSubtle,
   },
-  tableRowEven: {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  },
   colTime: {
-    width: 44,
+    width: 40,
     fontSize: 12,
     fontWeight: '700',
     color: THEME.text,
@@ -512,15 +480,32 @@ const styles = StyleSheet.create({
     color: THEME.text,
     fontVariant: ['tabular-nums'],
   },
-  colPeriod: {
+  colStars: {
     width: 48,
-    fontSize: 11,
-    color: THEME.textMuted,
+    alignItems: 'center',
+  },
+  colPeriod: {
+    width: 44,
+    fontSize: 10,
+    fontWeight: '700',
+    color: THEME.textSecondary,
     fontVariant: ['tabular-nums'],
   },
   colWind: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 10,
+    fontWeight: '700',
     color: THEME.textSecondary,
+  },
+  loadingBox: {
+    flex: 1,
+    paddingVertical: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: THEME.textMuted,
+    fontSize: 12,
+    marginTop: 10,
   },
 });

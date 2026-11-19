@@ -3,9 +3,18 @@ import { View, Text, StyleSheet } from 'react-native';
 import { THEME, getRatingColor, getRatingLabel } from '../../theme/colors';
 
 interface RatingPillProps {
-  rating: number; // 0 a 7 (o 0 a 5)
+  rating: number; // 0 a 7 (escala de calidad mediterránea)
   showLabel?: boolean;
   style?: object;
+}
+
+// Convierte un color hex de THEME en rgba con la opacidad dada (para tintes sutiles)
+function tint(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 export const RatingPill: React.FC<RatingPillProps> = ({
@@ -16,10 +25,21 @@ export const RatingPill: React.FC<RatingPillProps> = ({
   const color = getRatingColor(rating);
   const label = getRatingLabel(rating);
 
+  if (!showLabel) {
+    // Variante compacta para tablas y filas: solo el punto de color
+    return <View style={[styles.dotOnly, { backgroundColor: color }, style]} />;
+  }
+
   return (
-    <View style={[styles.pill, style]}>
+    <View
+      style={[
+        styles.pill,
+        { backgroundColor: tint(color, 0.14), borderColor: tint(color, 0.45) },
+        style,
+      ]}
+    >
       <View style={[styles.dot, { backgroundColor: color }]} />
-      {showLabel && <Text style={styles.label}>{label}</Text>}
+      <Text style={[styles.label, { color }]}>{label}</Text>
     </View>
   );
 };
@@ -29,16 +49,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+  },
+  dotOnly: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   label: {
-    color: THEME.text,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
     letterSpacing: 0.2,
   },
 });

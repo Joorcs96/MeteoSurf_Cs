@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -100,6 +100,40 @@ export default function SpotsScreen() {
             .slice(0, 3);
     return { day: label, color: getRatingColor(maxStars) };
   });
+
+  // Valoración real de hoy por cada spot cercano (antes salía 3 fijo para todos)
+  const nearbyStars = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of nearestSpots) {
+      const spot = SPOTS.find((s) => s.id === item.id);
+      if (!spot) continue;
+      try {
+        const today = generateOfflineForecast(spot).hours.slice(0, 24);
+        map[item.id] = today.reduce((m, h) => Math.max(m, h.rating.stars), 0);
+      } catch {
+        map[item.id] = 0;
+      }
+    }
+    return map;
+  }, [nearestSpots]);
+
+  // Color del viento según su dirección real (terral/mar/cruzado/calma)
+  const windColor = (() => {
+    switch (bestToday?.windState?.key) {
+      case 'offshore':
+      case 'crossoff':
+        return THEME.wind.offshore;
+      case 'onshore':
+        return THEME.wind.onshore;
+      case 'cross':
+      case 'crosson':
+        return THEME.wind.cross;
+      case 'glassy':
+        return THEME.wind.glassy;
+      default:
+        return THEME.textMuted;
+    }
+  })();
 
   const handleSpotPress = (spotId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -271,8 +305,8 @@ export default function SpotsScreen() {
                 {bestToday != null ? `${Math.round(bestToday.waveDirection)}°` : '--'}
               </Text>
             </View>
-            <View style={[styles.metaPill, styles.windPill]}>
-              <Text style={styles.windText}>
+            <View style={[styles.metaPill, { borderColor: windColor }]}>
+              <Text style={[styles.windText, { color: windColor }]}>
                 {bestToday?.windState?.label ?? '--'} · {bestToday?.windSpeed ?? '--'} km/h
               </Text>
             </View>
@@ -331,7 +365,7 @@ export default function SpotsScreen() {
                   </Text>
                 </View>
                 <View style={styles.gridRowRight}>
-                  <RatingPill rating={3} showLabel={false} />
+                  <RatingPill rating={nearbyStars[item.id] ?? 0} showLabel={false} />
                   <Text style={styles.gridChevron}>›</Text>
                 </View>
               </TouchableOpacity>
@@ -525,13 +559,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: THEME.text,
   },
-  windPill: {
-    borderColor: 'rgba(11, 214, 116, 0.25)',
-  },
   windText: {
     fontSize: 11,
     fontWeight: '700',
-    color: THEME.wind.offshore,
   },
   sparkContainer: {
     marginTop: 6,

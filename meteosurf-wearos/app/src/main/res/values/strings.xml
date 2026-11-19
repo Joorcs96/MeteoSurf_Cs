@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MeteoSurf</string>
+    <string name="sample_spot">Gurugu</string>
+    <string name="sample_wind">Terral</string>
+    <string name="heart_rate">Pulso</string>
+</resources>

@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { getStorage } from '../services/storage/storageAdapter';
+
+const CLIPS_STORAGE_KEY = 'meteosurf_vigia_clips';
 
 export interface VigiaClip {
   id: string;
@@ -18,6 +21,13 @@ interface VigiaStore {
   addClip: (clip: VigiaClip) => void;
   removeClip: (id: string) => void;
   setRecording: (value: boolean) => void;
+  loadClips: () => Promise<void>;
+}
+
+function persistClips(clips: VigiaClip[]) {
+  getStorage()
+    .set(CLIPS_STORAGE_KEY, JSON.stringify(clips))
+    .catch(() => {});
 }
 
 export const useVigiaStore = create<VigiaStore>((set) => ({
@@ -46,7 +56,28 @@ export const useVigiaStore = create<VigiaStore>((set) => ({
     },
   ],
   isRecording: false,
-  addClip: (clip) => set((s) => ({ clips: [clip, ...s.clips] })),
-  removeClip: (id) => set((s) => ({ clips: s.clips.filter((c) => c.id !== id) })),
+  addClip: (clip) =>
+    set((s) => {
+      const clips = [clip, ...s.clips];
+      persistClips(clips);
+      return { clips };
+    }),
+  removeClip: (id) =>
+    set((s) => {
+      const clips = s.clips.filter((c) => c.id !== id);
+      persistClips(clips);
+      return { clips };
+    }),
   setRecording: (value) => set({ isRecording: value }),
+  loadClips: async () => {
+    try {
+      const raw = await getStorage().get(CLIPS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) set({ clips: parsed });
+      }
+    } catch {
+      // Si el almacenamiento falla se mantienen los clips de ejemplo
+    }
+  },
 }));

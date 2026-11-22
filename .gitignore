@@ -44,3 +44,5 @@ surfline-mobile/node_modules/
 surfline-mobile/.expo/
 surfline-mobile/dist/
 surfline-mobile/.env
+surfline-mobile/watch/MeteoSurfWatch*
+surfline-mobile/watch/MeteoSurfWatch.app/MeteoSurfWatch

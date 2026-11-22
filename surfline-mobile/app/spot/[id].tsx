@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,70 +8,137 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SPOTS } from '../../src/data/spotsData';
-import { getStreamsForSpot } from '../../src/core/parsers/streamParser';
-import { SurfCamPlayer } from '../../src/components/video/SurfCamPlayer';
+import { SPOTS, Spot } from '../../src/data/spotsData';
+import { getStreamsForSpot, ResolvedStream } from '../../src/core/parsers/streamParser';
+import { SurfCamPlayer, CamStreamOption } from '../../src/components/video/SurfCamPlayer';
+import { RatingPill } from '../../src/components/ui/RatingPill';
+import {
+  fetchSpotForecast,
+  generateOfflineForecast,
+  SpotForecastResult,
+} from '../../src/core/parsers/forecastParser';
+import {
+  getForecastFromCache,
+  saveForecastToCache,
+} from '../../src/services/storage/forecastCache';
+import { THEME } from '../../src/theme/colors';
 
 export default function SpotDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  const spot = SPOTS.find((s) => s.id === id) || SPOTS[0];
-  const streams = getStreamsForSpot(spot.id);
-  const primaryStream = streams[0] || null;
+  const spot: Spot = SPOTS.find((s) => s.id === id) || SPOTS[0];
+  const streams: ResolvedStream[] = getStreamsForSpot(spot.id);
+  const [activeStreamId, setActiveStreamId] = useState<string>(streams[0]?.id || '');
+  const activeStream = streams.find((s) => s.id === activeStreamId) || streams[0] || null;
+  const [forecast, setForecast] = useState<SpotForecastResult | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      let cached: SpotForecastResult | null = null;
+      try {
+        cached = await getForecastFromCache(spot.id);
+      } catch {
+        cached = null;
+      }
+      if (cached && isMounted) setForecast(cached);
+
+      try {
+        const fresh = await fetchSpotForecast(spot);
+        if (!isMounted) return;
+        setForecast(fresh);
+        saveForecastToCache(fresh).catch(() => {});
+      } catch {
+        if (!isMounted) return;
+        if (!cached) setForecast(generateOfflineForecast(spot));
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [spot]);
+
+  const todayMaxStars = (forecast?.hours || [])
+    .slice(0, 24)
+    .reduce((max, h) => Math.max(max, h.rating.stars), 0);
+
+  const streamOptions: CamStreamOption[] = streams.map((s) => ({
+    id: s.id,
+    name: s.short || s.name,
+    type: s.type,
+    streamUrl: s.streamUrl,
+    fallbackUrl: s.fallbackUrl,
+  }));
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
           <Text style={styles.backBtnText}>‹ Volver</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{spot.name}</Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 50 }} />
       </View>
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Reproductor a tamaño completo */}
-        <View style={styles.playerBox}>
-          {primaryStream ? (
+        {/* Reproductor de cámara en directo (16:9 con soporte multi-cámara) */}
+        {activeStream ? (
+          <>
             <SurfCamPlayer
-              streamUrl={primaryStream.streamUrl}
-              fallbackImageUrl={primaryStream.fallbackUrl}
-              isImageStream={primaryStream.type === 'jpg'}
-              spotName={spot.name}
+            streamUrl={activeStream.streamUrl}
+            fallbackImageUrl={activeStream.fallbackUrl}
+            isImageStream={activeStream.type === 'jpg'}
+            isRestricted={activeStream.type === 'restricted'}
+            spotName={activeStream.isZoneFallback ? `${spot.name} · ZONA` : spot.name}
+            availableStreams={streamOptions}
+            activeStreamId={activeStream.id}
+              onSelectStream={(newId) => setActiveStreamId(newId)}
             />
-          ) : (
-            <View style={styles.noPlayer}>
-              <Text style={styles.noPlayerText}>Sin emisión en directo disponible</Text>
-            </View>
-          )}
-        </View>
+            {activeStream.isZoneFallback ? (
+            <Text style={styles.zoneNote}>
+              Sin cámara propia. Vista de zona a {activeStream.zoneDistanceKm} km.
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.noPlayer}>
+            <Text style={styles.noPlayerText}>SIN EMISIÓN EN DIRECTO DISPONIBLE</Text>
+          </View>
+        )}
 
         {/* Ficha técnica del spot */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Ficha Técnica de {spot.name}</Text>
-          <Text style={styles.infoZone}>{spot.zoneName || spot.zone}</Text>
+          <View style={styles.infoTop}>
+            <View>
+              <Text style={styles.infoTitle}>{spot.name.toUpperCase()}</Text>
+              <Text style={styles.infoZone}>{spot.zoneName || spot.zone}</Text>
+            </View>
+            <RatingPill rating={todayMaxStars} />
+          </View>
 
           <View style={styles.grid}>
             <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>Fondo</Text>
+              <Text style={styles.gridLabel}>FONDO</Text>
               <Text style={styles.gridVal}>{spot.bottom || 'Arena'}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>Nivel</Text>
-              <Text style={styles.gridVal}>{spot.level || 'Todos los niveles'}</Text>
+              <Text style={styles.gridLabel}>ORIENTACIÓN</Text>
+              <Text style={styles.gridVal}>{spot.facing}°</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>Mejor Marea</Text>
+              <Text style={styles.gridLabel}>NIVEL</Text>
+              <Text style={styles.gridVal}>{spot.level || 'Todos'}</Text>
+            </View>
+            <View style={styles.gridItem}>
+              <Text style={styles.gridLabel}>MAREA ÓPTIMA</Text>
               <Text style={styles.gridVal}>{spot.bestTide || 'Media'}</Text>
-            </View>
-            <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>Mejor Viento</Text>
-              <Text style={styles.gridVal}>{spot.bestWind || 'Terral (O)'}</Text>
             </View>
           </View>
 
-          <Text style={styles.desc}>{spot.desc}</Text>
+          {spot.desc && <Text style={styles.descText}>{spot.desc}</Text>}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -79,7 +146,10 @@ export default function SpotDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0a1628' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: THEME.bg,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -87,42 +157,111 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: THEME.line,
   },
-  backBtn: { width: 60 },
-  backBtnText: { color: '#38bdf8', fontSize: 16, fontWeight: '700' },
-  headerTitle: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  container: { flex: 1 },
-  content: { padding: 16 },
-  playerBox: { marginBottom: 20 },
+  backBtn: {
+    paddingVertical: 4,
+    paddingRight: 12,
+  },
+  backBtnText: {
+    color: THEME.textSecondary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  headerTitle: {
+    color: THEME.brand,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 40,
+  },
+  zoneNote: {
+    color: THEME.textFaint,
+    fontSize: 11,
+    marginTop: 6,
+    lineHeight: 15,
+  },
   noPlayer: {
-    height: 220,
-    backgroundColor: '#111e33',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noPlayerText: { color: '#64748b', fontSize: 14 },
-  infoCard: {
-    backgroundColor: '#111e33',
-    borderRadius: 14,
-    padding: 16,
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#171b1e',
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: THEME.line,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  infoTitle: { color: '#ffffff', fontSize: 18, fontWeight: '700' },
-  infoZone: { color: '#64748b', fontSize: 13, marginTop: 2, marginBottom: 16 },
+  noPlayerText: {
+    color: THEME.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  infoCard: {
+    backgroundColor: THEME.surface,
+    borderWidth: 1,
+    borderColor: THEME.line,
+    borderRadius: 6,
+    padding: 16,
+    marginTop: 4,
+  },
+  infoTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  infoTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: THEME.text,
+    letterSpacing: -0.3,
+  },
+  infoZone: {
+    fontSize: 11,
+    color: THEME.textMuted,
+    marginTop: 2,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-    backgroundColor: '#0a1628',
-    padding: 12,
-    borderRadius: 10,
+    gap: 8,
+    marginBottom: 14,
   },
-  gridItem: { width: '47%' },
-  gridLabel: { color: '#64748b', fontSize: 11 },
-  gridVal: { color: '#f0f6fc', fontSize: 13, fontWeight: '600', marginTop: 2 },
-  desc: { color: '#94a3b8', fontSize: 13, lineHeight: 19 },
+  gridItem: {
+    width: '48%',
+    backgroundColor: THEME.surface2,
+    borderWidth: 1,
+    borderColor: THEME.line,
+    borderRadius: 4,
+    padding: 10,
+  },
+  gridLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: THEME.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  gridVal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: THEME.text,
+  },
+  descText: {
+    fontSize: 12,
+    color: THEME.textSecondary,
+    lineHeight: 18,
+    borderTopWidth: 1,
+    borderTopColor: THEME.lineSubtle,
+    paddingTop: 12,
+  },
 });

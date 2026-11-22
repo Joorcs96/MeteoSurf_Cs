@@ -188,3 +188,44 @@ export function generateOfflineForecast(spot: Spot): SpotForecastResult {
     true
   );
 }
+
+const OPEN_METEO_TIMEOUT_MS = 10000;
+
+async function fetchJsonWithTimeout(url: string): Promise<any> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OPEN_METEO_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Descarga la previsión real de Open-Meteo (marina en el punto de mar y viento en el spot).
+ * Lanza si no hay red o la respuesta no es válida; quien llama decide el respaldo.
+ */
+export async function fetchSpotForecast(spot: Spot): Promise<SpotForecastResult> {
+  const marineUrl =
+    `https://marine-api.open-meteo.com/v1/marine?latitude=${spot.seaLat}&longitude=${spot.seaLon}` +
+    '&hourly=wave_height,wave_period,wave_direction' +
+    '&forecast_days=7&timezone=Europe%2FMadrid&cell_selection=sea';
+
+  const weatherUrl =
+    `https://api.open-meteo.com/v1/forecast?latitude=${spot.lat}&longitude=${spot.lon}` +
+    '&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m' +
+    '&forecast_days=7&timezone=Europe%2FMadrid&wind_speed_unit=kmh';
+
+  const [marine, weather] = await Promise.all([
+    fetchJsonWithTimeout(marineUrl),
+    fetchJsonWithTimeout(weatherUrl),
+  ]);
+
+  if (!marine?.hourly?.time?.length) {
+    throw new Error('Respuesta marina sin datos horarios');
+  }
+
+  return processSpotForecast(spot, marine.hourly, weather?.hourly ?? {}, false);
+}

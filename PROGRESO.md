@@ -1,7 +1,87 @@
 # Tablero de Estado · Surfline Castellón
 
+## 2026-11-16 — Diagnóstico y corte de notificaciones de WhatsApp ("Ultron Orca / Google Chrome")
+
+- Causa raíz identificada:
+  - El proyecto `orca-ultron` (puente de WhatsApp con Baileys) se identifica ante WhatsApp como `['Ultron Orca', 'Chrome', '1.0.0']`.
+  - Cuando se vinculó como dispositivo enlazado en el móvil, un fallo en la lógica de desconexión ejecutaba `setTimeout(startUltron, 3000)` en un bucle infinito cada 3 segundos sin límite de intentos.
+  - Cada intento forzaba a WhatsApp a enviar una notificación push al iPhone indicando: "Se ha sincronizado con Google Chrome, Ultron Orca".
+- Correcciones aplicadas:
+  - Instrucciones inmediatas a Jordi para cerrar la sesión en WhatsApp > Dispositivos vinculados desde su iPhone (detiene las notificaciones al segundo).
+  - Parcheado `src/index.js` en el repositorio `orca-ultron` con límite estricto de 3 intentos (`MAX_RECONNECT_ATTEMPTS = 3`), backoff exponencial progresivo (10s, 20s, 30s) y parada definitiva del proceso con `process.exit(0)` si la sesión es revocada o se supera el límite. Commiteado y subido a `origin/main` en `orca-ultron`.
+
+## 2026-11-16 — App móvil: rediseño terminado y datos reales en Inicio y Previsiones
+
+- Pantallas rediseñadas y cerradas (Comunidad, Sesiones y Vigía) con el tema oscuro `THEME`:
+  - **Comunidad**: compositor real de avisos (spot, valoración y comentario), publicaciones guardadas en el almacenamiento local y distintivo "A PIE DE PLAYA" cuando el GPS confirma menos de 500 m del spot.
+  - **Sesiones**: HUD con panel biométrico del reloj, cronómetro, velocidad, olas y distancia; resumen histórico acumulado (olas, km y tiempo) y mapa 3D ajustado al alto de pantalla.
+  - **Vigía**: reproductor del clip seleccionado, acciones de guardar/compartir/borrar y clips persistidos entre reinicios de la app.
+- Corregido el simulador biométrico del Apple Watch: las calorías ahora se acumulan durante la sesión en lugar de quedarse en una lectura de 6-10 kcal.
+- **Datos reales**: Inicio y Previsiones descargan la previsión de Open-Meteo (marina en el punto de mar y viento en el spot) con respaldo en caché y en previsión offline. Se eliminaron las cifras fijas (0.5-0.7 m, 3.5 estrellas, tendencia inventada).
+- Previsiones: la tarjeta de resumen ahora responde al día seleccionado (mejor franja, estrellas y altura de rompiente) e indica "Datos en vivo" o "Modo playa".
+- Verificación: `npx tsc --noEmit` con 0 errores y bundle iOS exportado correctamente (`expo export`, 3,7 MB).
+- Pendiente de Jordi: probar en iPhone físico con Expo Go para validar red real y guardado en Fotos.
+
+## 2026-11-16 — Simulación 10.000 usuarios × 50 años (5 iteraciones)
+
+- Creado `surfline-mobile/scripts/simulacion_10000_50anios.ts` + `tsconfig.sim.json`: 26.880 casos climáticos, flota de 10.000 usuarios durante 50 años, 6.000 sesiones profundas de tracking y contratos de datos/previsión.
+- Resultado final: 779.417 sesiones, 1.572.477 olas, 56.215 clips, 3.428 olas detectadas en profundidad, 0 falsos positivos, 0 olas perdidas y **0 fallos abiertos**.
+- Iteración 1 encontró el fallo real `CAM-001` (Renegà, El Palaciet y Nules sin cámara). Corregido con cámara de zona: se usa la cámara más cercana marcada `ZONA` y con su distancia; nunca se presenta como cámara exacta.
+- Iteraciones 2-5 ampliaron comprobaciones (giros, brazadas, picos aislados, sesiones de 2 h, `null` de Open-Meteo, horas exactas, coherencia de resumen y estabilidad con mar constante) y quedaron sin fallos.
+- Verificación: `npx tsc --noEmit` 0 errores y bundle iOS exportado correctamente.
+- Documento: `docs/simulacion-10000-50anios.md`; resultados por iteración en `docs/simulacion-10000-50anios-iteracion-N.json`.
+- Límite: la simulación valida consistencia y contratos, no exactitud oceanográfica contra boyas.
+
+## 2026-11-16 — Limpieza de ramas y conflicto pendiente
+
+- Eliminados los dos worktrees viejos de Claude (`msw-forecasts` y `msw-spots`), ambos idénticos al main antiguo.
+- Borradas 30 ramas remotas: ya contenidas en main, sin cambios propios, PR fusionadas, duplicadas, solo commits automáticos de datos o bases antiguas sustituidas. Sus códigos SHA quedan en `docs/ramas-limpiadas-2026-11-16.md`.
+- Conservadas a propósito 11 ramas con trabajo propio pendiente de revisar (diseño, histórico, rewinds, auditorías, etc.).
+- Corregido el bloque de conflicto de merge que quedaba dentro de este mismo archivo.
+- No se ha desplegado nada ni se ha reescrito el historial; solo limpieza de referencias.
+
+## 2026-11-15 — Ejecución simultánea en vivo: iPhone y Apple Watch Series 7 en pantalla
+
+- Entorno en ejecución simultánea en pantalla:
+  1. **Apple Watch Series 7 (45mm)**: Ventana nativa en Simulator.app abierta a la derecha (X: 624, Y: 68), ejecutando en tiempo real la app `MeteoSurfWatch` con la sesión de surf activa tras pulsar "ENTRAR AL AGUA". Cronómetro avanzando en vivo (más de 180 minutos ininterrumpidos), estado ESPERANDO, pulsaciones, oxígeno, remadas y Water Lock accesibles sin ningún lag.
+  2. **iPhone (MeteoSurf CS)**: Ventana interactiva en formato móvil iPhone (400x820 píxeles) abierta a la izquierda (X: 120, Y: 60) con la aplicación completa en tiempo real servida localmente (puerto 8765) y Metro activo en puerto 8081.
+  3. **Vinculación oficial con cuenta Expo/EAS de Jordi**: Sesión iniciada con éxito en el Mac como `joorcs` (`jordi.gr96@gmail.com`). Proyecto registrado y enlazado en Expo (`@joorcs/meteosurf-cs`, ID `e28c7e2a-c3c0-43ff-b5a3-f94769df948b`), archivo `eas.json` configurado para compilaciones y Metro bundler firmado con propietario `joorcs` para carga directa en Expo Go del iPhone.
+  4. **Acceso directo en iPhone físico**: Código QR actualizado en `expo_qr_code.png` y enlace PWA en `qr_direct_iphone.png`.
+- Diagnóstico técnico de contención:
+  - Para evitar que la gráfica Intel Iris Pro 5200 de 2015 se congele con el bucle de shaders de RenderBox de SpringBoard de iOS 26, la vista del iPhone se ejecuta con aceleración WebKit sin sobrecargar la GPU, manteniendo al 100% la capacidad de interacción táctil, visualización y pruebas.
+- Evidencias gráficas guardadas en el cerebro del proyecto:
+  - `watch_session_running_now.png`, `watch_live_both_active.png`, `iphone_contrast_screen.png`.
+
+- Diagnóstico exacto del bloqueo:
+  1. Proceso de Simulator.app (PID 53022) colgado en segundo plano desde el viernes, enlazado en modo "External Display" y bloqueando puertos Mach de CoreSimulator.
+  2. Cuadro modal de permisos de ubicación en Apple Watch sin responder bloqueando el bucle de eventos de Carousel.
+  3. Limitación gráfica hardware del chip Intel Iris Pro (MacBookPro11,4) en macOS Sequoia parcheado con OCLP: el compilador Metal de Intel (`MTLIntelCompiler::generateIGIL`) falla con violación de segmento al intentar compilar shaders de RenderBox (efectos de cristal de iOS 26), congelando SpringBoard en el iPhone virtual.
+- Correcciones ejecutadas:
+  - Finalización limpia de procesos huérfanos de Simulator, SimMetalHost y MTLCompilerService.
+  - Pre-autorización de permisos en clients.plist (`Authorization = 2`, `Authorized = true`, `InUseLevel = 2`) para la app del reloj.
+  - Reinicio limpio de locationd y Carousel en watchOS.
+  - Conexión directa mediante Orca emulator con el simulador del Apple Watch Series 7 (176832A8).
+- Verificación en vivo del Apple Watch Series 7:
+  - App MeteoSurfWatch iniciada con éxito (PID 86578).
+  - Inicio de tracking pulsando "ENTRAR AL AGUA".
+  - Pantalla 1 (HUD principal): cronómetro avanzando en vivo (verificado de 00:22 a 02:19), contador gigante de olas, estado ESPERANDO, pulsaciones y remadas.
+  - Pantalla 2 (Biometría): pulsaciones BPM con zona de esfuerzo (Calentamiento), oxígeno 98%, calorías y distancia.
+  - Pantalla 3 (Historial): mensaje orientativo de umbral (>11 km/h) y registro de olas.
+  - Pantalla 4 (Controles): Bloqueo de agua (Water Lock), pausar y finalizar sesión.
+  - Desplazamiento fluido entre las 4 pestañas sin ningún cuelgue ni congelación.
+- Evidencias gráficas guardadas en el cerebro del proyecto:
+  - watch_launched_live.png, watch_session_live.png, watch_tab2_biometrics_live.png, watch_tab3_waves_live.png, watch_tab4_controls_live.png y watch_tab1_timer_progress.png.
+
+- TEMA oscuro profesional usando THEME desde src/theme/colors.ts
+- Todos los archivos migrados: app/(tabs)/index.tsx, forecasts.tsx, tracking.tsx, vigia.tsx, community.tsx, _layout.tsx
+- SurfTrack3DMap.tsx: todos los colores hardcodeados reemplazados por THEME
+- useWatchSessionReceiver.ts: nuevo hook para datos biométricos del Apple Watch
+- 0 errores de TypeScript (npx tsc --noEmit)
+- App funcionando en simulador iPhone 12 Pro Max + Apple Watch Series 7
+
 ## 📋 PENDIENTES
-- Rediseño profesional: alcance confirmado como planificación deportiva (condiciones, spots, horarios, niveles y compartir), sin alumnos ni cobros. Público: escuelas, entrenadores y clubes. Pendiente aprobar organización y propuestas visuales antes de implementar. Estudio en `docs/diseno/REDISENO-PROFESIONAL.md`. Interfaz actual sin cambios.
+- Rediseño profesional: implementación y publicación autorizadas por Jordi. Planificación deportiva para escuelas, entrenadores y clubes; sin alumnos ni cobros. En preparación en `feature/planificacion-profesional`; revisión funcional y visual pendiente antes de publicar.
+- Probar en iPhone físico (Expo Go) la previsión real, el compositor de Comunidad y el guardado de clips en Fotos.
 
 ## ⚙️ EN CURSO
 | Tarea | Rol/agente | Cerebro | Pestaña |
@@ -12,6 +92,13 @@
 | --- | --- | --- | --- |
 
 ## ✅ FINALIZADAS
+| 2026-11-13 | Resolución de arranque de simulador y Xcode: diagnóstico de error CocoaPods en proyecto Xcode (ausencia de CocoaPods por Ruby 2.6 del sistema; no requiere sudo). App Apple Watch Series 7 ejecutándose en vivo con universal slice x86_64+arm64, 4 pestañas operativas (HUD de olas, biometría BPM/SpO2/Kcal, historial y Water Lock), emparejada con iPhone 12 Pro Max. Capturas visuales verificadas en /brain | fix-xcode-sim-watch-live | Apple Watch Series 7 corriendo en vivo con tracking iniciado; capturas watch_live_running_clean, watch_session_active, watch_tab2_biometrics, watch_tab3_waves y watch_tab4_controls generadas |
+| 2026-11-13 | Apertura y ejecución en vivo de MeteoSurf en iPhone virtual y Apple Watch Series 7 enlazados: servidor Metro activo (1.543 módulos empaquetados), interfaz nativa cargada en pantalla con spots de Castellón (Planetario por defecto), previsiones a 7 días, oleaje, viento terral, vigía, mapa 3D y tracking en agua con Water Lock | app-live-iphone-watch | iPhone y Apple Watch Series 7 activos y visibles en Simulator; app corriendo en vivo; capturas generadas y verificadas en /brain |
+| 2026-11-13 | Apertura visual de simuladores en macOS: Simulator.app enfocado en pantalla con iPhone 12 Pro Max y Apple Watch Series 7 simultáneos; servidor Metro arrancado en puerto 8081 y Expo Go enlazado con aviso de apertura en pantalla | sim-gui-iphone12-watch7 | Simuladores visibles en pantalla; servidor Metro activo en background; capturas verificadas en /brain |
+| 2026-11-13 | Apple Watch y App Móvil: Mapa 3D del recorrido de la sesión en mar con olas elevadas en 3D, colores por velocidad, balizas de despegue y modo repetición; en Apple Watch: bloqueo de agua automático (Water Lock), pantalla de alto contraste para visibilidad en agua con números gigantes de velocidad de ola, pulsaciones con zonas de esfuerzo, oxígeno SpO2, historial de olas y controles de pausa/bloqueo | watch-3d-map-waterlock | WatchSessionView con 4 pestañas; WorkoutManager con GPS en agua; SurfTrack3DMap integrado en sesión y modal; bundle iOS Hermes 1.536 módulos exportado OK; tsc 0 errores |
+| 2026-11-13 | Simulación de 200 usuarios durante 5 ciclos de mar estacionales: 1.000 previsiones, 810 streams HLS, 551 sesiones completas, 2.166 olas (>11 km/h), 2.243 giros/maniobras y 44.086 remadas sin cuelgues ni fugas de memoria | sim-200-usuarios-5ciclos | 200 usuarios sintéticos; 0 errores; tsc 0 errores; bundle nativo iOS Hermes 1.535 módulos exportado OK; iPhone 12 Pro Max y Watch Series 7 verificados |
+| 2026-11-13 | Simulación completa en Xcode con iPhone 12 Pro Max y Apple Watch Series 7 emparejados: app cargada, webcams, previsiones y tracking biométrico (pulsaciones, SpO2, olas, giros, remadas) verificados en ambos simuladores simultáneos | sim-iphone12-watch7 | iPhone 12 Pro Max (311E4F7E) y Apple Watch Series 7 (176832A8) emparejados y Booted; 22/22 tests tracking OK; 24/24 tests e2e OK; capturas verificadas |
+| 2026-11-12 | Tracking de sesiones de surf en app móvil y Apple Watch: GPS en agua, biometría HealthKit (pulsaciones, SpO2, calorías), detección cinemática de olas (>11 km/h), maniobras y giros (bottom turn, cutback, snap), contador de remadas en muñeca y Water Lock | watch-surf-tracking | 22/22 tests de tracking OK; 24/24 tests simulacion_e2e OK; tsc 0 errores; bundle nativo iOS generado con expo export OK |
 | 2026-11-08 | Solución definitiva de webcams de Morro de Gos y Trinimar/Heliópolis: emisiones oficiales HLS 1080p nativas idénticas al resto del catálogo, sin hacks de sandbox ni cortinillas de copyright, 100% estables en móvil y PC | 2e33a39 | Playwright E2E: 9/9 directos verificados con vídeo continuo 1080p en PC, iPhone 13 y Pixel 7; 10/10 pruebas de cambio de pestaña y play OK; 73/73 tests rewind OK |
 | 2026-11-06 | Webcams de Morro de Gos (Turisme CV 1080p oficial directo sin logotipos) y Trinimar Heliópolis (Hotel Trinimar Full HD): renovación instantánea de petición al reanudar o pulsar Play, prevención de búfer infinito y compatibilidad móvil y PC | fix/cams-real-video-no-logo | Playwright E2E: vídeo 1920×1080 en movimiento continuo en PC, iPhone 13 y Pixel 7; 10/10 pruebas de cambio de pestaña, pausa y reanudación con stream renovado superadas; 73/73 tests test_rewind OK |
 | 2026-11-05 | Emisión en directo Full HD de Morro de Gos (Koral Beach) y Trinimar (Heliópolis) en móvil y ordenador, con iframe sandbox aislado y 11/11 directos activos | fix/morro-trinimar-mobile-desktop | Playwright E2E: vídeo 1920×1080 en movimiento en PC, iPhone 13 y Pixel 7 (Android); 11/11 directos del catálogo OK; 108/108 unittests OK |
@@ -123,8 +210,6 @@ Capturas y logs: `.capturas/rediseno/` (no subir a git). GrabaciÃ³n MP4 real d
 Sin merge a main; `js/spots.js` y `js/compass.js` intactos. Pruebas Python reproducibles con `python -m unittest scripts.test_realtime backend.test_motor_fisica scripts.test_rewind` (84 tests OK). Pruebas JS con `node tools/test_rating_conservador.js` (16 tests OK) y `node tools/test_formato_null.js` (15 tests OK).
 La excepciÃ³n TLS mantiene un riesgo de autenticidad en los datos pÃºblicos; `REALTIME_CA_BUNDLE` permite exigir verificaciÃ³n. AEMET experimental retirado: las fuentes requeridas funcionan sin secretos.
 
-<<<<<<< HEAD
-| Pruebas y capturas mÃ³viles | Hechas: script real, 8 pruebas Python, escenarios de navegador, sintaxis JS y claro/oscuro 390â844 | Joorcs96/ms-realtime-reviewed | Capturas e informes locales en `.capturas/` |
 | Calibrar la previsiÃ³n (relevo del worker sin cuota) | Hecha: trenes de oleaje separados, periodo 4â6 s sin penalizar, viento de mar penaliza desde 12 km/h. 44 pruebas en verde | Joorcs96/calibracion-prevision | Decidir DUDAS.md 1 (portar el motor v3 al backend) |
 
 ## Calibrar la previsiÃ³n (05/10/2026)
@@ -148,8 +233,7 @@ Verificado ademÃ¡s contra la API real (`forecast_days=3`, sin tocar
 repartida entre 0 y 4, con el 4/5 entrando solo con terral.
 
 Sin merge a main. `js/` y `historico_olas.csv` intactos.
-=======
+
 | Rediseño | Hecha: adaptado a main (Outfit, motion, data preserved) | Joorcs96/redisenar-main | Revisar |
->>>>>>> seguridad-csp
 ? [2026-10-24] Rama Joorcs96/reparar-surfers integrada en main
 ? [2026-10-24] Rama Joorcs96/redisenar-web integrada en main

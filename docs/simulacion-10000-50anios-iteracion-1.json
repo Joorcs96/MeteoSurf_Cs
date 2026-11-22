@@ -1,0 +1,38 @@
+{
+  "iteracion": 1,
+  "fecha": "2026-11-15T23:10:17.494Z",
+  "semilla": 20261217,
+  "duracionMs": 648,
+  "metricas": {
+    "climaCasos": 26880,
+    "climaFallos": 0,
+    "usuariosTotales": 10000,
+    "usuariosActivosFinal": 10000,
+    "aniosSimulados": 50,
+    "sesionesTotales": 770826,
+    "olasTotales": 1546147,
+    "clipsGenerados": 53972,
+    "avisosEnviados": 1612,
+    "comunidadPosts": 11577,
+    "previsionesConsultadas": 770826,
+    "sesionesProfundas": 6000,
+    "olasDetectadasProfundas": 4800,
+    "falsosPositivos": 0,
+    "olasPerdidas": 0,
+    "tiempoMs": 140
+  },
+  "fallos": [
+    {
+      "codigo": "CAM-001",
+      "titulo": "Spot sin cámara asociada",
+      "severidad": "medio",
+      "detalle": "El spot no tiene ningún stream resoluble.",
+      "ejemplos": [
+        "Renega",
+        "Palaciet",
+        "Nules"
+      ]
+    }
+  ],
+  "totalFallos": 1
+}

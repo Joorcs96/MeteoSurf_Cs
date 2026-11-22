@@ -1,8 +1,7 @@
 import { Tabs } from 'expo-router';
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { THEME } from '../../src/theme/colors';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -10,30 +9,26 @@ function TabIcon({ name, color, size }: { name: IoniconName; color: any; size: n
   return <Ionicons name={name} size={size} color={color} />;
 }
 
-function TabBarBackground() {
-  return (
-    <BlurView
-      intensity={85}
-      tint="dark"
-      style={StyleSheet.absoluteFill}
-    />
-  );
-}
-
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#4fc3f7',
-        tabBarInactiveTintColor: '#7a8fa6',
+        tabBarActiveTintColor: THEME.accent,
+        tabBarInactiveTintColor: THEME.textFaint,
         tabBarStyle: {
-          position: 'absolute',
-          backgroundColor: 'transparent',
-          borderTopWidth: 0,
-          elevation: 0,
+          backgroundColor: THEME.surface,
+          borderTopColor: THEME.line,
+          borderTopWidth: 1,
+          height: 56,
+          paddingBottom: 6,
+          paddingTop: 4,
         },
-        tabBarBackground: () => <TabBarBackground />,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '700',
+          letterSpacing: 0.2,
+        },
       }}
       screenListeners={{
         tabPress: () => {
@@ -65,6 +60,15 @@ export default function TabsLayout() {
           title: 'Vigía',
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="videocam-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tracking"
+        options={{
+          title: 'Sesión',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="pulse-outline" color={color} size={size} />
           ),
         }}
       />

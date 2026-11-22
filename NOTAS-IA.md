@@ -2,6 +2,30 @@
 
 Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar cada tarea.
 
+## App móvil: datos reales y pantallas cerradas (2026-11-16)
+- [VERIFICADO] `src/core/parsers/forecastParser.ts` incorpora `fetchSpotForecast(spot)`: descarga Open-Meteo marina (punto `seaLat/seaLon`, `cell_selection=sea`) y viento en `lat/lon`, con `fetch_days=7`, zona `Europe/Madrid` y viento en km/h. Lanza error si falla; quien llama usa caché (`getForecastFromCache`) y luego `generateOfflineForecast`.
+- [VERIFICADO] Inicio (`app/(tabs)/index.tsx`) y Previsiones (`forecasts.tsx`) ya no muestran cifras fijas: altura, periodo, swell, viento, estrellas y tendencia de 7 días salen del pronóstico real. La tarjeta de Previsiones responde al día seleccionado.
+- [VERIFICADO] Comunidad: publicaciones con spot, valoración y comentario; se guardan en `meteosurf_community_posts` (storageAdapter). Distintivo "A PIE DE PLAYA" si el GPS está a menos de 500 m.
+- [VERIFICADO] Vigía: clips persistidos en `meteosurf_vigia_clips`; el store expone `loadClips()` y guarda al añadir/borrar.
+- [VERIFICADO] Simulación biométrica del reloj (`useWatchSessionReceiver`): las calorías se acumulan por minuto durante la sesión; antes se enviaba una lectura de 6-10 kcal que nunca crecía.
+- Verificación: `npx tsc --noEmit` 0 errores; `npx expo export --platform ios` OK.
+- Trampa: Open-Meteo devuelve el día completo desde las 00:00, así que el primer día incluye horas ya pasadas. Si se quiere ocultar el pasado, filtrar por hora actual.
+- Pendiente: probar en iPhone físico; el guardado en Fotos depende de la URI del clip (los clips de ejemplo apuntan a un HLS remoto y no se pueden guardar como vídeo local).
+
+## Simulación 10.000 usuarios × 50 años (2026-11-16)
+- [VERIFICADO] Script `surfline-mobile/scripts/simulacion_10000_50anios.ts`. No usa red ni dependencias nuevas. Se compila con `npx tsc -p tsconfig.sim.json` (salida en `/tmp/meteosurf-sim`) y se ejecuta con `node /tmp/meteosurf-sim/scripts/simulacion_10000_50anios.js --iteracion=N`.
+- [VERIFICADO] `tsconfig.json` de la app excluye este script porque usa `fs`/`path` de Node; sin esa exclusión `npx tsc --noEmit` falla.
+- [VERIFICADO] Cobertura: 26.880 casos climáticos, 10.000 usuarios × 50 años, 6.000 sesiones profundas y contratos de spots/cámaras/previsión. Resultado final: 0 fallos.
+- [VERIFICADO] Fallo real encontrado y corregido (`CAM-001`): Renegà, El Palaciet y Nules no tenían cámara. `streamParser.ts` ahora devuelve la cámara de zona más cercana con `isZoneFallback`, `zoneDistanceKm` y `zoneSourceSpotId`; Inicio y ficha muestran el aviso "Vista de zona a X km".
+- Trampa: las cámaras no guardan lat/lon; la distancia de zona se estima con las coordenadas de los spots que cubre cada cámara. Es una referencia, no una medición exacta.
+- El script es determinista (semilla `20261116`); cambiar la semilla o la iteración cambia la muestra de usuarios y clima.
+
+## Limpieza de ramas (2026-11-16)
+- [VERIFICADO] Eliminadas 30 ramas remotas obsoletas y 2 worktrees locales. El registro con SHA y motivo está en `docs/ramas-limpiadas-2026-11-16.md`.
+- [VERIFICADO] Se conservan 11 ramas con trabajo propio (features, auditorías o documentación) que no está en main: diseno-profesional, herramientas-pwa, historico-datos, imagenes-clips, ms-audita-estrellas, ms-calibra, ms-rewinds-ui, ms-verifica-fuentes, nowcast-boya, panel-avisos y diseno-listo-auditoria.
+- [VERIFICADO] No se borró ninguna rama con trabajo único sin comprobar antes que su contenido estuviera en otra rama, en main o en una PR fusionada.
+- Trampa: `gh pr list` solo muestra las PR reales; muchas ramas antiguas se integraron subiendo commits directamente a main, por eso se comprobó también `git cherry` y los registros de PROGRESO.
+
 ## Datos básicos
 - Web: https://joorcs96.github.io/MeteoSurf_Cs/ (GitHub Pages, rama main, raíz). Repo Joorcs96/MeteoSurf_Cs (antes Surfline_CS; Netlify ya no se usa).
 - Carpeta local sigue llamándose C:/Users/Jordi/orca/Surfline_CS. Investigación e informes: C:/Users/Jordi/orca/meteosurf_research.
@@ -11,9 +35,21 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 
 ## Preferencias de Jordi
 - Como Surfline y Surf-Forecast pero con los spots de Castellón; móvil primero, profesional, directo, poco texto (partes plegables).
-- Nada de emojis ni símbolos tipo check en la web.
+- Nada de emojis ni símbolos tipo check en la web ni en textos.
 - Planetario es el spot por defecto (primero en listas).
 - Escala mediterránea: 0.5–0.7 m con poco viento ya es buen baño; periodo 4–6 s es normal.
+- Tracking de sesiones en el agua: detección de olas por encima de 11 km/h, medición de pulsaciones, oxígeno y calorías mediante Apple Watch / HealthKit, giros (bottom turn, cutback, snap) y contador de remadas. Disponible en pestaña dedicada de la app móvil y en la app nativa de Apple Watch.
+- Experiencia Apple Watch en mar: bloqueo de agua automático (Water Lock) al iniciar, 4 pestañas deslizables (HUD de ola con números gigantescos para sol/salpicaduras, biometría completa con zonas de pulso, historial de olas y controles de pausa/bloqueo manual). Sincronización con iPhone vía WCSession con coordenadas GPS en mar.
+- Visualizador de mapa en 3D (`SurfTrack3DMap.tsx`): perspectiva con inclinación 55°, rotación de cámara (playa, mar o isométrica), elevación de olas 3D, colores según velocidad (verde, cian y dorado), balizas de takeoff y reproducción animada de cada ola.
+- Simulación multi-usuario validada: script `scripts/simulacion_200_usuarios.ts` con 200 usuarios y 5 ciclos estacionales (otoño levante, invierno temporal gregal, verano calma térmica, primavera poniente y fin de semana clásico ESE) ejecutado con 0 errores y 100% de consistencia.
+- Entorno de simulación emparejado en este Mac: iPhone virtual y Apple Watch Series 7 45mm (176832A8) enlazados oficialmente. Servidor Metro activo en puerto 8081 sirviendo la aplicación MeteoSurf CS en vivo, con todas las pantallas (Spots, Previsiones, Vigía, Sesión 3D y Comunidad) funcionales. La app de Apple Watch es 100% nativa en Swift/SwiftUI (binario universal arm64 + x86_64, HealthKit, WCSession, Water Lock y 4 pestañas de navegación), instalada y ejecutándose en vivo en el simulador.
+- Diagnóstico de cuelgues/atascos de simulador ("se quedan atascados"):
+  - Causa raíz 1 (Hardware / Metal GPU): Este equipo es un MacBook Pro 15" Retina Mid-2015 (`MacBookPro11,4`) con gráfica Intel Iris Pro 5200 (Haswell, Metal 2) ejecutando macOS 15.8.1 Sequoia vía OpenCore Legacy Patcher. El compilador de Metal para Intel (`MTLIntelCompiler::generateIGIL` en `libMTLIntelCompilerPlugin.dylib`) presenta un fallo de segmentación (código 11) al compilar shaders de RenderBox (efectos translúcidos de iOS 26), provocando que SpringBoard se bloquee periódicamente en el iPhone virtual. En Apple Watch no se manifiesta porque watchOS utiliza componentes CoreAnimation estándar sin la capa RenderBox pesada.
+  - Causa raíz 2 (Permisos): El diálogo modal de permisos de ubicación en Apple Watch bloqueaba el bucle de eventos; se soluciona inyectando `Authorization = 2` y `Authorized = true` en `clients.plist` de `locationd`.
+  - Causa raíz 3 (Procesos zombies): El proceso `Simulator.app` (PID 53022) permanecía colgado desde días atrás en modo display externo. Limpiado y reiniciado limpiamente.
+  - El Apple Watch Series 7 funciona al 100% sin atascos, con tracking en tiempo real, cronómetro activo y cambio entre sus 4 pestañas verificado mediante capturas reales en el cerebro.
+- Configuración simultánea de prueba en pantalla: Para evitar que el iPhone virtual iOS 26 bloquee la GPU Haswell de 2015 con shaders de RenderBox, se ejecuta la app móvil en una ventana interactiva de Safari formateada a tamaño iPhone (400x820) situada en pantalla a la izquierda, junto a la ventana nativa de Simulator.app del Apple Watch Series 7 situada a la derecha. Ambas están visibles e interactivas al mismo tiempo, con cero lag y 100% de respuesta a clics.
+- Diagnóstico Xcode "no funciona la aplicación": Al pulsar Play en `MeteoSurfCs.xcodeproj`, Xcode falla con `[CP] Check Pods Manifest.lock` porque CocoaPods no está instalado (la versión del Ruby del sistema es 2.6 y las gemas actuales de CocoaPods requieren Ruby >= 3.3; para no pedir permisos de administrador no se altera el sistema). La app móvil se ejecuta limpiamente mediante Expo Go + Metro en puerto 8081, y la app de Apple Watch funciona como binario nativo compilado con SDK watchOS 26.2.
 - Publicar directo en main (tras verificar en móvil); trabajo en rama o worktree y fusión rápida.
 - **Publicar siempre:** cada cambio verificado se despliega en el momento (push a main y comprobar la web online). Lo que no esté listo permanece en su rama y se avisa. Cada norma nueva de Jordi se apunta aquí y en las globales.
 
@@ -40,8 +76,9 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Surfers Castellón: cámara IPCamLive del club (alias 609a27d8a9c83, embedType 'iframe'). No requiere credenciales ni login (domain lock desactivado en IPCamLive). Enfoca la rompiente de Playa del Pinar; asociada con prioridad 1 a Planetario, Pirámides y Gurugú.
 - El cron de webcams (.github/workflows/webcams.yml, cada 30 min) solo reescribe webcams.json si cambia algo real.
 - CARTO pide API key: el mapa usa OSM + Esri satélite.
-- Orca: workers gemini en worktree distinto fallan en agent_readiness; usar `--agent antigravity --model gemini-3.1-pro-high`. Worktrees nuevos de Orca parten de un commit viejo: resetear a main antes.
-- Si un worker Antigravity queda quieto, leer su terminal: puede ser 'Individual quota reached' (Gemini 3.1 Pro, reset ~2 h) o el prompt sin enviar (mandar Intro con `orca terminal send --enter`). Relevo: `--agent antigravity --model claude-sonnet-4-6`.
+- **MODELO OBLIGATORIO PARA ANTIGRAVITY: `--agent antigravity --model claude-sonnet-4-6`**. NUNCA usar gemini-3.1-pro-high, gemini-3.8-flash-high ni ningún modelo Gemini. Gemini agota su cuota individual en minutos, el agente confirma el prompt pero no ejecuta nada (worktree vacío, sin commits). claude-sonnet-4-6 es el único modelo verificado que funciona.
+- Worktrees nuevos de Orca parten de un commit viejo: resetear a main antes.
+- Si un worker Antigravity queda quieto: leer su terminal. Si dice 'Individual quota reached' → era Gemini, cambiar a claude-sonnet-4-6. Si el prompt no se envió → `orca terminal send --enter`.
 - Los workers a veces escriben sin tildes: revisar textos visibles antes de publicar.
 
 ## Rewinds (clips de las cámaras)
@@ -325,3 +362,12 @@ Notas para las IA que trabajen en este proyecto. Breves; actualizar al cerrar ca
 - Sincronización 2D/3D: al alternar entre el mapa plano y el relieve 3D se conserva la capa seleccionada (viento, oleaje, etc.).
 - En 3D se muestran 143 flechas con inclinación y rumbo adaptados al terreno.
 - Service worker actualizado a v50 (meteosurf-cs-v50-mapa-escritorio) para renovación inmediata del caché del navegador.
+
+## Rediseño app móvil (2026-11-15)
+- THEME: fuente única de verdad en src/theme/colors.ts. NUNCA hardcodear hex en componentes.
+- getRatingColor(stars) y getRatingLabel(stars) disponibles en colors.ts para colores de valoración
+- SurfTrack3DMap.tsx: segColor debe tiparse como string explícitamente (let segColor: string) para evitar error TS de tipos literales
+- useWatchSessionReceiver.ts: simula biométricas Watch cada 5s. Se activa solo cuando isTracking=true en sessionStore
+- TabBar (_layout.tsx): íconos filled cuando focused (water/water-outline, etc.)
+- Worker de Antigravity/Gemini: NO usar nunca. Los fork agents de Claude son más fiables
+- Simulador: solo iPhone 12 Pro Max iOS 26 (ID: 311E4F7E) + Apple Watch Series 7 (ID: 176832A8)

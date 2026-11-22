@@ -4,7 +4,7 @@ export interface Webcam {
   short: string;
   spots: string[];
   priority: number;
-  embedType: 'hls' | 'iframe' | 'mjpeg' | 'jpg' | 'skyline';
+  embedType: 'hls' | 'iframe' | 'mjpeg' | 'jpg' | 'skyline' | 'restricted';
   embedUrl: string;
   pageUrl?: string;
   credit?: string;

@@ -1,0 +1,26 @@
+{
+  "iteracion": 4,
+  "fecha": "2026-11-15T23:14:40.090Z",
+  "semilla": 20261520,
+  "duracionMs": 2172,
+  "metricas": {
+    "climaCasos": 26880,
+    "climaFallos": 0,
+    "usuariosTotales": 10000,
+    "usuariosActivosFinal": 10000,
+    "aniosSimulados": 50,
+    "sesionesTotales": 781066,
+    "olasTotales": 1579261,
+    "clipsGenerados": 54591,
+    "avisosEnviados": 1430,
+    "comunidadPosts": 11744,
+    "previsionesConsultadas": 781066,
+    "sesionesProfundas": 6000,
+    "olasDetectadasProfundas": 3428,
+    "falsosPositivos": 0,
+    "olasPerdidas": 0,
+    "tiempoMs": 144
+  },
+  "fallos": [],
+  "totalFallos": 0
+}

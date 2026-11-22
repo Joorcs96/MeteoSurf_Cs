@@ -1,7 +1,7 @@
 # Tablero de Estado · Surfline Castellón
 
 ## 📋 PENDIENTES
-- Rediseño profesional: confirmar alcance (planificación deportiva o también gestión interna) y aprobar organización y propuestas visuales antes de implementar. Público principal confirmado: escuelas, entrenadores y clubes. Skills instaladas; estudio en `docs/diseno/REDISENO-PROFESIONAL.md`. Interfaz actual sin cambios.
+- Rediseño profesional: alcance confirmado como planificación deportiva (condiciones, spots, horarios, niveles y compartir), sin alumnos ni cobros. Público: escuelas, entrenadores y clubes. Pendiente aprobar organización y propuestas visuales antes de implementar. Estudio en `docs/diseno/REDISENO-PROFESIONAL.md`. Interfaz actual sin cambios.
 
 ## ⚙️ EN CURSO
 | Tarea | Rol/agente | Cerebro | Pestaña |

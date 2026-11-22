@@ -6,7 +6,7 @@
 Reorganizar MeteoSurf para escuelas, entrenadores y clubes, manteniendo profundidad técnica y facilidad móvil. Conseguir coherencia de producto antes de producir más variantes visuales.
 
 ## CONTEXTO
-Jordi confirma este público principal. Solicita calidad de interacción y acabado inspirada en Apple, claro como tema principal y oscuro cuidado. La gestión de alumnos, grupos y calendario está pendiente de delimitar; no se incluye automáticamente por tratarse de escuelas.
+Jordi confirma este público principal y el alcance: planificación deportiva (condiciones, spots, horarios, niveles y compartir la previsión), sin gestionar alumnos ni cobros. Solicita calidad de interacción y acabado inspirada en Apple, claro como tema principal y oscuro cuidado. La gestión interna de grupos, alumnos y calendario de sesiones queda fuera de esta primera versión.
 
 ### Problemas concretos observados
 Las referencias corresponden a la revisión actual y pueden desplazarse al editar.
@@ -32,7 +32,7 @@ Ya existen foco visible, objetivos táctiles de 44 px en algunos controles y cif
 
 Favoritos serían una colección accesible desde el contexto; no se eliminan. El asistente pasa a ayuda contextual accesible, no desaparece. Fotos e información del spot se agrupan en su ficha. Exportaciones e históricos deben conservar un acceso identificable.
 
-Si se confirma gestión interna, habrá que diseñar un área de Escuela/Club y reconsiderar el inicio. No basta con añadir una pestaña: implica permisos, datos personales y nuevas operaciones. Pagos y reservas quedan fuera salvo petición expresa.
+No se añade un área de Escuela/Club para gestión administrativa. El nivel deportivo será un criterio del plan, sin guardar fichas de alumnos ni asignar automáticamente una etiqueta de seguridad. Compartir debe conservar lugar, fecha, franja y antigüedad de los datos; el formato definitivo se resolverá en el prototipo.
 
 ### Escritorio
 Navegación lateral o superior estable, lugar y franja temporal compartidos entre vistas, previsión central y panel auxiliar de cámara u observaciones. Comparar spots sin perder el día seleccionado. La información técnica ocupa el espacio; no una cabecera publicitaria. La disposición definitiva requiere un prototipo para comprobar anchuras y densidad.
@@ -55,7 +55,7 @@ Esta fase añade `PRODUCT.md`, este documento y el registro de skills. Actualiza
 - Desplegar o sustituir la interfaz actual antes de aprobar y verificar la propuesta.
 
 ## PASOS
-1. Confirmar planificación frente a gestión interna y las tareas prioritarias.
+1. Alcance confirmado: planificación deportiva sin gestión interna. Priorizar comparación de spots para la misma franja y preparación de una previsión compartible.
 2. Validar el mapa de funciones con el producto actual y cerrar el recorrido principal de un entrenador.
 3. Preparar propuestas visuales del mismo recorrido: escritorio claro, móvil claro y oscuro. Datos de ejemplo identificados; no portadas desconectadas de la aplicación.
 4. Revisar con Jordi jerarquía, densidad, controles y organización antes de programar la interfaz.

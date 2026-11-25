@@ -1,0 +1,29 @@
+# Correcciones del acabado antes de despliegue
+
+## OBJETIVO
+Resolver en un lote todos los hallazgos P1/P2 de docs/diseno/REVISION-FINAL.md, conservando la composición aprobada. Antigravity terminó ese informe y 18 capturas antes de quedar sin cuota; el informe es evidencia utilizable aunque no llegó a emitir worker_done. No repetir la implementación completa. El commit de partida es 288f10b.
+
+## CONTEXTO
+Público, límites y dirección están en PRODUCT.md y docs/diseno/SPEC-IMPLEMENTACION.md. Se autoriza esta corrección como parte del rediseño ya aprobado, no una nueva identidad. Revisar los renders y capturas del informe. Leer frontend-design y referencias Impeccable craft-floor/polish; aplicación manual, sin descargar/ejecutar el binario ni instalar programas. Tu tarea anterior está implementada: termina ahora con este lote de revisión y worker_done, no publiques.
+
+## ARCHIVOS
+Permitidos: css/sistema.css, js/jornada.js, js/app.js, index.html, sw.js si se requiere invalidación, tests específicos, documentación de resultado y nuevas capturas docs/evidencia/correcciones/. Mantener historial y archivos ajenos. Rama feature/planificacion-profesional. Antes de editar confirmar git status y checkpoint; usar apply_patch, diffs concretos. No tocar backend, física, rating/calibración, datos meteo, URLs de cámaras ni app móvil.
+
+## PROHIBIDO
+No push, main, merge, deploy, credenciales, nuevas dependencias/programas, UAC, reinicios, reset o restore ajeno. No inventar métricas, frescura o seguridad. No ocultar funciones avanzadas ni eliminar asistente. No iniciar una nueva revisión estética no solicitada. No afirmar que pruebas de lógica acreditan CSS o interacción.
+
+## PASOS
+1. Leer completo REVISION-FINAL.md. Corregir P1-1: separar inicialización/cambio de cámara de la acción explícita reproducir. En <=999px abrir/cambiar spot NO debe crear video/iframe ni autoplay; al pulsar sí. Limpiar al cambiar spot/ruta.
+2. P1-2/P1-3: token de texto sobre acción primaria adecuado a cada tema; contraste >=4,5:1 en botones/chips y textos secundarios contra todas sus superficies (incluida selección). Mejorar legibilidad sin aumentar ruido. Corregir reglas originales, no acumular overrides contradictorios.
+3. P1-4/P2-1/P2-2: resolver tamaño intrínseco del selector añadir, columnas a1280, franja corta legible, comparación móvil compacta en dos columnas, tabla horizontal con indicación y foco, unidad del eje sin tocar números. La curva debe verse en primer viewport1440x900 con comparación por defecto: equilibrar espacio superior y altura de gráfico sin hacer textos diminutos ni quitar datos. Con4spots, el móvil no debe requerir una pantalla por lugar; probar primera vista y sección comparativa desplazada.
+4. P1-5: suprimir apertura automática de onboarding obsoleto y modal comercial hipotético al navegar, también al asistente. Conservar funciones y acceso voluntario a ayuda útil; corregir contenido Hs/escala si esa ayuda sigue accesible. No crear cobros ni quitar derechos de uso existentes.
+5. P2-3/P2-4: cobertura parcial real por franja, contando horas esperadas incluso si no existe registro, y valores nulos. Mostrar aviso claro en comparación, inspector y parte compartido; no extrapolar. No mostrar guion extra cuando viento no existe. Decisión del coordinador: etiqueta Calidad de surf (o Calidad con aclaración inmediata visible), independiente del deporte; deporte y nivel son contexto del parte, no filtros de seguridad. Explicar brevemente los criterios: rango de ola/periodo, viento medio y dirección central, racha máxima y mejor valoración de surf de la franja. No alterar la física: aclarar que velocidad/rachas son modelo de viento y valoración/orientación considera abrigo del spot, o usar presentación coherente con datos existentes si está inequívocamente disponible, sin calcular física nueva.
+6. P2-5: enlaces llamados Previsión deben ir a #/prevision, no inicio Jornada. forecast:ready no debe reemplazar favoritos por Ahora. Decisión del coordinador: con cero favoritos, Mis spots informa que no hay guardados y mantiene comparación actual; no sustituye silenciosamente por defaults. No hace falta preguntar a Jordi estas decisiones reversibles.
+7. P3: corregir incoherencias menores si es local y seguro; no emprender refactor transversal por preferencias del reviewer. Registrar lo no abordado y el motivo. Mantener indicadores de selección redundantes con radio/texto, no solo color.
+8. Añadir tests de regresión en lógica para cobertura parcial/ausencia y resumen compartido, y comprobaciones de cámara/route pertinentes. Verificar en navegador320/375/390/768/1280/1440, claro/oscuro, teclado y reflow200%. No afirmar zoom real si solo cambias viewport. Probar sesión limpia, rutas secundarias, compartir fallback, restauración URL, mapa/AEMET y lifecycle cámara. Medir contraste y límites de controles. Capturas completas y primer viewport1440x900; abrirlas para revisión. Usa orca-cli y su guía browser, sin instalaciones. Servidor de revisión anterior8792 puede haberse detenido; comprobar antes de crear otro.
+9. Actualizar PROGRESO.md con PENDIENTES/EN CURSO/EN REVISION/FINALIZADAS/DUDAS sin borrar historia. Mantener DESIGN.md coherente con correcciones de su implementación, sin reemplazarlo ni cambiar identidad. Registrar cada P1/P2 y evidencia en docs/diseno/RESULTADO-CORRECCIONES.md. Commit solo archivos propios; enviar worker_done con commit, tests, capturas, límites y puntos pendientes. No publicar: coordinará Codex después de verificar el lote.
+
+## ACEPTACION
+P1/P2 resueltos y comprobados con evidencia nueva, sin regresiones ni datos inventados. Lista explícita de resuelto/parcial/pendiente. No autocalificar todo el producto ship: habrá revisión del lote por Codex al faltar cuota de Antigravity. Si falla herramienta o proveedor, informar concretamente sin instalaciones ni reinicios.
+
+Placement: this machine (local), mismo proyecto y rama de implementación.

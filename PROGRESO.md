@@ -1,5 +1,34 @@
 # Tablero de Estado · Surfline Castellón
 
+## 2026-11-25 — Rediseño profesional: Jornada, navegación y avisos
+
+- Implementada la vista **Jornada** como inicio: filtros de fecha, franja, deporte
+  y nivel; comparación de hasta 8 lugares; gráfica SVG con ola en playa, ola media
+  y Hs mar adentro; inspector con cámara, resumen y observación actual.
+- Navegación reducida a cuatro destinos (Jornada, Previsión, Mapa, Cámaras), con
+  Mis spots y Asistente como utilidades. `#/ahora` se conserva como vista legacy
+  con aviso de vuelta y `#/favoritos` mantiene el modo favoritos de Previsión.
+- Estado de Jornada persistido en `localStorage` y compartible por hash: fecha,
+  franja, deporte, nivel, lugar seleccionado y comparación. La franja se mantiene
+  al cambiar de lugar.
+- Tema claro por defecto y oscuro diseñado; tipografía del sistema, foco visible,
+  `prefers-reduced-motion` y sin scroll horizontal de página. La tabla horaria es
+  una región desplazable con foco de teclado.
+- Parte para compartir con fecha, zona `Europe/Madrid`, franja, valores, fuentes,
+  antigüedad, observación, contexto de nivel y enlace. Fallback con diálogo y
+  textarea si fallan `navigator.share` y el portapapeles.
+- Panel de avisos con overlay, foco en cerrar, cierre con Escape o clic fuera y
+  retorno del foco. Corregido el `z-index` para que la barra inferior no tape el
+  modal en móvil.
+- Verificación: `node --check` correcto en los módulos tocados y
+  `node --test tests/jornada.test.mjs` con **14/14 pruebas**. Pruebas reales en
+  navegador a 390x844, 768x1024, 1280x900 y 1440x900, en claro y oscuro; rutas,
+  persistencia, compartir, avisos, mapa, previsión y ausencia de overflow.
+- Evidencias en `docs/evidencia/` y sistema visual en `DESIGN.md`.
+- Límite: cambios en rama `feature/planificacion-profesional`, sin publicar. La
+  revisión visual final y la integración corresponden al coordinador. No se
+  inventaron datos ni se modificó la física, la calibración o el backend.
+
 ## 2026-11-16 — Diagnóstico y corte de notificaciones de WhatsApp ("Ultron Orca / Google Chrome")
 
 - Causa raíz identificada:

@@ -1,46 +1,63 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://s3.amazonaws.com https://tile.openstreetmap.org https://server.arcgisonline.com https://marine-api.open-meteo.com https://api.open-meteo.com https://generativelanguage.googleapis.com https://streaming.comunitatvalenciana.com https://*.ipcamlive.com https://*.skylinewebcams.com https://www.skylinewebcams.com https://*.skylinewebcams.net; img-src 'self' data: blob: https:; media-src 'self' blob: https:; worker-src 'self' blob:; frame-src 'self' https://www.windy.com https://webcams.windy.com https://www.youtube-nocookie.com https://www.youtube.com https://*.ipcamlive.com https://www.skylinewebcams.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>MeteoSurf_Cs · Previsión de surf en Castellón</title>
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f7fa">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#070b12">
+  <title>MeteoSurf_Cs · Planificar jornada de surf en Castellón</title>
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17191d">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="MeteoSurf">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="preconnect" href="https://marine-api.open-meteo.com">
   <link rel="preconnect" href="https://api.open-meteo.com">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/sistema.css">
 </head>
 <body>
-  <header class="topbar">
-    <!-- Icono Waves de Lucide, licencia ISC: https://lucide.dev/license -->
-    <a class="logo" href="#/ahora" aria-label="MeteoSurf_Cs, portada Ahora">
+  <aside class="rail" aria-label="Navegación y utilidades">
+    <a class="rail-logo" href="#/jornada" aria-label="MeteoSurf_Cs, planificar jornada">
       <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>
       <span>MeteoSurf<small>Cs</small></span>
     </a>
-        <nav class="topnav" aria-label="Secciones">
-      <a href="#/ahora" data-nav="ahora">Ahora</a>
-      <a href="#/prevision" data-nav="prevision">Previsión</a>
-      <a href="#/mapa" data-nav="mapa">Mapa</a>
-      <a href="#/camaras" data-nav="camaras">Cámaras</a>
-      <a href="#/asistente" data-nav="asistente">Asistente</a>
-      <a href="#/favoritos" data-nav="favoritos">Favoritos</a>
+    <nav class="rail-nav" aria-label="Principal">
+      <a href="#/jornada" data-nav="jornada"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jornada</span></a>
+      <a href="#/prevision" data-nav="prevision"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg><span>Previsión</span></a>
+      <a href="#/mapa" data-nav="mapa"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg><span>Mapa</span></a>
+      <a href="#/camaras" data-nav="camaras"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg><span>Cámaras</span></a>
     </nav>
+    <div class="rail-label">Utilidades</div>
+    <nav class="rail-util" aria-label="Utilidades">
+      <a href="#/favoritos" data-util="favoritos"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>Mis spots</span></a>
+      <a href="#/asistente" data-util="asistente"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Asistente</span></a>
+    </nav>
+    <div class="rail-spacer"></div>
+    <div class="rail-tools">
+      <button type="button" class="rail-tool" data-notif><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Avisos</span></button>
+      <button type="button" class="rail-tool" data-refresh><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg><span>Actualizar</span></button>
+      <button type="button" class="rail-tool" data-theme><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Tema</span></button>
+      <a class="rail-tool" href="data/MeteoSurf_Historico_Calibracion.xlsx" download><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>Histórico</span></a>
+    </div>
+    <p class="rail-foot">Open-Meteo · AEMET · Puertos del Estado</p>
+  </aside>
+
+  <header class="topbar">
+    <a class="logo" href="#/jornada" aria-label="MeteoSurf_Cs, planificar jornada">
+      <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>
+      <span>MeteoSurf<small>Cs</small></span>
+    </a>
     <span class="spacer"></span>
-    <button class="icon-btn" id="btn-notif" aria-label="Notificaciones" title="Avisos"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
-    <button class="icon-btn" id="refresh" aria-label="Actualizar previsión" title="Actualizar"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg></button>
-    <button class="icon-btn" id="theme" aria-label="Cambiar tema claro u oscuro" title="Tema"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <a class="icon-btn" href="#/favoritos" data-util="favoritos" aria-label="Mis spots" title="Mis spots"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></a>
+    <a class="icon-btn" href="#/asistente" data-util="asistente" aria-label="Asistente" title="Asistente"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></a>
+    <button type="button" class="icon-btn" data-notif aria-label="Notificaciones" title="Avisos"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+    <button type="button" class="icon-btn" data-refresh aria-label="Actualizar previsión" title="Actualizar"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg></button>
+    <button type="button" class="icon-btn" data-theme aria-label="Cambiar tema claro u oscuro" title="Tema"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
   </header>
 
   <main id="view">
@@ -48,22 +65,12 @@
     <div class="skeleton" style="height:260px"></div>
   </main>
 
-  <nav id="quick-spots" class="quick-spots" aria-label="Mis spots"></nav>
-
-  <aside class="history-download" aria-label="Histórico de observaciones">
-    <a href="data/MeteoSurf_Historico_Calibracion.xlsx" download>Descargar histórico de boyas y previsiones (Excel)</a>
-  </aside>
-
-    <nav class="tabbar" aria-label="Secciones">
-    <a href="#/ahora" data-nav="ahora"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/></svg>Ahora</a>
-    <a href="#/prevision" data-nav="prevision"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>Previsión</a>
-    <a href="#/mapa" data-nav="mapa"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>Mapa</a>
-    <a href="#/camaras" data-nav="camaras"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>Cámaras</a>
-    <a href="#/asistente" data-nav="asistente"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg>Asistente</a>
-    <a href="#/favoritos" data-nav="favoritos"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Favoritos</a>
+  <nav class="tabbar" aria-label="Principal">
+    <a href="#/jornada" data-nav="jornada"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jornada</span></a>
+    <a href="#/prevision" data-nav="prevision"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg><span>Previsión</span></a>
+    <a href="#/mapa" data-nav="mapa"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg><span>Mapa</span></a>
+    <a href="#/camaras" data-nav="camaras"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg><span>Cámaras</span></a>
   </nav>
-
-    <button class="fab-assistant" id="fab-assistant" aria-label="Preguntar al asistente" title="Preguntar al asistente"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
 
   <div class="onboard-overlay" id="onboard-overlay" role="dialog" aria-modal="true" aria-labelledby="onboard-title" style="display:none">
     <div class="onboard-card">

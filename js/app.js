@@ -6,6 +6,8 @@ import { loadCams, loadStreams, camsForSpot, playCam, stopCam, playClip, recordC
 import { aplicarNowcast } from './nowcast.js';
 import { iniciarCapas, motorLeaflet } from './mapa-capas.js';
 import { puntosSector, puntoEnRumbo, LARGO_FLECHA } from './orientaciones-mapa.js';
+import { createJornadaView } from './jornada.js';
+import { initNotificaciones } from './notificaciones.js';
 // Onboarding para principiantes
 let _obFirstRender = false;
 function showOnboarding() {
@@ -40,7 +42,7 @@ export function hideProModal() {
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
-const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null, rewindMonth: null, rewindDay: null, rewindCalendarOpen: null, rewindStripOpen: false };
+const state = { fc: null, realtime: null, rewinds: null, zone: 'all', calZone: 'fav', dayIdx: 0, camIdx: 0, spotId: null, rewindMonth: null, rewindDay: null, rewindCalendarOpen: null, rewindStripOpen: false, jornada: null };
 
 // Asistente de previsión (se carga aparte para no retrasar el primer pintado)
 let aiMod = null;
@@ -231,24 +233,48 @@ function toast(t) {
   setTimeout(() => el.remove(), 2600);
 }
 
+let jornadaView = null;
+function getJornadaView() {
+  if (!jornadaView) {
+    jornadaView = createJornadaView({
+      root: view, state, store, spots: SPOTS, favs, toggleFav, esc,
+      ratingCls, ratingLabel, compass, camsForSpot, playCam, stopCam,
+      clipsForSpot, toast, realNumber, realValue, realDirection, realSource,
+      realStatus, initAemetMapWidget, footer
+    });
+  }
+  return jornadaView;
+}
+
+function renderJornada() {
+  document.title = 'Jornada · MeteoSurf_Cs';
+  getJornadaView().render();
+}
+
 // ---------- Rutas ----------
 function route() {
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  const h = location.hash.replace(/^#\/?/, '');
-  const [page, arg] = h.split('/');
-  if (page !== 'spot') state.spotId = null;
-  const isAhora = !page || page === 'ahora';
+  const raw = location.hash.replace(/^#\/?/, '');
+  const [pathPart] = raw.split('?');
+  const [page, arg] = pathPart.split('/');
+  const isJornada = !page || page === 'jornada';
   if (!page) {
-    history.replaceState(null, '', '#/ahora');
+    history.replaceState(null, '', '#/jornada');
   }
+  if (page !== 'spot') state.spotId = null;
   document.body.classList.toggle('vista-mapa', page === 'mapa');
-  document.body.classList.toggle('vista-ahora', isAhora);
-  document.body.classList.toggle('vista-prevision', page === 'prevision' || (!isAhora && page === 'favoritos'));
-  document.body.classList.toggle('vista-home', isAhora);
+  document.body.classList.toggle('vista-ahora', page === 'ahora');
+  document.body.classList.toggle('vista-jornada', isJornada);
+  document.body.classList.toggle('vista-prevision', page === 'prevision' || page === 'favoritos');
+  document.body.classList.toggle('vista-home', page === 'ahora');
   document.body.classList.toggle('vista-camaras', page === 'camaras');
   document.body.classList.toggle('vista-calendario', page === 'calendario');
-  const activeNav = isAhora ? 'ahora' : page;
+  const activeNav = isJornada ? 'jornada'
+    : page === 'favoritos' || page === 'calendario' || page === 'spot' ? 'prevision'
+    : page === 'ahora' ? 'jornada'
+    : page;
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === activeNav));
+  document.querySelectorAll('[data-util]').forEach((a) => a.classList.toggle('active', a.dataset.util === page));
   renderQuickSpots();
   const savedClip = $('#save-clip');
   if (savedClip?.dataset.url) URL.revokeObjectURL(savedClip.dataset.url);
@@ -268,6 +294,8 @@ function route() {
     if (state.zone === 'fav') state.zone = 'all';
     return renderPrevision();
   }
+  if (page === 'ahora') return renderAhora();
+  if (isJornada) return renderJornada();
   return renderAhora();
 }
 
@@ -454,6 +482,7 @@ function renderAhora() {
 
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
+    <div class="banner vista-aviso">Vista rápida de recomendación. Para elegir fecha, franja y comparar lugares, abre <a href="#/jornada">Jornada</a>.</div>
 
     <div class="region-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
       <div>
@@ -2426,7 +2455,7 @@ function initAemetMapWidget() {
 
 function footer() {
   return `<div class="footer">MeteoSurf_Cs · Datos: Open-Meteo (modelos ECMWF, DWD, Météo-France) · AEMET (mapa marítimo) · Cámaras de sus propietarios
-    <br><span id="version"></span></div>`;
+    <br><a href="data/MeteoSurf_Historico_Calibracion.xlsx" download>Descargar histórico de boyas y previsiones (Excel)</a> · <span id="version"></span></div>`;
 }
 
 // ---------- Arranque ----------
@@ -2459,6 +2488,11 @@ async function refresh(force = false) {
   aplicarNowcast(state.fc, state.realtime);
   window.dispatchEvent(new CustomEvent('forecast:ready', { detail: state.fc }));
   route();
+}
+
+function syncThemeMeta() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', dark ? '#17191d' : '#ffffff'));
 }
 
 async function init() {
@@ -2494,16 +2528,20 @@ async function init() {
   });
   window.addEventListener('forecast:ready', () => {
     const sortMode = localStorage.getItem('sort_mode') || 'default';
-    if (sortMode === 'best_week' && (!location.hash || location.hash === '#/' || location.hash.startsWith('#/favoritos'))) {
-      renderHome();
+    if (sortMode === 'best_week' && (!location.hash || location.hash === '#/' || location.hash.startsWith('#/jornada') || location.hash.startsWith('#/favoritos'))) {
+      if (location.hash.startsWith('#/jornada')) renderJornada();
+      else renderHome();
     }
   });
-  $('#refresh')?.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); });
-  $('#theme')?.addEventListener('click', () => {
-    const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.querySelectorAll('button[data-refresh]').forEach((btn) => btn.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); }));
+  document.querySelectorAll('button[data-theme]').forEach((btn) => btn.addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
     const next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next; store.set('theme', next);
-  });
+    document.documentElement.dataset.theme = next;
+    store.set('theme', next);
+    syncThemeMeta();
+  }));
+  initNotificaciones().catch(() => {});
   route(); // pinta esqueleto
   // Las emisiones resueltas en el servidor (data/streams.json) se cargan con el
   // resto: sin ellas, la cámara del club no se puede ni ver ni grabar.
@@ -2537,6 +2575,7 @@ async function init() {
     navigator.serviceWorker.register('sw.js').catch(() => { /* sin SW */ });
   }
 }
-const savedTheme = store.get('theme', null);
-if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+const savedTheme = store.get('theme', 'light');
+document.documentElement.dataset.theme = savedTheme === 'dark' ? 'dark' : 'light';
+syncThemeMeta();
 init();

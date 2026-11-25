@@ -327,6 +327,12 @@ export async function sendTestNotification() {
 
 // ---------- Renderizado del Panel de Notificaciones ----------
 let modalContainer = null;
+let lastNotifTrigger = null;
+let notifKeyBound = false;
+
+function isVisible(el) {
+  return el instanceof HTMLElement && el.isConnected && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+}
 
 export function renderNotificacionesPanel(container = document.body) {
   if (!modalContainer) {
@@ -635,20 +641,44 @@ function attachPanelEvents() {
   });
 }
 
-export function openNotificacionesPanel() {
+export function openNotificacionesPanel(trigger = null) {
+  if (isVisible(trigger)) lastNotifTrigger = trigger;
+  else if (document.activeElement !== document.body && isVisible(document.activeElement)) lastNotifTrigger = document.activeElement;
+  else lastNotifTrigger = null;
   renderNotificacionesPanel();
   modalContainer?.classList.remove('notif-hidden');
   document.body.classList.add('notif-modal-open');
+  document.getElementById('notif-close-btn')?.focus();
 }
 
 export function closeNotificacionesPanel() {
   modalContainer?.classList.add('notif-hidden');
   document.body.classList.remove('notif-modal-open');
+  if (isVisible(lastNotifTrigger)) lastNotifTrigger.focus();
+  else [...document.querySelectorAll('[data-notif]')].find(isVisible)?.focus();
+  lastNotifTrigger = null;
 }
 
 // ---------- Inicialización del servicio en el cliente ----------
 export async function initNotificaciones() {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
+
+  document.querySelectorAll('#btn-notif, [data-notif]').forEach((btn) => {
+    if (btn.dataset.notifBound) return;
+    btn.dataset.notifBound = '1';
+    btn.addEventListener('click', () => {
+      openNotificacionesPanel(btn);
+    });
+  });
+
+  if (!notifKeyBound) {
+    notifKeyBound = true;
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!modalContainer || modalContainer.classList.contains('notif-hidden')) return;
+      closeNotificacionesPanel();
+    });
+  }
 
   // Comprobar suscripción existente de manera no intrusiva
   if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -672,10 +702,4 @@ export async function initNotificaciones() {
       }
     });
   }
-
-  // Enlazar botón en cabecera si existe
-  const btn = document.getElementById('btn-notif');
-  btn?.addEventListener('click', () => {
-    openNotificacionesPanel();
-  });
 }

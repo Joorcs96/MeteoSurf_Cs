@@ -1,6 +1,6 @@
 # Diseño · Planificación profesional
 
-Estado: implementado en `feature/planificacion-profesional` (2026-11-25).
+Estado: implementado y publicado en `main` (2026-11-27).
 
 ## Principio
 

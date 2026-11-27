@@ -135,13 +135,16 @@ export function summarizeSpot(spot, fc, { date, from, to } = {}) {
   };
 }
 
-export function recommendWindows(spots = [], fc, { date, limit = 4, preferSpotId = null } = {}) {
+export function recommendWindows(spots = [], fc, { date, limit = 4, preferSpotId = null, futureOnly = false, now = new Date() } = {}) {
   const out = [];
+  const today = todayISO(now);
+  const currentHour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hourCycle: 'h23' }).format(now));
   for (const spot of spots || []) {
     if (!spot?.id) continue;
     for (const r of THREE_HOUR_RANGES) {
+      if (futureOnly && (date < today || (date === today && r.from <= currentHour))) continue;
       const sum = summarizeSpot(spot, fc, { date, from: r.from, to: r.to });
-      if (!sum.hasData || sum.partial) continue;
+      if (!sum.hasData || sum.partial || sum.worstRating == null) continue;
       out.push({
         ...sum,
         date,
@@ -151,7 +154,7 @@ export function recommendWindows(spots = [], fc, { date, limit = 4, preferSpotId
     }
   }
   out.sort((a, b) => {
-    const rDiff = (b.bestRating ?? -1) - (a.bestRating ?? -1);
+    const rDiff = (b.worstRating ?? -1) - (a.worstRating ?? -1);
     if (rDiff !== 0) return rDiff;
     const avgDiff = (b.ratingAvg ?? -1) - (a.ratingAvg ?? -1);
     if (Math.abs(avgDiff) > 1e-6) return avgDiff;
@@ -179,7 +182,7 @@ export function recommendForSession(spots = [], fc, { date, from, to, preferSpot
     const compA = a.hasData && !a.partial ? 2 : a.hasData ? 1 : 0;
     const compB = b.hasData && !b.partial ? 2 : b.hasData ? 1 : 0;
     if (compB !== compA) return compB - compA;
-    const rDiff = (b.bestRating ?? -1) - (a.bestRating ?? -1);
+    const rDiff = (b.worstRating ?? -1) - (a.worstRating ?? -1);
     if (rDiff !== 0) return rDiff;
     const avgDiff = (b.ratingAvg ?? -1) - (a.ratingAvg ?? -1);
     if (Math.abs(avgDiff) > 1e-6) return avgDiff;
@@ -232,7 +235,7 @@ export function buildJornadaHash(jr) {
 export function validateJornadaState(input = {}, { dates = [], spotIds = [], defaultCompare = [] } = {}) {
   const src = input || {};
   const valid = new Set(spotIds);
-  const fallbackDate = dates[0] || todayISO();
+  const fallbackDate = dates.find((d) => d >= todayISO()) || dates[0] || todayISO();
   const date = dates.includes(src.date) ? src.date : fallbackDate;
   let from = Number.isInteger(src.from) ? src.from : DEFAULT_RANGE.from;
   let to = Number.isInteger(src.to) ? src.to : DEFAULT_RANGE.to;
@@ -330,7 +333,12 @@ export function createJornadaView(api) {
 
   function defaults() {
     const compare = chooseDefaultCompare(spots, [...favs]);
-    return { ...DEFAULT_RANGE, date: todayISO(), sport: 'Surf', level: 'Intermedio', compare, selected: compare[0] || null };
+    const now = new Date();
+    const today = todayISO(now);
+    const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hourCycle: 'h23' }).format(now));
+    const next = THREE_HOUR_RANGES.find((r) => r.from > hour);
+    const date = next ? today : dates().find((d) => d > today) || today;
+    return { ...(next || DEFAULT_RANGE), date, sport: 'Surf', level: 'Intermedio', compare, selected: compare[0] || null };
   }
 
   function normalize(input) {
@@ -368,13 +376,13 @@ export function createJornadaView(api) {
   }
 
   function render() {
-    jr = normalize(state.jornada || store.get('jornada', null) || defaults());
-    state.jornada = jr;
-    applyQuery();
     if (!state.fc) {
       root.innerHTML = `<div class="jr-loading"><div class="skeleton" style="height:28px;width:220px"></div><div class="skeleton" style="height:72px;margin-top:16px"></div><div class="skeleton" style="height:320px;margin-top:16px"></div></div>`;
       return;
     }
+    jr = normalize(state.jornada || store.get('jornada', null) || defaults());
+    state.jornada = jr;
+    applyQuery();
     root.innerHTML = shell();
     bind();
     update();
@@ -401,7 +409,6 @@ export function createJornadaView(api) {
         </div>
         <div class="jr-head-actions">
           <a class="jr-quiet-link" href="#/ahora">Ver recomendación de ahora ${SVG.arrow}</a>
-          <button type="button" class="jr-btn jr-btn-primary" id="jr-share">${SVG.share}<span>Compartir parte</span></button>
         </div>
       </header>
       <section class="jr-filters" aria-label="Filtros de la jornada">
@@ -507,7 +514,6 @@ export function createJornadaView(api) {
     });
     root.querySelector('#jr-sport')?.addEventListener('change', (e) => { jr.sport = e.target.value; update(); });
     root.querySelector('#jr-level')?.addEventListener('change', (e) => { jr.level = e.target.value; update(); });
-    root.querySelector('#jr-share')?.addEventListener('click', share);
     root.querySelector('#jr-add-btn')?.addEventListener('click', () => {
       addSpot(root.querySelector('#jr-add-spot')?.value);
     });
@@ -586,6 +592,10 @@ export function createJornadaView(api) {
           share();
           return;
         }
+        if (e.target.closest('[data-jr-share-current]')) {
+          share();
+          return;
+        }
       });
     }
   }
@@ -658,7 +668,7 @@ export function createJornadaView(api) {
       date: jr.date, from: jr.from, to: jr.to, preferSpotId: jr.selected
     });
     if (!best || !best.hasData) {
-      const alt = recommendWindows(comparedSpots, state.fc, { date: jr.date, limit: 1, preferSpotId: jr.selected })[0] || null;
+      const alt = recommendWindows(comparedSpots, state.fc, { date: jr.date, limit: 1, preferSpotId: jr.selected, futureOnly: true })[0] || null;
       box.innerHTML = `<div class="jr-best-empty">
         <div>
           <span class="jr-kicker">Tu sesión · ${esc(dateShortLabel(jr.date))} · ${rangeLabel(jr.from, jr.to)}</span>
@@ -674,20 +684,23 @@ export function createJornadaView(api) {
       : 'Sin dato';
     const wind = best.windAvg != null ? `${Math.round(best.windAvg)} km/h ${compass(best.windDir)}` : 'Sin dato';
     const isSelected = best.spotId === jr.selected;
-    const altDay = (best.bestRating ?? 0) <= 1
-      ? recommendWindows(comparedSpots, state.fc, { date: jr.date, limit: 1, preferSpotId: jr.selected })
-          .find((w) => (w.bestRating ?? 0) > (best.bestRating ?? 0))
+    const selectedSpot = spotById(jr.selected);
+    const altDay = (best.worstRating ?? 0) <= 1
+      ? recommendWindows(comparedSpots, state.fc, { date: jr.date, limit: 1, preferSpotId: jr.selected, futureOnly: true })
+          .find((w) => (w.worstRating ?? 0) > (best.worstRating ?? 0))
       : null;
     const reason = altDay
       ? `Esta franja está floja; hoy destaca ${altDay.name} de ${rangeLabel(altDay.from, altDay.to)}.`
       : best.partial
         ? `Mejor opción disponible (${best.withSurf}/${best.expected} h con dato, sin extrapolar).`
-        : 'Mejor combinación de calidad de surf y condiciones en esta franja.';
+        : (best.worstRating ?? 0) <= 1
+          ? 'No hay condiciones de surf destacables en esta franja. Compara otras horas o lugares antes de decidir.'
+          : 'La hora menos favorable mantiene la mejor calidad entre los lugares comparados. Comprueba cámara y condiciones antes de salir.';
     box.innerHTML = `
       <div class="jr-best-main">
         <div class="jr-best-top">
-          <span class="jr-kicker">Mejor lugar para tu sesión · ${esc(dateShortLabel(jr.date))} · ${rangeLabel(jr.from, jr.to)}</span>
-          <span class="rating-pill ${ratingCls(best.bestRating)}">${esc(ratingLabel(best.bestRating))}</span>
+          <span class="jr-kicker">${(best.worstRating ?? 0) <= 1 ? 'Comparación de la franja' : 'Opción destacada entre tus lugares'} · ${esc(dateShortLabel(jr.date))} · ${rangeLabel(jr.from, jr.to)}</span>
+          <span class="rating-pill ${ratingCls(best.worstRating)}">${esc(ratingLabel(best.worstRating))} · hora menos favorable</span>
         </div>
         <div class="jr-best-title">
           <h2>${esc(best.name)}</h2>
@@ -703,7 +716,7 @@ export function createJornadaView(api) {
       <div class="jr-best-actions">
         ${isSelected
           ? `<button type="button" class="jr-btn jr-btn-primary" data-jr-share-best="${esc(best.spotId)}">${SVG.share}<span>Compartir plan</span></button>`
-          : `<button type="button" class="jr-btn jr-btn-primary" data-jr-pick-spot="${esc(best.spotId)}">Elegir ${esc(best.name)}</button>`}
+          : `<button type="button" class="jr-btn jr-btn-primary" data-jr-pick-spot="${esc(best.spotId)}">Elegir ${esc(best.name)}</button><button type="button" class="jr-btn jr-btn-secondary" data-jr-share-current>${SVG.share}<span>Compartir ${esc(selectedSpot?.name || 'mi elección')}</span></button>`}
         <button type="button" class="jr-btn jr-btn-secondary jr-only-mobile" data-jr-open-spot>${SVG.cam}<span>Cámara y ficha</span></button>
         ${altDay ? `<button type="button" class="jr-btn jr-btn-quiet" data-jr-pick-window="${esc(altDay.spotId)}:${altDay.from}:${altDay.to}">Ir a ${rangeLabel(altDay.from, altDay.to)}</button>` : ''}
       </div>`;
@@ -715,9 +728,9 @@ export function createJornadaView(api) {
     if (!body) return;
     if (sub) sub.textContent = `${dateLongLabel(jr.date)} · elige una opción de 3 h para fijar lugar y hora.`;
     const comparedSpots = jr.compare.map(spotById).filter(Boolean);
-    const list = recommendWindows(comparedSpots, state.fc, { date: jr.date, limit: 4, preferSpotId: jr.selected });
+    const list = recommendWindows(comparedSpots, state.fc, { date: jr.date, limit: 4, preferSpotId: jr.selected, futureOnly: true });
     if (!list.length) {
-      body.innerHTML = `<div class="jr-empty">Sin franjas de 3 h con datos completos para ${esc(dateLongLabel(jr.date))} entre los lugares comparados.</div>`;
+      body.innerHTML = `<div class="jr-empty">Sin franjas futuras de 3 h con datos completos para ${esc(dateLongLabel(jr.date))} entre los lugares comparados. Prueba otra fecha o añade un lugar.</div>`;
       return;
     }
     body.innerHTML = list.map((w) => {
@@ -733,7 +746,7 @@ export function createJornadaView(api) {
         </div>
         <div class="jr-window-time num">${rangeLabel(w.from, w.to)}</div>
         <div class="jr-window-metrics">
-          <span class="rating-pill ${ratingCls(w.bestRating)}">${esc(ratingLabel(w.bestRating))}</span>
+          <span class="rating-pill ${ratingCls(w.worstRating)}">${esc(ratingLabel(w.worstRating))} · hora menos favorable</span>
           <b class="num">${fmtRangeM(w.surfMin, w.surfMax)}</b>
         </div>
         <div class="jr-window-meta num">${esc(wind)}${w.windAvg != null && w.windLabel ? ` · ${esc(w.windLabel)}` : ''} · ${esc(period)}</div>

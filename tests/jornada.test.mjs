@@ -372,3 +372,23 @@ test('recommendForSession elige el mejor lugar completo para la franja dada', ()
   assert.equal(res.alternatives.length, 1);
   assert.equal(res.alternatives[0].spotId, 'Planetario');
 });
+
+test('prioriza una sesión constante frente a una única hora espectacular', () => {
+  const spots = [{ id: 'A', name: 'A' }, { id: 'B', name: 'B' }];
+  const fc = { spots: {
+    A: { hours: [hour(9, [0.6, 0.8, 0.7], { rating: 5 }), hour(10, [0.6, 0.8, 0.7], { rating: 1 }), hour(11, [0.6, 0.8, 0.7], { rating: 1 })] },
+    B: { hours: [hour(9, [0.5, 0.7, 0.6], { rating: 3 }), hour(10, [0.5, 0.7, 0.6], { rating: 3 }), hour(11, [0.5, 0.7, 0.6], { rating: 3 })] }
+  } };
+  assert.equal(recommendForSession(spots, fc, { date: DATE, from: 9, to: 12 }).best.spotId, 'B');
+  assert.equal(recommendWindows(spots, fc, { date: DATE })[0].spotId, 'B');
+});
+
+test('no propone franjas pasadas ni incompletas al buscar opciones futuras', () => {
+  const spots = [{ id: 'A', name: 'A' }];
+  const dates = ['2026-11-27', '2026-11-28'];
+  const hours = dates.flatMap((date) => [9, 10, 11, 15, 16, 17].map((hour) => ({ date, hour, surf: { min: 0.4, max: 0.6, mid: 0.5 }, rating: 3 })));
+  const fc = { spots: { A: { hours } } };
+  const now = new Date('2026-11-27T12:00:00Z'); // 13:00 en Madrid
+  assert.deepEqual(recommendWindows(spots, fc, { date: dates[0], futureOnly: true, now }).map((r) => r.from), [15]);
+  assert.deepEqual(recommendWindows(spots, fc, { date: dates[1], futureOnly: true, now }).map((r) => r.from), [9, 15]);
+});

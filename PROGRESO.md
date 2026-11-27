@@ -1,5 +1,12 @@
 # Tablero de Estado · Surfline Castellón
 
+## 2026-11-27 — Jornada orientada a una decisión real
+
+- Opciones de 3 horas con datos completos, comparación de lugares y parte que distingue la elección de las alternativas.
+- La prioridad usa la hora menos favorable de la sesión, no solo un pico de calidad; las opciones pasadas se ocultan.
+- Al abrir por primera vez propone la próxima franja futura. Si todo está plato, no lo presenta como buena condición de surf.
+- Se conserva la posibilidad de compartir un lugar elegido distinto al destacado. Validación: 20/20 pruebas y navegador móvil/escritorio.
+
 ## 2026-11-27 — Inicio directo, mapa y cámaras
 
 - `Ahora` vuelve a ser la portada. Permite elegir y recordar un spot; en escritorio

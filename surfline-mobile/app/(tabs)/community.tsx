@@ -16,7 +16,7 @@ import { RatingPill } from '../../src/components/ui/RatingPill';
 import { SPOTS, Spot } from '../../src/data/spotsData';
 import { useNearestSpots, haversineDistance } from '../../src/services/sensors/useNearestSpots';
 import { getStorage } from '../../src/services/storage/storageAdapter';
-import { THEME } from '../../src/theme/colors';
+import { THEME, getRatingColor } from '../../src/theme/colors';
 
 const POSTS_STORAGE_KEY = 'meteosurf_community_posts';
 const AT_BEACH_KM = 0.5;
@@ -248,7 +248,7 @@ export default function CommunityScreen() {
                     onPress={() => setRating(opt.value)}
                     activeOpacity={0.8}
                   >
-                    <View style={[styles.ratingDot, { backgroundColor: THEME.ratings.fair }]} />
+                    <View style={[styles.ratingDot, { backgroundColor: getRatingColor(opt.value) }]} />
                     <Text style={[styles.ratingChipText, active && styles.ratingChipTextActive]}>
                       {opt.label}
                     </Text>

@@ -1,24 +1,40 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-// Configurar handler de notificaciones en primer plano
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-      priority: Notifications.AndroidNotificationPriority.HIGH,
-    }),
-  });
-} catch {}
+/**
+ * Carga diferida de expo-notifications.
+ * En Expo Go (SDK 53+) el módulo nativo de notificaciones no está incluido, así que
+ * importarlo arriba del todo hace que la app crashee al abrir. Lo cargamos solo cuando
+ * se usa y devolvemos null si no está disponible, para que la app funcione igual.
+ */
+let notificationsModule: typeof import('expo-notifications') | null | undefined;
+
+function getNotifications(): typeof import('expo-notifications') | null {
+  if (notificationsModule !== undefined) return notificationsModule;
+  try {
+    notificationsModule = require('expo-notifications');
+    notificationsModule?.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        priority: notificationsModule!.AndroidNotificationPriority.HIGH,
+      }),
+    });
+  } catch {
+    notificationsModule = null;
+  }
+  return notificationsModule ?? null;
+}
 
 /**
- * Solicita permisos de notificaciones locales.
+ * Solicita permisos de notificaciones locales. Devuelve false si no hay soporte nativo.
  */
 export async function registerForSwellAlertsAsync(): Promise<boolean> {
+  const Notifications = getNotifications();
+  if (!Notifications) return false;
+
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -60,11 +76,14 @@ export async function checkAndTriggerSwellAlert(
 ): Promise<string | null> {
   if (stars < 3.5) return null;
 
+  const Notifications = getNotifications();
+  if (!Notifications) return null;
+
   try {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: `🌊 ¡Condiciones excelentes en ${spotName}!`,
-        body: `${waveHeight}m · ${stars}★ estrellas con viento ${windLabel}. Pulsa para ver la cámara en directo.`,
+        title: `Condiciones excelentes en ${spotName}`,
+        body: `${waveHeight}m · ${stars} estrellas con viento ${windLabel}. Pulsa para ver la cámara en directo.`,
         data: { spotId, type: 'swell_alert' },
         sound: true,
       },

@@ -40,8 +40,8 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Spots',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="water-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'water' : 'water-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -49,8 +49,8 @@ export default function TabsLayout() {
         name="forecasts"
         options={{
           title: 'Previsión',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="analytics-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'analytics' : 'analytics-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -58,8 +58,8 @@ export default function TabsLayout() {
         name="vigia"
         options={{
           title: 'Vigía',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="videocam-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'videocam' : 'videocam-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -67,8 +67,8 @@ export default function TabsLayout() {
         name="tracking"
         options={{
           title: 'Sesión',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="pulse-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'pulse' : 'pulse-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -76,8 +76,8 @@ export default function TabsLayout() {
         name="community"
         options={{
           title: 'Comunidad',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="people-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'people' : 'people-outline'} color={color} size={size} />
           ),
         }}
       />

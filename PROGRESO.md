@@ -28,6 +28,35 @@
 - Límite: cambios en rama `feature/planificacion-profesional`, sin publicar. La
   revisión visual final y la integración corresponden al coordinador. No se
   inventaron datos ni se modificó la física, la calibración o el backend.
+## 2026-11-20 — App Android operativa + App Wear OS Xiaomi + arreglo de crash y bugs
+
+**App móvil (iPhone/Android, Expo SDK 58):**
+- Arreglado CRASH al abrir en Expo Go: `expo-notifications` se cargaba al importar y su
+  módulo nativo (`ExpoTopicSubscriptionModule`) no existe en Expo Go desde SDK 53. Ahora se
+  carga de forma diferida (lazy `require`) con fallback. `src/services/notifications/swellAlerts.ts`.
+- Arreglados bugs reales (auditoría con agente fork): mojibake UTF-8 en forecasts (ENERGÍA,
+  física, 102° duplicado); rating fijo 3 en spots cercanos → valoración real por spot; viento
+  siempre verde → color por dirección (terral/mar/cruzado); punto de color del selector en community.
+- RatingPill rediseñado (badge con tinte), tabs con iconos filled activos, cabeceras de tabla
+  compactas (NOTA/PER.).
+- Verificado CORRIENDO en emulador Android x86_64 (Pixel 6, API 34). `npx tsc --noEmit` 0 errores.
+
+**App Wear OS (Xiaomi Mi Watch 2019, Wear OS 2):**
+- Proyecto Kotlin nativo standalone en `meteosurf-wearos/`. minSdk 25, pantalla redonda 326×326.
+- 2 pantallas deslizables: condiciones del spot (ola grande + estrellas + periodo + viento) y
+  biometría (lee sensor de pulso real `TYPE_HEART_RATE`). Paleta idéntica al móvil.
+- APK compila: BUILD SUCCESSFUL (4.6 MB). Subido a Google Drive (`Mi unidad/MeteoSurf-Apps/`).
+- Nota: el emulador Wear OS cuelga en este Mac Intel (QEMU hanging con GPU software). Se probará
+  en el reloj físico real. El APK del móvil se compila aparte (prebuild + gradle).
+
+**Infraestructura Android instalada en el Mac (Intel x86_64, sin admin):** JDK 17 Temurin en
+`~/Library/Java`, Android SDK en `~/Library/Android/sdk` (platform-34, build-tools, emulador,
+imágenes x86_64 móvil + wear), AVDs `MeteoSurf_Phone` y `MeteoSurf_Watch`, Gradle 8.5 en `~/tools`.
+Variables en `~/.zshrc`.
+
+**Motor de workers:** Antigravity volvió a fallar (worktrees no se crean). OpenCode/nemotron se
+atasca con reescrituras grandes en paralelo. Lo fiable: agentes fork de Claude y OpenCode de uno
+en uno. Ver NOTAS-IA.md.
 
 ## 2026-11-16 — Diagnóstico y corte de notificaciones de WhatsApp ("Ultron Orca / Google Chrome")
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta identica a THEME de la app movil (src/theme/colors.ts) -->
+<resources>
+    <color name="bg">#151719</color>
+    <color name="surface">#22262a</color>
+    <color name="text">#f2f3f4</color>
+    <color name="textSecondary">#c4c9ce</color>
+    <color name="line">#363c42</color>
+    <color name="accent">#38bdf8</color>
+    <color name="wave">#0bd674</color>
+    <color name="danger">#e11d48</color>
+</resources>

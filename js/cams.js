@@ -434,6 +434,7 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
     let fuente = 0;
     let reintento = null;
     let haCargado = false;
+    let fallos = 0;
     const bust = (base) => base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
     const programarReintento = () => {
       clearTimeout(reintento);
@@ -447,11 +448,17 @@ export async function playCam(el, cam, { autoplay = true } = {}) {
       prueba.onload = () => {
         if (sessions.get(el) !== session) return;
         haCargado = true;
+        fallos = 0;
+        el.querySelector('.cam-msg')?.remove();
         img.src = prueba.src;
       };
       prueba.onerror = () => {
         if (sessions.get(el) !== session) return;
         fuente = (fuente + 1) % fuentes.length;
+        fallos += 1;
+        if (fallos >= 2 && !el.querySelector('.cam-msg')) {
+          msg(el, 'Cámara sin señal', 'La imagen no responde; vuelve a intentarlo más tarde.');
+        }
         if (!haCargado) img.alt = `${cam.name}: reconectando imagen…`;
         programarReintento();
       };

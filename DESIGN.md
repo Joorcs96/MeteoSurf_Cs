@@ -12,12 +12,14 @@ detalle.
 
 ## Navegación
 
-- Cuatro destinos principales: Jornada, Previsión, Mapa y Cámaras.
-- Jornada es el inicio y sustituye a la portada de tarjetas.
+- Cinco destinos principales: Ahora, Jornada, Previsión, Mapa y Cámaras.
+- Ahora es el inicio directo: spot elegido o mejor opción local, webcam y
+  previsión de las próximas horas. Sin cámara, aparece el mapa marítimo AEMET.
+- Jornada conserva la planificación avanzada por fecha, franja, deporte y nivel.
 - Mis spots y Asistente quedan como utilidades, también en móvil.
 - Avisos, Actualizar, Tema e Histórico viven en el rail de escritorio y en la
   barra superior móvil.
-- `#/ahora` sigue disponible como vista legacy con un aviso de vuelta a Jornada.
+- `#/ahora` es la ruta de inicio; el spot elegido se recuerda en este navegador.
 - `#/favoritos` conserva el modo favoritos de Previsión.
 
 ## Composición
@@ -26,7 +28,7 @@ detalle.
   inspector de 320 px. La comparación y la gráfica se apilan en la zona central.
 - Escritorio (1000-1279 px): rail + contenido; el inspector pasa a ser una
   sección secuencial.
-- Tablet y móvil (<=999 px): barra superior de 56 px y barra inferior de cuatro
+- Tablet y móvil (<=999 px): barra superior de 56 px y barra inferior de cinco
   destinos de 58 px. El contenido se apila.
 - Móvil estrecho (<=420 px): filtros en dos columnas con más ancho para la fecha;
   filas de lugar con nombre encima y valores debajo.

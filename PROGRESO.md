@@ -1,5 +1,21 @@
 # Tablero de Estado · Surfline Castellón
 
+## 2026-11-27 — Inicio directo, mapa y cámaras
+
+- `Ahora` vuelve a ser la portada. Permite elegir y recordar un spot; en escritorio
+  muestra la cámara y las próximas horas de previsión lado a lado.
+- Si no hay señal, la portada coloca en el espacio de la cámara el mapa marítimo
+  de AEMET. El fotograma inicial queda visible hasta que el usuario pulse reproducir.
+- Mapa 2D con Leaflet 1.9.4 alojado en el proyecto, teselas OSM con referrer y
+  alternativa satélite Esri cuando falla el proveedor. No se descargan en masa
+  teselas de OSM por sus condiciones de uso.
+- Verificación de cámaras HLS reforzada: exige lista, segmento real y tipo de
+  contenido no HTML; MJPEG también se acepta como imagen. Los directos existentes
+  se conservan; el navegador avisa si un reproductor deja de responder.
+- Verificación: mapa y portada en navegador a 1440 px y 390 px; AEMET mostrado al
+  elegir un spot sin cámara; 15/15 pruebas de Jornada, 3/3 del verificador de
+  cámaras y sintaxis JavaScript válida.
+
 ## 2026-11-25 — Rediseño profesional: Jornada, navegación y avisos
 
 - Implementada la vista **Jornada** como inicio: filtros de fecha, franja, deporte

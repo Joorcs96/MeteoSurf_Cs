@@ -249,9 +249,9 @@ function route() {
   const raw = location.hash.replace(/^#\/?/, '');
   const [pathPart] = raw.split('?');
   const [page, arg] = pathPart.split('/');
-  const isJornada = !page || page === 'jornada';
+  const isJornada = page === 'jornada';
   if (!page) {
-    history.replaceState(null, '', '#/jornada');
+    history.replaceState(null, '', '#/ahora');
   }
   if (page !== 'spot') state.spotId = null;
   document.body.classList.toggle('vista-mapa', page === 'mapa');
@@ -263,7 +263,7 @@ function route() {
   document.body.classList.toggle('vista-calendario', page === 'calendario');
   const activeNav = isJornada ? 'jornada'
     : page === 'favoritos' || page === 'calendario' || page === 'spot' ? 'prevision'
-    : page === 'ahora' ? 'jornada'
+    : !page || page === 'ahora' ? 'ahora'
     : page;
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === activeNav));
   document.querySelectorAll('[data-util]').forEach((a) => a.classList.toggle('active', a.dataset.util === page));
@@ -274,7 +274,7 @@ function route() {
     window.removeEventListener('resize', window._mapaResizeHandler);
     window._mapaResizeHandler = null;
   }
-  document.querySelectorAll('.cam').forEach(stopCam);
+  document.querySelectorAll('.cam, #hero-cam-target').forEach(stopCam);
   if (page === 'spot' && arg) return renderSpot(decodeURIComponent(arg));
   if (page === 'mapa') return renderMap();
   if (page === 'camaras') return renderCams();
@@ -345,22 +345,18 @@ function getSpotNowData(spot, fc) {
   };
 }
 
-function renderHeroNowCard(d) {
+function renderHeroNowCard(d, chosen = false) {
   const { spot, ratingLabel, ratingCls, surfRange, period, swellDir, windSpd, windDir, windType, recomendacion, hasCam, hasRewind } = d;
-  const foto = spot.photo?.thumb ? miniatura(spot.photo.thumb, 900) : '';
-  const cam = camsForSpot(spot)[0];
   const isFav = favs.has(spot.id);
+  const hours = state.fc?.spots?.[spot.id]?.hours || [];
+  const upcoming = hours.slice(nowIndex(hours), nowIndex(hours) + 4);
 
   return `
     <div class="hero-now-wrap">
       <div class="spot-card2 hero-now-card ${ratingCls}">
         <div class="hero-now-media">
-          ${cam ? `
-            <div id="hero-cam-target" class="hero-now-cam-box" data-camspot="${esc(spot.id)}"></div>
-          ` : `
-            ${foto ? `<img class="sc-img" src="${esc(foto)}" alt="" aria-hidden="true" loading="eager" fetchpriority="high">` : ''}
-          `}
-          <span class="hero-now-badge">${ICON.wave} Mejor opción local ahora</span>
+          <div id="hero-cam-target" class="hero-now-cam-box" data-camspot="${esc(spot.id)}"></div>
+          <span class="hero-now-badge">${ICON.wave} ${chosen ? 'Tu spot ahora' : 'Mejor opción local ahora'}</span>
           <button class="fav-btn fav sc-fav ${isFav ? 'on' : ''}" data-fav="${esc(spot.id)}" aria-label="Favorito" title="Favorito">${ICON.star}</button>
         </div>
 
@@ -386,6 +382,15 @@ function renderHeroNowCard(d) {
       </div>
 
       <div class="hero-now-panel">
+        <div class="hero-now-forecast">
+          <span class="hero-now-forecast-title">Previsión · próximas horas</span>
+          ${upcoming.length ? `<div class="hero-now-forecast-list">${upcoming.map((hour) => `
+            <div class="hero-now-forecast-hour">
+              <time>${esc(String(hour.hour).padStart(2, '0'))}:00</time>
+              <strong>${esc(range(hour.surf))} m</strong>
+              <span>${Math.round(hour.windSpeed || 0)} km/h</span>
+            </div>`).join('')}</div>` : '<p class="muted">Cargando la previsión del spot…</p>'}
+        </div>
         <div class="hero-now-rec">
           <strong>Recomendación:</strong> ${esc(recomendacion)}
         </div>
@@ -448,7 +453,10 @@ function renderAhora() {
   const localSpots = localSpotIds.map((id) => SPOTS.find((s) => s.id === id)).filter(Boolean);
   const nowLocal = localSpots.map((s) => getSpotNowData(s, fc)).sort((a, b) => b.score - a.score);
   const bestLocal = nowLocal[0];
-  const otherLocal = nowLocal.slice(1);
+  const selectedId = localStorage.getItem('home_spot');
+  const selectedSpot = selectedId && SPOTS.find((s) => s.id === selectedId);
+  const heroSpot = selectedSpot ? getSpotNowData(selectedSpot, fc) : bestLocal;
+  const otherLocal = nowLocal.filter((d) => d.spot.id !== heroSpot?.spot.id);
 
   const farCandidates = SPOTS.filter((s) => !localSpotIds.includes(s.id));
   const nowFar = farCandidates.map((s) => getSpotNowData(s, fc)).sort((a, b) => b.score - a.score);
@@ -474,19 +482,20 @@ function renderAhora() {
 
   view.innerHTML = `
     ${fc?.stale ? `<div class="banner">Sin conexión con el servicio de previsión. Mostrando la última previsión guardada (${new Date(fc.fetchedAt).toLocaleString('es-ES')}).</div>` : ''}
-    <div class="banner vista-aviso">Vista rápida de recomendación. Para elegir fecha, franja y comparar lugares, abre <a href="#/jornada">Jornada</a>.</div>
-
     <div class="region-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
       <div>
         <h1>¿Dónde entrar ahora?</h1>
         <p class="sub">Costa de Castellón · Condiciones en tiempo real ordenadas por calidad${fc ? ` · Actualizado ${new Date(fc.fetchedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` : ''}</p>
       </div>
-      <a href="#/prevision" class="chip btn" style="text-decoration:none;font-weight:600">${ICON.wave} Ver previsión completa</a>
+      <label class="now-spot-picker">Tu spot <select id="home-spot-select" aria-label="Spot de la portada">
+        <option value="">Mejor opción local</option>
+        ${SPOTS.map((s) => `<option value="${esc(s.id)}"${selectedId === s.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}
+      </select></label>
     </div>
 
     <!-- BLOQUE PRINCIPAL: MEJOR SPOT LOCAL CON WEBCAM EN VIVO (HERO) -->
     <section class="now-hero-section" aria-label="Mejor opción local para surfear ahora">
-      ${bestLocal ? renderHeroNowCard(bestLocal) : '<p class="muted">Cargando datos de condiciones...</p>'}
+      ${heroSpot ? renderHeroNowCard(heroSpot, !!selectedSpot) : '<p class="muted">Cargando datos de condiciones...</p>'}
     </section>
 
     <!-- BLOQUE PRINCIPAL: OTRAS OPCIONES LOCALES (COMPACTAS) -->
@@ -513,7 +522,7 @@ function renderAhora() {
       <div class="section-title">Mapa AEMET <span class="faint">Predicción marítima · Mar combinada · Levante</span></div>
       <div class="card" style="overflow:hidden">
         <div style="position:relative;background:var(--surface-2);min-height:220px;display:flex;align-items:center;justify-content:center">
-          <img id="aemet-map-img" src="" alt="Cargando mapa AEMET…" loading="lazy"
+          <img id="aemet-map-img" src="" alt="Predicción marítima AEMET para el Levante" loading="eager"
                style="display:none;max-width:100%;height:auto;width:100%;object-fit:contain">
           <div id="aemet-map-skeleton" class="skeleton" style="position:absolute;inset:0;border-radius:0"></div>
           <p id="aemet-map-error" style="display:none;position:relative;z-index:1;padding:24px;text-align:center;font-size:13px;color:var(--text-2)">
@@ -547,12 +556,37 @@ function renderAhora() {
 
   // Montar la webcam en directo en la tarjeta Hero destacada si el spot tiene cámara
   const heroCamTarget = view.querySelector('#hero-cam-target');
-  if (heroCamTarget && bestLocal) {
-    const cam = camsForSpot(bestLocal.spot)[0];
+  if (heroCamTarget && heroSpot) {
+    const cam = camsForSpot(heroSpot.spot)[0];
+    const showAemet = () => {
+      if (!heroCamTarget.isConnected || heroCamTarget.dataset.fallback) return;
+      heroCamTarget.dataset.fallback = 'aemet';
+      stopCam(heroCamTarget);
+      const section = view.querySelector('.now-aemet-section');
+      if (!section) return;
+      section.style.marginTop = '0';
+      heroCamTarget.appendChild(section);
+      heroCamTarget.closest('.hero-now-media')?.classList.add('is-aemet');
+      const badge = view.querySelector('.hero-now-badge');
+      if (badge) badge.textContent = 'Previsión marítima AEMET';
+    };
     if (cam) {
+      const observer = new MutationObserver(() => {
+        if (heroCamTarget.querySelector('.cam-msg, .cam-badge-sin-senal')) {
+          observer.disconnect(); showAemet();
+        }
+      });
+      observer.observe(heroCamTarget, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
       playCam(heroCamTarget, cam, { autoplay: true });
-    }
+    } else showAemet();
   }
+
+  view.querySelector('#home-spot-select')?.addEventListener('change', (event) => {
+    const id = event.target.value;
+    if (id) localStorage.setItem('home_spot', id);
+    else localStorage.removeItem('home_spot');
+    route();
+  });
 
   bindFavs();
   initAemetMapWidget();
@@ -2048,6 +2082,7 @@ async function renderMap() {
     if (!window._cargaLeaflet) {
       window._cargaLeaflet = (async () => {
         const cdns = [
+          'vendor/leaflet',
           'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet',
           'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet',
         ];
@@ -2079,8 +2114,7 @@ async function renderMap() {
   leaflet?.remove();
   leaflet = L.map('map', { zoomControl: false });
   L.control.zoom({ position: 'topright', zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(leaflet);
-  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
-  const osmReserva = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19, subdomains: 'abcd' });
+  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin' });
   const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagen © Esri', maxZoom: 19 });
   osm.addTo(leaflet);
   let fallosTeselas = 0;
@@ -2088,11 +2122,15 @@ async function renderMap() {
     fallosTeselas += 1;
     if (fallosTeselas >= 3 && leaflet.hasLayer(osm)) {
       leaflet.removeLayer(osm);
-      osmReserva.addTo(leaflet);
+      sat.addTo(leaflet);
+      const aviso = document.createElement('div');
+      aviso.className = 'mapa-aviso';
+      aviso.textContent = 'El mapa de calles no responde. Mostrando satélite.';
+      document.querySelector('.mapa-full')?.appendChild(aviso);
     }
   });
   leaflet.attributionControl.setPrefix('Leaflet');
-  L.control.layers({ 'Satélite': sat, 'Mapa': osm, 'Mapa (reserva)': osmReserva }, null, { position: 'topright' }).addTo(leaflet);
+  L.control.layers({ 'Mapa': osm, 'Satélite': sat }, null, { position: 'topright' }).addTo(leaflet);
   leaflet.attributionControl.setPosition('bottomleft');
   const bounds = [];
   SPOTS.forEach((s) => {
@@ -2367,7 +2405,7 @@ function initAemetMapWidget() {
     playing = true;
     if (btnPlay) { btnPlay.textContent = '⏸'; btnPlay.setAttribute('aria-label', 'Pausar'); }
     clearInterval(timer);
-    timer = setInterval(tick, 450);
+    timer = setInterval(() => { if (img.complete && img.naturalWidth) tick(); }, 1800);
   }
 
   function stop() {
@@ -2379,13 +2417,14 @@ function initAemetMapWidget() {
 
   img.addEventListener('load', () => {
     if (skeleton) skeleton.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'none';
     img.style.display = 'block';
   });
   img.addEventListener('error', () => {
-    if (!img.dataset.errored) {
-      img.dataset.errored = '1';
-      img.style.display = 'none';
-    }
+    stop();
+    if (skeleton) skeleton.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'block';
+    img.style.display = 'none';
   });
 
   function checkImg(url) {
@@ -2438,7 +2477,6 @@ function initAemetMapWidget() {
     runStr = run;
     seekToNow();
     showFrame();
-    play();
   });
 }
 

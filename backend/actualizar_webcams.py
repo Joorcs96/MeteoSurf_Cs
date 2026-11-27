@@ -43,6 +43,7 @@ import os
 import re
 import sys
 import urllib.request
+from urllib.parse import urljoin
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -107,29 +108,45 @@ def is_new_schema(data: Dict[str, Any]) -> bool:
 
 
 def verificar_hls(url: str) -> bool:
-    """Comprueba que una URL de playlist HLS (.m3u8) responde y parece una playlist válida."""
+    """Comprueba playlist, variante y al menos un segmento de vídeo real."""
     try:
         with _http_get(url) as resp:
             if not (200 <= resp.status < 400):
                 return False
-            body = resp.read(2048).decode("utf-8", errors="ignore")
-            return "#EXTM3U" in body or url.lower().endswith(".m3u8")
+            body = resp.read(16384).decode("utf-8", errors="ignore")
+        if not body.lstrip().startswith("#EXTM3U"):
+            return False
+        if "#EXT-X-STREAM-INF" in body:
+            variante = next((line.strip() for line in body.splitlines() if line.strip() and not line.startswith("#")), None)
+            if not variante:
+                return False
+            url = urljoin(url, variante)
+            with _http_get(url) as resp:
+                if not (200 <= resp.status < 400):
+                    return False
+                body = resp.read(16384).decode("utf-8", errors="ignore")
+        if not body.lstrip().startswith("#EXTM3U") or "#EXTINF" not in body:
+            return False
+        segmento = next((line.strip() for line in body.splitlines() if line.strip() and not line.startswith("#")), None)
+        if not segmento:
+            return False
+        with _http_get(urljoin(url, segmento)) as resp:
+            tipo = resp.headers.get("Content-Type", "").lower()
+            return 200 <= resp.status < 300 and "html" not in tipo and bool(resp.read(1))
     except Exception as e:
         print(f"    [aviso] HLS no responde ({url}): {e}")
         return False
 
 
 def verificar_imagen(url: str) -> bool:
-    """Comprueba que una URL de imagen (jpg/mjpeg) responde con content-type de imagen."""
+    """Comprueba que una URL de imagen o MJPEG responde con datos visuales."""
     try:
         with _http_get(url) as resp:
             if not (200 <= resp.status < 400):
                 return False
             ctype = resp.headers.get("Content-Type", "")
-            if ctype and "image" in ctype.lower():
-                return True
-            # Algunos servidores no informan content-type correcto: aceptar 200 igualmente
-            return 200 <= resp.status < 300
+            tipo = ctype.lower()
+            return ("image/" in tipo or "multipart/x-mixed-replace" in tipo) and bool(resp.read(1))
     except Exception as e:
         print(f"    [aviso] Imagen no responde ({url}): {e}")
         return False

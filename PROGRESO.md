@@ -154,6 +154,7 @@ en uno. Ver NOTAS-IA.md.
 - App funcionando en simulador iPhone 12 Pro Max + Apple Watch Series 7
 
 ## 📋 PENDIENTES
+- App móvil (`surfline-mobile`): añadir el planificador de sesión ("Mejor lugar para tu sesión" al elegir fecha/franja, opciones de 3 h con datos completos, vista por segmentos sin scroll largo y parte compartido centrado en la decisión).
 - Probar en iPhone físico (Expo Go) la previsión real, el compositor de Comunidad y el guardado de clips en Fotos.
 
 ## ⚙️ EN CURSO

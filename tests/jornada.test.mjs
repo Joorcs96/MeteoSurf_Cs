@@ -16,7 +16,8 @@ import {
   buildJornadaHash,
   validateJornadaState,
   buildShareText,
-  recommendWindows
+  recommendWindows,
+  recommendForSession
 } from '../js/jornada.js';
 
 const DATE = '2026-11-25';
@@ -341,4 +342,33 @@ test('el parte empieza por la decisión elegida y separa alternativas', () => {
   assert.ok(decIdx > 0);
   assert.ok(altIdx > decIdx);
   assert.ok(plaIdx > altIdx);
+});
+
+test('recommendForSession elige el mejor lugar completo para la franja dada', () => {
+  const spots = [
+    { id: 'Planetario', name: 'Planetario', zoneName: 'Grao' },
+    { id: 'Voramar', name: 'Voramar', zoneName: 'Benicàssim' }
+  ];
+  const fc = {
+    spots: {
+      Planetario: {
+        hours: [
+          hour(9, [0.3, 0.5, 0.4], { rating: 2, windSpeed: 14 }),
+          hour(10, [0.3, 0.5, 0.4], { rating: 2, windSpeed: 14 }),
+          hour(11, [0.3, 0.5, 0.4], { rating: 2, windSpeed: 14 })
+        ]
+      },
+      Voramar: {
+        hours: [
+          hour(9, [0.6, 0.9, 0.75], { rating: 5, windSpeed: 8 }),
+          hour(10, [0.6, 0.9, 0.75], { rating: 5, windSpeed: 8 }),
+          hour(11, [0.6, 0.9, 0.75], { rating: 4, windSpeed: 9 })
+        ]
+      }
+    }
+  };
+  const res = recommendForSession(spots, fc, { date: DATE, from: 9, to: 12, preferSpotId: 'Planetario' });
+  assert.equal(res.best?.spotId, 'Voramar');
+  assert.equal(res.alternatives.length, 1);
+  assert.equal(res.alternatives[0].spotId, 'Planetario');
 });

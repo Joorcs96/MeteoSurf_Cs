@@ -8,22 +8,14 @@ import { iniciarCapas, motorLeaflet } from './mapa-capas.js';
 import { puntosSector, puntoEnRumbo, LARGO_FLECHA } from './orientaciones-mapa.js';
 import { createJornadaView } from './jornada.js';
 import { initNotificaciones } from './notificaciones.js';
-// Onboarding para principiantes
-let _obFirstRender = false;
+// Onboarding para principiantes: solo se abre desde la ayuda voluntaria
 function showOnboarding() {
-  if (_obFirstRender) return;
-  _obFirstRender = true;
-  if (!localStorage.getItem('ob_done')) {
-    const overlay = document.querySelector('.onboard-overlay');
-    if (overlay) {
-      overlay.style.display = 'flex';
-      const btn = overlay.querySelector('#onboard-btn') || overlay.querySelector('.onboard-btn') || overlay.querySelector('button');
-      btn?.addEventListener('click', () => {
-        localStorage.setItem('ob_done', '1');
-        overlay.style.display = 'none';
-      });
-    }
-  }
+  const overlay = document.querySelector('.onboard-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  const btn = overlay.querySelector('#onboard-btn') || overlay.querySelector('.onboard-btn') || overlay.querySelector('button');
+  if (btn) btn.onclick = () => { overlay.style.display = 'none'; };
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.style.display = 'none'; };
 }
 
 // Modal y ventajas Pro
@@ -563,7 +555,6 @@ function renderAhora() {
   }
 
   bindFavs();
-  showOnboarding();
   initAemetMapWidget();
 }
 
@@ -657,7 +648,6 @@ function renderPrevision() {
   if (fc && state.zone !== 'fav') assistant().then((ai) => { const el = $('#region-report'); if (el) el.innerHTML = reportBox(ai, SPOTS, ai.regionReport(fc, SPOTS) + '<p style="margin-top:10px"><a class="chip btn" href="#/asistente" style="display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;text-decoration:none;font-weight:600">' + ICON.chat + ' Preguntar al asistente</a></p>'); })
     .catch(() => $('#region-report')?.remove());
   else $('#region-report')?.remove();
-  showOnboarding();
 }
 
 // Compatibilidad
@@ -708,7 +698,7 @@ function renderCalendario() {
         <h1>Calendario semanal</h1>
         <p>Mejor momento de cada día (6h–20h) para los próximos 7 días · semáforo de calidad</p>
       </div>
-      <a class="chip btn" href="#/" style="text-decoration:none;font-weight:600">${ICON.back} Previsión</a>
+      <a class="chip btn" href="#/prevision" style="text-decoration:none;font-weight:600">${ICON.back} Previsión</a>
     </div>
 
     <div class="chips" role="tablist">
@@ -897,7 +887,6 @@ async function renderAssistant() {
   $('#pro-banner')?.addEventListener('click', (e) => {
     if (e.target.id !== 'pro-banner-btn') showProModal(true);
   });
-  showProModal(false);
   draw();
 }
 
@@ -921,7 +910,7 @@ function renderPro() {
         <li><span class="pro-check">✓</span> Soporte para más spots</li>
         <li><span class="pro-check">✓</span> Sin publicidad</li>
       </ul>
-      <a href="#/" class="btn pro-btn-primary" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;text-decoration:none">Volver a la previsión</a>
+      <a href="#/prevision" class="btn pro-btn-primary" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;text-decoration:none">Volver a la previsión</a>
     </div>
     ${footer()}
   `;
@@ -1355,7 +1344,7 @@ function renderSessionEvidence(spot, h) {
 // ---------- Página de spot ----------
 function renderSpot(id) {
   const spot = SPOTS.find((s) => s.id === id);
-  if (!spot) { location.hash = '#/'; return; }
+  if (!spot) { location.hash = '#/prevision'; return; }
   if (state.spotId !== id) { state.dayIdx = 0; state.camIdx = 0; state.spotId = id; state.tab = 'ahora'; state.rewindMonth = null; state.rewindDay = null; state.rewindCalendarOpen = null; state.rewindStripOpen = false; }
   renderQuickSpots();
   document.title = `${spot.name} · MeteoSurf_Cs`;
@@ -1376,7 +1365,7 @@ function renderSpot(id) {
   const isWindOpt = h && (h.wind.key === 'offshore' || h.wind.key === 'crossoff');
 
   view.innerHTML = `
-    <a class="back" href="#/">${ICON.back} Costa de Castellón</a>
+    <a class="back" href="#/prevision">${ICON.back} Costa de Castellón</a>
     <div class="spot-head">
       ${spot.photo?.thumb ? `<button class="spot-thumb" data-tab="fotos" aria-label="Ver fotos de ${esc(spot.name)}"><img src="${esc(miniatura(spot.photo.thumb, 250))}" alt="Fotografía del spot ${esc(spot.name)}"></button>` : ''}
       <div class="sh-txt"><h1>${esc(spot.name)}</h1><div class="sub">${esc(spot.zoneName)}</div></div>
@@ -2520,17 +2509,32 @@ async function init() {
     });
   }
   document.addEventListener('click', (e) => {
+    const help = e.target.closest?.('[data-help]');
+    if (help) {
+      e.preventDefault();
+      showOnboarding();
+      return;
+    }
     const trigger = e.target.closest?.('[data-pro], .pro-feature');
     if (trigger) {
       e.preventDefault();
       showProModal(true);
     }
   });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    hideProModal();
+    const onboarding = document.querySelector('.onboard-overlay');
+    if (onboarding) onboarding.style.display = 'none';
+  });
   window.addEventListener('forecast:ready', () => {
     const sortMode = localStorage.getItem('sort_mode') || 'default';
-    if (sortMode === 'best_week' && (!location.hash || location.hash === '#/' || location.hash.startsWith('#/jornada') || location.hash.startsWith('#/favoritos'))) {
-      if (location.hash.startsWith('#/jornada')) renderJornada();
-      else renderHome();
+    if (sortMode !== 'best_week') return;
+    if (location.hash.startsWith('#/jornada') || !location.hash || location.hash === '#/') {
+      renderJornada();
+    } else if (location.hash.startsWith('#/favoritos')) {
+      state.zone = 'fav';
+      renderPrevision();
     }
   });
   document.querySelectorAll('button[data-refresh]').forEach((btn) => btn.addEventListener('click', () => { toast('Actualizando previsión…'); refresh(true); }));

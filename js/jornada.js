@@ -90,6 +90,7 @@ export function chooseDefaultCompare(spots, favIds = []) {
 
 export function summarizeSpot(spot, fc, { date, from, to } = {}) {
   const list = hoursInRange(fc?.spots?.[spot?.id]?.hours, date, from, to);
+  const expected = Number.isInteger(from) && Number.isInteger(to) && to > from ? to - from : list.length;
   const withSurf = list.filter((h) => num(h.surf?.mid) != null);
   const surfMins = withSurf.map((h) => num(h.surf?.min) ?? num(h.surf?.mid)).filter((v) => v != null);
   const surfMaxs = withSurf.map((h) => num(h.surf?.max) ?? num(h.surf?.mid)).filter((v) => v != null);
@@ -111,8 +112,11 @@ export function summarizeSpot(spot, fc, { date, from, to } = {}) {
     zoneName: spot?.zoneName || '',
     hours: list,
     count: list.length,
+    expected,
     withSurf: withSurf.length,
-    missing: list.length - withSurf.length,
+    missing: Math.max(0, expected - withSurf.length),
+    coverage: expected ? withSurf.length / expected : 0,
+    partial: withSurf.length < expected,
     hasData: withSurf.length > 0,
     surfMin: surfMins.length ? Math.min(...surfMins) : null,
     surfMax: surfMaxs.length ? Math.max(...surfMaxs) : null,
@@ -194,8 +198,11 @@ export function buildShareText({ date, from, to, sport, level, rows = [], update
     'Lugares:'
   ];
   for (const r of rows) {
+    const coverage = r.partial && r.expected
+      ? ` · cobertura ${r.withSurf ?? 0}/${r.expected} h con dato, sin extrapolar`
+      : '';
     if (!r.hasData) {
-      lines.push(`- ${r.name}: sin datos de oleaje para esta franja.`);
+      lines.push(`- ${r.name}: sin datos de oleaje para esta franja${coverage}.`);
       continue;
     }
     const period = r.periodMin != null
@@ -206,9 +213,10 @@ export function buildShareText({ date, from, to, sport, level, rows = [], update
       : 'sin dato';
     const gust = r.gustMax != null ? `${Math.round(r.gustMax)} km/h` : 'sin dato';
     const quality = r.ratingLabel || 'sin valoración';
-    lines.push(`- ${r.name}: ola en playa ${fmtRangeM(r.surfMin, r.surfMax)} · periodo ${period} · viento ${wind} · rachas ${gust} · calidad ${quality}.`);
+    lines.push(`- ${r.name}: ola en playa ${fmtRangeM(r.surfMin, r.surfMax)} · periodo ${period} · viento ${wind} · rachas ${gust} · calidad de surf ${quality}${coverage}.`);
   }
   lines.push('');
+  lines.push('Criterios: calidad de surf = mejor valoración de la franja (ola, periodo y viento); viento y rachas son del modelo y la valoración aplica el abrigo del spot. Deporte y nivel son contexto, no cambian el cálculo.');
   lines.push(`Fuente: Open-Meteo (modelo marino y viento)${updatedAt ? ` · actualizado ${updatedAt}` : ''}.`);
   if (observation) lines.push(`Observación ahora: ${observation}`);
   lines.push('Nota: la ola en playa es una estimación de rompiente; Hs es altura significante mar adentro y la boya es una medición. El nivel es contexto del grupo, no un veredicto de seguridad.');
@@ -270,6 +278,11 @@ export function createJornadaView(api) {
     if (location.hash !== hash) history.replaceState(null, '', hash);
   }
 
+  function syncRangeLabel() {
+    const label = root.querySelector('#jr-range-label');
+    if (label && jr) label.textContent = `Franja · ${jr.to - jr.from} h`;
+  }
+
   function applyQuery() {
     const q = location.hash.split('?')[1] || '';
     const parsed = parseJornadaParams(q);
@@ -287,7 +300,7 @@ export function createJornadaView(api) {
     }
     root.innerHTML = shell();
     bind();
-    update({ first: true });
+    update();
     syncHash();
     save();
     initAemetMapWidget();
@@ -298,7 +311,7 @@ export function createJornadaView(api) {
     const today = todayISO();
     const dateOptions = dates().map((d) => `<option value="${d}"${d === jr.date ? ' selected' : ''}>${esc(dateShortLabel(d, today))}</option>`).join('');
     const allRanges = RANGES.some((r) => r.from === jr.from && r.to === jr.to) ? RANGES : [...RANGES, { from: jr.from, to: jr.to }].sort((a, b) => a.from - b.from);
-    const rangeOptions = allRanges.map((r) => `<option value="${r.from}-${r.to}"${r.from === jr.from && r.to === jr.to ? ' selected' : ''}>${rangeLabel(r.from, r.to)} · ${r.to - r.from} h</option>`).join('');
+    const rangeOptions = allRanges.map((r) => `<option value="${r.from}-${r.to}"${r.from === jr.from && r.to === jr.to ? ' selected' : ''}>${rangeLabel(r.from, r.to)}</option>`).join('');
     const sportOptions = SPORTS.map((s) => `<option${s === jr.sport ? ' selected' : ''}>${s}</option>`).join('');
     const levelOptions = LEVELS.map((n) => `<option${n === jr.level ? ' selected' : ''}>${n}</option>`).join('');
     const updated = new Date(fc.fetchedAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -316,11 +329,11 @@ export function createJornadaView(api) {
       </header>
       <section class="jr-filters" aria-label="Filtros de la jornada">
         <label class="jr-field"><span>Fecha</span><select id="jr-date">${dateOptions}</select></label>
-        <label class="jr-field"><span>Franja</span><select id="jr-range">${rangeOptions}</select></label>
+        <label class="jr-field"><span id="jr-range-label">Franja · ${jr.to - jr.from} h</span><select id="jr-range">${rangeOptions}</select></label>
         <label class="jr-field"><span>Deporte</span><select id="jr-sport">${sportOptions}</select></label>
         <label class="jr-field"><span>Nivel del grupo</span><select id="jr-level">${levelOptions}</select></label>
       </section>
-      <p class="jr-hint">${SVG.info}<span>El nivel es contexto del grupo, no un filtro automático de seguridad. La previsión es un modelo, no una medición.</span></p>
+      <p class="jr-hint">${SVG.info}<span>El nivel es contexto del grupo, no un filtro automático de seguridad. La previsión es un modelo, no una medición. <button type="button" class="jr-link-btn" data-help>Guía de lectura</button></span></p>
       <div class="jr-layout">
         <div class="jr-main">
           <section class="jr-panel jr-compare" aria-labelledby="jr-compare-title">
@@ -336,10 +349,10 @@ export function createJornadaView(api) {
               </div>
             </div>
             <div class="jr-compare-head" aria-hidden="true">
-              <span>Lugar</span><span>Ola en playa</span><span>Periodo</span><span>Viento</span><span>Rachas</span><span>Calidad</span><span></span>
+              <span>Lugar</span><span>Ola en playa</span><span>Periodo</span><span>Viento</span><span>Rachas</span><span>Calidad surf</span><span></span>
             </div>
             <div id="jr-compare-body" role="radiogroup" aria-label="Lugares comparados"></div>
-            <p class="jr-compare-note">Ola en playa = estimación de rompiente. Hs = altura significante mar adentro. La boya mide otra cosa y se muestra aparte.</p>
+            <p class="jr-compare-note">Ola en playa = estimación de rompiente. Hs = altura significante mar adentro; la boya mide otra cosa. Viento y rachas son del modelo. Calidad de surf = mejor valoración de la franja (ola, periodo y viento, con el abrigo del spot). Deporte y nivel son contexto, no cambian el cálculo.</p>
           </section>
           <section class="jr-panel jr-chart-panel" aria-labelledby="jr-chart-title">
             <div class="jr-panel-head">
@@ -403,10 +416,13 @@ export function createJornadaView(api) {
       addSpot(root.querySelector('#jr-add-spot')?.value);
     });
     root.querySelector('#jr-favs-btn')?.addEventListener('click', () => {
-      const compare = chooseDefaultCompare(spots, [...favs]);
-      if (!compare.length) return;
-      jr.compare = compare;
-      jr.selected = compare[0];
+      const saved = [...favs].filter((id) => spotById(id));
+      if (!saved.length) {
+        toast('No tienes spots guardados. Usa la estrella de un lugar para añadirlo.');
+        return;
+      }
+      jr.compare = saved.slice(0, 8);
+      jr.selected = jr.compare[0];
       update();
     });
     root.querySelector('#jr-compare-body')?.addEventListener('change', (e) => {
@@ -429,12 +445,20 @@ export function createJornadaView(api) {
           removeSpot(rmBtn.dataset.jrRemove);
           return;
         }
-        if (e.target.closest('[data-jr-playcam]')) mountCam(true);
+        const moreBtn = e.target.closest('[data-jr-more]');
+        if (moreBtn) {
+          const row = moreBtn.closest('.jr-row');
+          const open = row?.classList.toggle('is-expanded') || false;
+          moreBtn.setAttribute('aria-expanded', String(open));
+          moreBtn.textContent = open ? 'Ocultar periodo y rachas' : 'Ver periodo y rachas';
+          return;
+        }
+        if (e.target.closest('[data-jr-playcam]')) mountCam({ play: true });
       });
     }
   }
 
-  function update({ first = false } = {}) {
+  function update() {
     if (!state.fc || !jr) return;
     const spot = spotById(jr.selected) || spots[0];
     if (!spot) return;
@@ -446,8 +470,8 @@ export function createJornadaView(api) {
     renderHours(spot);
     renderInspectorHead(spot);
     renderInspectorInfo(spot);
-    mountCam(first || camSpot !== spot.id);
-    camSpot = spot.id;
+    mountCam();
+    syncRangeLabel();
     syncHash();
     save();
   }
@@ -491,20 +515,25 @@ export function createJornadaView(api) {
         : 'Sin dato';
       const wind = sum.windAvg != null ? `${Math.round(sum.windAvg)} km/h ${compass(sum.windDir)}` : 'Sin dato';
       const gust = sum.gustMax != null ? `${Math.round(sum.gustMax)} km/h` : 'Sin dato';
+      const coverage = sum.partial && sum.expected ? `estimación · ${sum.withSurf}/${sum.expected} h` : 'estimación';
+      const moreId = `jr-more-${spot.id}`;
       return `<div class="jr-row${selected ? ' is-selected' : ''}" data-jr-row="${esc(spot.id)}">
         <label class="jr-row-pick">
           <input type="radio" name="jr-spot" value="${esc(spot.id)}"${selected ? ' checked' : ''} aria-label="Inspeccionar ${esc(spot.name)}">
           <span class="jr-row-name"><b>${esc(spot.name)}</b><small>${esc(spot.zoneName)}</small></span>
         </label>
-        <div class="jr-cell"><span class="jr-cell-label">Ola en playa</span><b class="num">${sum.hasData ? fmtRangeM(sum.surfMin, sum.surfMax) : 'Sin dato'}</b><small>estimación</small></div>
-        <div class="jr-cell"><span class="jr-cell-label">Periodo</span><b class="num">${period}</b></div>
-        <div class="jr-cell"><span class="jr-cell-label">Viento</span><b class="num">${wind}</b>${sum.windLabel ? `<small>${esc(sum.windLabel)}</small>` : ''}</div>
-        <div class="jr-cell"><span class="jr-cell-label">Rachas</span><b class="num">${gust}</b></div>
-        <div class="jr-cell"><span class="jr-cell-label">Calidad</span>${sum.hasData ? `<span class="rating-pill ${ratingCls(rating)}">${esc(ratingLabel(rating))}</span>` : '<span class="jr-muted">Sin datos</span>'}</div>
+        <div class="jr-cell jr-cell-wave"><span class="jr-cell-label">Ola en playa</span><b class="num">${sum.hasData ? fmtRangeM(sum.surfMin, sum.surfMax) : 'Sin dato'}</b><small>${coverage}</small></div>
+        <div class="jr-cell jr-cell-wind"><span class="jr-cell-label">Viento</span><b class="num">${wind}</b>${sum.windAvg != null && sum.windLabel ? `<small>${esc(sum.windLabel)}</small>` : ''}</div>
         <div class="jr-row-actions">
           <button type="button" class="jr-icon-btn${favs.has(spot.id) ? ' is-on' : ''}" data-jr-fav="${esc(spot.id)}" aria-label="${favs.has(spot.id) ? 'Quitar de mis spots' : 'Añadir a mis spots'}" title="Mis spots">${SVG.star(favs.has(spot.id))}</button>
           ${jr.compare.length > 1 ? `<button type="button" class="jr-icon-btn" data-jr-remove="${esc(spot.id)}" aria-label="Quitar ${esc(spot.name)} de la comparación" title="Quitar">${SVG.x}</button>` : ''}
         </div>
+        <div class="jr-row-more-panel" id="${esc(moreId)}">
+          <div class="jr-cell jr-cell-period"><span class="jr-cell-label">Periodo</span><b class="num">${period}</b></div>
+          <div class="jr-cell jr-cell-gust"><span class="jr-cell-label">Rachas</span><b class="num">${gust}</b></div>
+          <div class="jr-cell jr-cell-rating"><span class="jr-cell-label">Calidad surf</span>${sum.hasData ? `<span class="rating-pill ${ratingCls(rating)}">${esc(ratingLabel(rating))}</span>` : '<span class="jr-muted">Sin datos</span>'}</div>
+        </div>
+        <button type="button" class="jr-row-more" data-jr-more aria-expanded="false" aria-controls="${esc(moreId)}">Ver periodo y rachas</button>
       </div>`;
     }).join('');
   }
@@ -532,7 +561,7 @@ export function createJornadaView(api) {
     const legend = root.querySelector('#jr-legend');
     if (!chart) return;
     if (title) title.textContent = `${spot.name} · ${spot.zoneName}`;
-    if (sub) sub.textContent = `${dateLongLabel(jr.date)} · ${rangeLabel(jr.from, jr.to)} · modelo por horas`;
+    if (sub) sub.textContent = `${dateLongLabel(jr.date)} · ${rangeLabel(jr.from, jr.to)} · altura (m) · modelo por horas`;
     if (legend) legend.innerHTML = `<span><i class="jr-swatch jr-swatch-line"></i>Ola en playa</span><span><i class="jr-swatch jr-swatch-band"></i>Rango</span><span><i class="jr-swatch jr-swatch-dash"></i>Hs mar adentro</span>`;
     const series = chartSeries(spot);
     const values = series.flatMap((p) => [p.surfMax, p.offshore]).filter((v) => v != null);
@@ -589,7 +618,6 @@ export function createJornadaView(api) {
       <title>Ola en playa y Hs mar adentro en ${esc(spot.name)}</title>
       <desc>Modelo por horas entre las ${String(jr.from).padStart(2, '0')}:00 y las ${String(jr.to).padStart(2, '0')}:00. La banda muestra el rango de ola en playa estimada y la línea discontinua la altura significante mar adentro.</desc>
       ${rangeRect}${grid.join('')}${xAxis}
-      <text x="${padL - 8}" y="${padT - 6}" text-anchor="end" class="jr-axis-text">m</text>
       ${band}${mid}${dots}${offshore}
     </svg>`;
   }
@@ -602,6 +630,12 @@ export function createJornadaView(api) {
       box.innerHTML = `<div class="jr-empty">No hay horas de previsión dentro de esta franja. Prueba otra franja.</div>`;
       return;
     }
+    const expected = Math.max(0, jr.to - jr.from);
+    const withSurf = list.filter((h) => h.surf?.mid != null).length;
+    const missing = Math.max(0, expected - withSurf);
+    const coverage = missing
+      ? `<p class="jr-coverage-warning" role="status">Cobertura parcial: ${withSurf} de ${expected} h con dato de oleaje. Faltan ${missing} h; no se extrapola.</p>`
+      : '';
     const rows = list.map((h) => {
       const surf = h.surf?.mid != null ? fmtRangeM(h.surf.min, h.surf.max) : 'Sin dato';
       const period = periodOf(h);
@@ -612,15 +646,15 @@ export function createJornadaView(api) {
         <th scope="row" class="num">${String(h.hour).padStart(2, '0')}:00</th>
         <td class="num">${surf}</td>
         <td class="num">${period != null ? `${Math.round(period)} s` : 'Sin dato'}</td>
-        <td>${wind}${h.wind?.label ? `<small>${esc(h.wind.label)}</small>` : ''}</td>
+        <td>${wind}${h.windSpeed != null && h.wind?.label ? `<small>${esc(h.wind.label)}</small>` : ''}</td>
         <td class="num">${gust}</td>
         <td>${rating}</td>
       </tr>`;
     }).join('');
-    box.innerHTML = `<div class="jr-hours-head"><h3>Detalle de la franja</h3><p>Horas incluidas: desde las ${String(jr.from).padStart(2, '0')}:00 hasta antes de las ${String(jr.to).padStart(2, '0')}:00. No se extrapolan datos.</p></div>
+    box.innerHTML = `<div class="jr-hours-head"><h3>Detalle de la franja</h3><p>Horas incluidas: desde las ${String(jr.from).padStart(2, '0')}:00 hasta antes de las ${String(jr.to).padStart(2, '0')}:00. No se extrapolan datos.</p>${coverage}</div>
       <div class="jr-table-wrap" tabindex="0" role="region" aria-label="Tabla horaria de la franja, desplazable horizontalmente"><table class="jr-table">
         <caption class="jr-sr-only">Previsión por horas dentro de la franja seleccionada</caption>
-        <thead><tr><th scope="col">Hora</th><th scope="col">Ola playa</th><th scope="col">Periodo</th><th scope="col">Viento</th><th scope="col">Rachas</th><th scope="col">Calidad</th></tr></thead>
+        <thead><tr><th scope="col">Hora</th><th scope="col">Ola playa</th><th scope="col">Periodo</th><th scope="col">Viento</th><th scope="col">Rachas</th><th scope="col">Calidad surf</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
   }
@@ -650,6 +684,9 @@ export function createJornadaView(api) {
     const wind = sum.windAvg != null ? `${Math.round(sum.windAvg)} km/h ${compass(sum.windDir)}` : 'Sin dato';
     const gust = sum.gustMax != null ? `${Math.round(sum.gustMax)} km/h` : 'Sin dato';
     const best = sum.bestHour != null ? `${String(sum.bestHour).padStart(2, '0')}:00` : 'sin hora válida';
+    const coverage = sum.partial && sum.expected
+      ? `<p class="jr-coverage-warning" role="status">Cobertura parcial: ${sum.withSurf} de ${sum.expected} h con dato de oleaje. Faltan ${sum.missing} h; no se extrapola.</p>`
+      : '';
     const cam = camsForSpot(spot)[0];
     const clips = clipsForSpot(spot);
     const wave = state.realtime?.oleaje?.principal;
@@ -684,7 +721,8 @@ export function createJornadaView(api) {
           <div><span>Viento</span><b class="num">${wind}</b>${sum.windLabel ? `<small>${esc(sum.windLabel)}</small>` : ''}</div>
           <div><span>Rachas</span><b class="num">${gust}</b></div>
         </div>
-        <div class="jr-quality"><span class="rating-pill ${ratingCls(rating)}">${esc(ratingLabel(rating))}</span><span>Mejor hora: ${best}</span></div>
+        ${coverage}
+        <div class="jr-quality"><span class="rating-pill ${ratingCls(rating)}">${esc(ratingLabel(rating))}</span><span>Calidad de surf · mejor hora: ${best}</span></div>
       </div>` : `<div class="jr-inspector-section"><div class="jr-empty jr-empty-compact">Sin datos de oleaje para esta franja. Cambia la fecha o la franja.</div></div>`}
       <div class="jr-inspector-section">
         <h3>Observación ahora</h3>
@@ -694,7 +732,7 @@ export function createJornadaView(api) {
       <div class="jr-inspector-section">
         <h3>Fuente de la previsión</h3>
         <p class="jr-source">Open-Meteo · modelo marino y viento · actualizado ${esc(new Date(state.fc.fetchedAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }))}.${state.fc.stale ? ' Datos guardados sin conexión.' : ''}</p>
-        <p class="jr-note">Hs es altura significante mar adentro. La ola en playa se estima con la física de rompiente del spot.</p>
+        <p class="jr-note">Hs es altura significante mar adentro. La ola en playa se estima con la física de rompiente del spot. Viento y rachas son del modelo; la calidad de surf aplica el abrigo del spot y no cambia con el deporte o el nivel.</p>
       </div>
       <div class="jr-context-box">
         <div><span>Deporte</span><b>${esc(jr.sport)}</b></div>
@@ -707,34 +745,31 @@ export function createJornadaView(api) {
       </div>`;
   }
 
-  function mountCam(force = false) {
+  function mountCam({ play = false } = {}) {
     const el = root.querySelector('#jr-cam');
     if (!el) return;
     const spot = spotById(jr.selected);
     if (!spot) return;
     const cam = camsForSpot(spot)[0];
+    const changed = camSpot !== spot.id || el.dataset.jrCam !== spot.id;
     if (!cam) {
-      if (camSpot !== spot.id || force) {
+      if (changed || play) {
         stopCam(el);
         el.dataset.jrCam = spot.id;
+        camSpot = spot.id;
         el.innerHTML = `<div class="jr-cam-empty">${SVG.cam}<span>Sin cámara pública para ${esc(spot.name)}.</span></div>`;
       }
       return;
     }
-    if (force) {
-      el.dataset.jrCam = spot.id;
-      playCam(el, cam, { autoplay: true });
-      return;
-    }
-    if (camSpot === spot.id && el.dataset.jrCam === spot.id) return;
-    const desktop = window.matchMedia('(min-width: 1000px)').matches;
-    if (desktop) {
-      el.dataset.jrCam = spot.id;
-      playCam(el, cam, { autoplay: true });
-      return;
-    }
+    if (!play && !changed) return;
     stopCam(el);
     el.dataset.jrCam = spot.id;
+    camSpot = spot.id;
+    const desktop = window.matchMedia('(min-width: 1000px)').matches;
+    if (play || desktop) {
+      playCam(el, cam, { autoplay: true });
+      return;
+    }
     el.innerHTML = `<div class="jr-cam-poster">
       <div class="jr-cam-poster-icon">${SVG.cam}</div>
       <b>${esc(spot.name)} en directo</b>

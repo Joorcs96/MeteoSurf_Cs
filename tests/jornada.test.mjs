@@ -90,8 +90,10 @@ test('resumen sin oleaje no inventa cero', () => {
 
   const r = summarizeSpot(spot, fc, { date: DATE, from: 9, to: 12 });
   assert.equal(r.count, 2);
+  assert.equal(r.expected, 3);
   assert.equal(r.withSurf, 0);
-  assert.equal(r.missing, 2);
+  assert.equal(r.missing, 3);
+  assert.equal(r.partial, true);
   assert.equal(r.hasData, false);
   assert.equal(r.surfMin, null);
   assert.equal(r.surfMax, null);
@@ -223,7 +225,8 @@ test('el parte incluye fecha, franja, fuentes, observación y enlace', () => {
   assert.match(text, /periodo 8–10 s/);
   assert.match(text, /viento 12 km\/h Terral/);
   assert.match(text, /rachas 20 km\/h/);
-  assert.match(text, /calidad Bueno/);
+  assert.match(text, /calidad de surf Bueno/);
+  assert.match(text, /Criterios: calidad de surf/);
   assert.match(text, /Fuente: Open-Meteo/);
   assert.match(text, /actualizado 25\/11\/2026 08:00/);
   assert.match(text, /Observación ahora: Boya 0,8 m/);
@@ -245,8 +248,28 @@ test('el parte declara ausencia de datos en vez de inventarlos', () => {
   });
 
   assert.match(text, /El Palaciet: sin datos de oleaje para esta franja\./);
-  assert.match(text, /Voramar: ola en playa – · periodo sin dato · viento sin dato · rachas sin dato · calidad sin valoración\./);
+  assert.match(text, /Voramar: ola en playa – · periodo sin dato · viento sin dato · rachas sin dato · calidad de surf sin valoración\./);
   assert.ok(!text.includes('0,0 m'));
+});
+
+test('el parte marca cobertura parcial sin extrapolar', () => {
+  const text = buildShareText({
+    date: DATE,
+    from: 9,
+    to: 12,
+    rows: [{
+      name: 'Planetario',
+      hasData: true,
+      surfMin: 0.4,
+      surfMax: 0.8,
+      expected: 3,
+      withSurf: 2,
+      partial: true,
+      ratingLabel: 'Bueno'
+    }]
+  });
+
+  assert.match(text, /cobertura 2\/3 h con dato, sin extrapolar/);
 });
 
 test('rangos y catálogos mantienen la franja esperada', () => {

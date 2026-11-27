@@ -11,6 +11,7 @@ export const RANGES = [
 export const SPORTS = ['Surf', 'Longboard', 'Bodyboard', 'SUP', 'Windsurf', 'Kitesurf'];
 export const LEVELS = ['Iniciación', 'Intermedio', 'Avanzado', 'Competición'];
 export const DEFAULT_RANGE = { from: 9, to: 12 };
+export const THREE_HOUR_RANGES = RANGES.filter((r) => r.to - r.from === 3);
 
 const DOW = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 const MON = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -129,8 +130,40 @@ export function summarizeSpot(spot, fc, { date, from, to } = {}) {
     windLabel: midHour?.wind?.label || '',
     bestRating: ratings.length ? Math.max(...ratings) : null,
     worstRating: ratings.length ? Math.min(...ratings) : null,
+    ratingAvg: ratings.length ? ratings.reduce((a, v) => a + v, 0) / ratings.length : null,
     bestHour: best?.hour ?? null
   };
+}
+
+export function recommendWindows(spots = [], fc, { date, limit = 4, preferSpotId = null } = {}) {
+  const out = [];
+  for (const spot of spots || []) {
+    if (!spot?.id) continue;
+    for (const r of THREE_HOUR_RANGES) {
+      const sum = summarizeSpot(spot, fc, { date, from: r.from, to: r.to });
+      if (!sum.hasData || sum.partial) continue;
+      out.push({
+        ...sum,
+        date,
+        from: r.from,
+        to: r.to
+      });
+    }
+  }
+  out.sort((a, b) => {
+    const rDiff = (b.bestRating ?? -1) - (a.bestRating ?? -1);
+    if (rDiff !== 0) return rDiff;
+    const avgDiff = (b.ratingAvg ?? -1) - (a.ratingAvg ?? -1);
+    if (Math.abs(avgDiff) > 1e-6) return avgDiff;
+    const surfDiff = (b.surfAvg ?? 0) - (a.surfAvg ?? 0);
+    if (Math.abs(surfDiff) > 1e-6) return surfDiff;
+    if (preferSpotId && a.spotId !== b.spotId) {
+      if (a.spotId === preferSpotId) return -1;
+      if (b.spotId === preferSpotId) return 1;
+    }
+    return a.from - b.from;
+  });
+  return out.slice(0, Math.max(0, limit));
 }
 
 export function parseJornadaParams(search) {
@@ -188,32 +221,44 @@ export function validateJornadaState(input = {}, { dates = [], spotIds = [], def
   return { date, from, to, sport, level, compare, selected };
 }
 
-export function buildShareText({ date, from, to, sport, level, rows = [], updatedAt, observation, url }) {
+function formatShareRow(r) {
+  const coverage = r.partial && r.expected
+    ? ` · cobertura ${r.withSurf ?? 0}/${r.expected} h con dato, sin extrapolar`
+    : '';
+  if (!r.hasData) {
+    return `- ${r.name}: sin datos de oleaje para esta franja${coverage}.`;
+  }
+  const period = r.periodMin != null
+    ? `${Math.round(r.periodMin)}${r.periodMax != null && Math.round(r.periodMax) !== Math.round(r.periodMin) ? `–${Math.round(r.periodMax)}` : ''} s`
+    : 'sin dato';
+  const wind = r.windAvg != null
+    ? `${Math.round(r.windAvg)} km/h${r.windText ? ` ${r.windText}` : ''}`
+    : 'sin dato';
+  const gust = r.gustMax != null ? `${Math.round(r.gustMax)} km/h` : 'sin dato';
+  const quality = r.ratingLabel || 'sin valoración';
+  return `- ${r.name}: ola en playa ${fmtRangeM(r.surfMin, r.surfMax)} · periodo ${period} · viento ${wind} · rachas ${gust} · calidad de surf ${quality}${coverage}.`;
+}
+
+export function buildShareText({ date, from, to, sport, level, selected, rows = [], updatedAt, observation, url }) {
   const lines = [
     'MeteoSurf · Parte de jornada',
     `Fecha: ${dateLongLabel(date)}`,
     `Franja: ${rangeLabel(from, to)} (${to - from} h) · Europe/Madrid (hora peninsular)`,
     `Deporte: ${sport} · Nivel del grupo: ${level}`,
-    '',
-    'Lugares:'
+    ''
   ];
-  for (const r of rows) {
-    const coverage = r.partial && r.expected
-      ? ` · cobertura ${r.withSurf ?? 0}/${r.expected} h con dato, sin extrapolar`
-      : '';
-    if (!r.hasData) {
-      lines.push(`- ${r.name}: sin datos de oleaje para esta franja${coverage}.`);
-      continue;
+  const chosen = (selected ? rows.find((r) => r.spotId === selected) : null) || rows[0] || null;
+  if (chosen) {
+    lines.push(`Decisión: ${chosen.name} · ${dateLongLabel(date)} · ${rangeLabel(from, to)} (${to - from} h)`);
+    lines.push(formatShareRow(chosen));
+    const others = rows.filter((r) => r !== chosen);
+    if (others.length) {
+      lines.push('');
+      lines.push('Alternativas comparadas:');
+      for (const r of others) lines.push(formatShareRow(r));
     }
-    const period = r.periodMin != null
-      ? `${Math.round(r.periodMin)}${r.periodMax != null && Math.round(r.periodMax) !== Math.round(r.periodMin) ? `–${Math.round(r.periodMax)}` : ''} s`
-      : 'sin dato';
-    const wind = r.windAvg != null
-      ? `${Math.round(r.windAvg)} km/h${r.windText ? ` ${r.windText}` : ''}`
-      : 'sin dato';
-    const gust = r.gustMax != null ? `${Math.round(r.gustMax)} km/h` : 'sin dato';
-    const quality = r.ratingLabel || 'sin valoración';
-    lines.push(`- ${r.name}: ola en playa ${fmtRangeM(r.surfMin, r.surfMax)} · periodo ${period} · viento ${wind} · rachas ${gust} · calidad de surf ${quality}${coverage}.`);
+  } else {
+    lines.push('Lugares:');
   }
   lines.push('');
   lines.push('Criterios: calidad de surf = mejor valoración de la franja (ola, periodo y viento); viento y rachas son del modelo y la valoración aplica el abrigo del spot. Deporte y nivel son contexto, no cambian el cálculo.');
@@ -336,6 +381,16 @@ export function createJornadaView(api) {
       <p class="jr-hint">${SVG.info}<span>El nivel es contexto del grupo, no un filtro automático de seguridad. La previsión es un modelo, no una medición. <button type="button" class="jr-link-btn" data-help>Guía de lectura</button></span></p>
       <div class="jr-layout">
         <div class="jr-main">
+          <section class="jr-panel jr-windows" aria-labelledby="jr-windows-title">
+            <div class="jr-panel-head">
+              <div>
+                <h2 id="jr-windows-title">Mejores franjas de 3 h</h2>
+                <p id="jr-windows-sub">Opciones con datos completos para decidir dónde y cuándo entrar.</p>
+              </div>
+            </div>
+            <div id="jr-windows-body" class="jr-windows-grid"></div>
+            <p class="jr-compare-note">Solo se proponen franjas de 3 h con todas las horas con dato de oleaje, ordenadas por calidad de surf. Toca una opción para seleccionarla y compartirla. Deporte y nivel son contexto.</p>
+          </section>
           <section class="jr-panel jr-compare" aria-labelledby="jr-compare-title">
             <div class="jr-panel-head">
               <div>
@@ -453,7 +508,19 @@ export function createJornadaView(api) {
           moreBtn.textContent = open ? 'Ocultar periodo y rachas' : 'Ver periodo y rachas';
           return;
         }
-        if (e.target.closest('[data-jr-playcam]')) mountCam({ play: true });
+        if (e.target.closest('[data-jr-playcam]')) { mountCam({ play: true }); return; }
+        const winBtn = e.target.closest('[data-jr-pick-window]');
+        if (winBtn) {
+          const [spotId, fromStr, toStr] = winBtn.dataset.jrPickWindow.split(':');
+          const from = Number(fromStr);
+          const to = Number(toStr);
+          if (spotById(spotId) && Number.isInteger(from) && Number.isInteger(to) && from < to) {
+            jr.selected = spotId;
+            jr.from = from;
+            jr.to = to;
+            update();
+          }
+        }
       });
     }
   }
@@ -464,6 +531,9 @@ export function createJornadaView(api) {
     if (!spot) return;
     jr.selected = spot.id;
     if (!jr.compare.includes(spot.id)) jr.compare = [spot.id, ...jr.compare].slice(0, 8);
+    const rangeSel = root.querySelector('#jr-range');
+    if (rangeSel) rangeSel.value = `${jr.from}-${jr.to}`;
+    renderWindows();
     renderCompare();
     renderAddOptions();
     renderChart(spot);
@@ -499,6 +569,38 @@ export function createJornadaView(api) {
     sel.innerHTML = available.length
       ? `<option value="">Añadir lugar…</option>${available.map((s) => `<option value="${esc(s.id)}">${esc(s.name)} · ${esc(s.zoneName)}</option>`).join('')}`
       : '<option value="">Todos los lugares están en la comparación</option>';
+  }
+
+  function renderWindows() {
+    const body = root.querySelector('#jr-windows-body');
+    const sub = root.querySelector('#jr-windows-sub');
+    if (!body) return;
+    if (sub) sub.textContent = `${dateLongLabel(jr.date)} · elige una opción de 3 h para fijar lugar y hora.`;
+    const comparedSpots = jr.compare.map(spotById).filter(Boolean);
+    const list = recommendWindows(comparedSpots, state.fc, { date: jr.date, limit: 4, preferSpotId: jr.selected });
+    if (!list.length) {
+      body.innerHTML = `<div class="jr-empty">Sin franjas de 3 h con datos completos para ${esc(dateLongLabel(jr.date))} entre los lugares comparados.</div>`;
+      return;
+    }
+    body.innerHTML = list.map((w) => {
+      const active = w.spotId === jr.selected && w.from === jr.from && w.to === jr.to;
+      const period = w.periodMin != null
+        ? `${Math.round(w.periodMin)}${w.periodMax != null && Math.round(w.periodMax) !== Math.round(w.periodMin) ? `–${Math.round(w.periodMax)}` : ''} s`
+        : 'Sin dato';
+      const wind = w.windAvg != null ? `${Math.round(w.windAvg)} km/h ${compass(w.windDir)}` : 'Sin dato';
+      return `<button type="button" class="jr-window-card${active ? ' is-active' : ''}" data-jr-pick-window="${esc(w.spotId)}:${w.from}:${w.to}" aria-pressed="${active ? 'true' : 'false'}">
+        <div class="jr-window-top">
+          <span class="jr-window-spot"><b>${esc(w.name)}</b><small>${esc(w.zoneName)}</small></span>
+          ${active ? '<span class="jr-window-badge">Elegida</span>' : ''}
+        </div>
+        <div class="jr-window-time num">${rangeLabel(w.from, w.to)}</div>
+        <div class="jr-window-metrics">
+          <span class="rating-pill ${ratingCls(w.bestRating)}">${esc(ratingLabel(w.bestRating))}</span>
+          <b class="num">${fmtRangeM(w.surfMin, w.surfMax)}</b>
+        </div>
+        <div class="jr-window-meta num">${esc(wind)}${w.windAvg != null && w.windLabel ? ` · ${esc(w.windLabel)}` : ''} · ${esc(period)}</div>
+      </button>`;
+    }).join('');
   }
 
   function renderCompare() {
@@ -803,7 +905,7 @@ export function createJornadaView(api) {
     const url = `${location.href.split('#')[0]}${buildJornadaHash(jr)}`;
     const text = buildShareText({
       date: jr.date, from: jr.from, to: jr.to, sport: jr.sport, level: jr.level,
-      rows, updatedAt, observation, url
+      selected: jr.selected, rows, updatedAt, observation, url
     });
     const fallback = () => showShareFallback(text);
     if (navigator.share) {

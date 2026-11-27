@@ -828,6 +828,94 @@ h3 {
   line-height: 1.45;
 }
 
+.jr-windows-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.jr-window-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2, var(--surface));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.jr-window-card:hover {
+  border-color: var(--line-2);
+}
+
+.jr-window-card.is-active {
+  border-color: var(--sel);
+  background: color-mix(in srgb, var(--sel) 10%, var(--surface));
+}
+
+.jr-window-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.jr-window-spot {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.jr-window-spot b {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.jr-window-spot small {
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.jr-window-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--sel);
+  color: var(--on-primary, #fff);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.jr-window-time {
+  color: var(--sel);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.jr-window-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.jr-window-metrics b {
+  font-size: 14px;
+}
+
+.jr-window-meta {
+  color: var(--text-2);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .jr-compare-actions {
   display: flex;
   align-items: center;

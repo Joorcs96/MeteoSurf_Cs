@@ -15,7 +15,8 @@ import {
   parseJornadaParams,
   buildJornadaHash,
   validateJornadaState,
-  buildShareText
+  buildShareText,
+  recommendWindows
 } from '../js/jornada.js';
 
 const DATE = '2026-11-25';
@@ -282,4 +283,62 @@ test('rangos y catálogos mantienen la franja esperada', () => {
   }
   assert.ok(SPORTS.includes('Surf'));
   assert.ok(LEVELS.includes('Intermedio'));
+});
+
+test('recommendWindows solo propone franjas de 3 h completas y ordena por calidad', () => {
+  const spots = [
+    { id: 'Planetario', name: 'Planetario', zoneName: 'Grao' },
+    { id: 'Voramar', name: 'Voramar', zoneName: 'Benicàssim' }
+  ];
+  const fc = {
+    spots: {
+      Planetario: {
+        hours: [
+          // 06-09 parcial (solo 2 horas con surf) -> debe descartarse aunque tenga rating 6
+          hour(6, [0.7, 1.1, 0.9], { rating: 6, windSpeed: 8 }),
+          hour(7, [0.7, 1.1, 0.9], { rating: 6, windSpeed: 8 }),
+          hour(8, null, { rating: 6, windSpeed: 8 }),
+          // 09-12 completa, rating 4
+          hour(9, [0.4, 0.6, 0.5], { rating: 3, windSpeed: 10 }),
+          hour(10, [0.5, 0.7, 0.6], { rating: 4, windSpeed: 10 }),
+          hour(11, [0.4, 0.6, 0.5], { rating: 3, windSpeed: 10 })
+        ]
+      },
+      Voramar: {
+        hours: [
+          // 12-15 completa, rating 5
+          hour(12, [0.6, 0.9, 0.75], { rating: 5, windSpeed: 9 }),
+          hour(13, [0.6, 0.9, 0.75], { rating: 5, windSpeed: 9 }),
+          hour(14, [0.6, 0.9, 0.75], { rating: 4, windSpeed: 9 })
+        ]
+      }
+    }
+  };
+  const recs = recommendWindows(spots, fc, { date: DATE, limit: 4 });
+  assert.equal(recs.length, 2);
+  assert.equal(recs[0].spotId, 'Voramar');
+  assert.deepEqual([recs[0].from, recs[0].to], [12, 15]);
+  assert.equal(recs[1].spotId, 'Planetario');
+  assert.deepEqual([recs[1].from, recs[1].to], [9, 12]);
+});
+
+test('el parte empieza por la decisión elegida y separa alternativas', () => {
+  const text = buildShareText({
+    date: DATE,
+    from: 12,
+    to: 15,
+    sport: 'Surf',
+    level: 'Intermedio',
+    selected: 'Voramar',
+    rows: [
+      { spotId: 'Planetario', name: 'Planetario', hasData: true, surfMin: 0.3, surfMax: 0.5, ratingLabel: 'Regular' },
+      { spotId: 'Voramar', name: 'Voramar', hasData: true, surfMin: 0.6, surfMax: 0.9, ratingLabel: 'Bueno' }
+    ]
+  });
+  const decIdx = text.indexOf('Decisión: Voramar');
+  const altIdx = text.indexOf('Alternativas comparadas:');
+  const plaIdx = text.indexOf('- Planetario:');
+  assert.ok(decIdx > 0);
+  assert.ok(altIdx > decIdx);
+  assert.ok(plaIdx > altIdx);
 });

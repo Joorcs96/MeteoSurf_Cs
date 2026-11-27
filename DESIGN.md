@@ -41,10 +41,11 @@ detalle.
 | `--surface-2` | `#f5f6f8` | `#22252a` |
 | `--surface-3` | `#eceef2` | `#2a2e34` |
 | `--text` | `#1d1d1f` | `#f2f4f7` |
-| `--text-2` | `#62676e` | `#aab1ba` |
-| `--text-3` | `#8a9099` | `#7f8791` |
+| `--text-2` | `#555b63` | `#aab1ba` |
+| `--text-3` | `#666d76` | `#8d959f` |
 | `--line` | `#e3e5e9` | `#2e3238` |
 | `--sel` | `#0066cc` | `#72adff` |
+| `--on-sel` | `#ffffff` | `#0b1220` |
 | `--sel-soft` | `#e9f2fc` | `#1b2a3d` |
 | `--wind` | `#217c86` | `#5fb6c0` |
 | `--good` | `#2e7d5b` | `#6cc59c` |

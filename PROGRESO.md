@@ -109,7 +109,7 @@
 - App funcionando en simulador iPhone 12 Pro Max + Apple Watch Series 7
 
 ## 📋 PENDIENTES
-- Rediseño profesional: implementación y publicación autorizadas por Jordi. Planificación deportiva para escuelas, entrenadores y clubes; sin alumnos ni cobros. En preparación en `feature/planificacion-profesional`; revisión funcional y visual pendiente antes de publicar.
+- Rediseño profesional: implementación y publicación autorizadas por Jordi. Planificación deportiva para escuelas, entrenadores y clubes; sin alumnos ni cobros. Correcciones funcionales y visuales terminadas en `feature/planificacion-profesional`; integración y publicación en curso.
 - Probar en iPhone físico (Expo Go) la previsión real, el compositor de Comunidad y el guardado de clips en Fotos.
 
 ## ⚙️ EN CURSO
@@ -119,8 +119,10 @@
 ## 👀 EN REVISION
 | Tarea | Rol/agente | Cerebro | Pestaña |
 | --- | --- | --- | --- |
+| Publicar planificación profesional | Coordinación | Codex | Integrar main, desplegar y comprobar la página pública |
 
 ## ✅ FINALIZADAS
+| 2026-11-27 | Jornada profesional: comparación, filtros de fecha y franja, inspector, cámara, observaciones y parte compartible; correcciones P1/P2 de accesibilidad y lectura | feature/planificacion-profesional | 15/15 pruebas de lógica; navegador en móvil y escritorio, claro y oscuro; capturas en docs/evidencia/correcciones/ |
 | 2026-11-13 | Resolución de arranque de simulador y Xcode: diagnóstico de error CocoaPods en proyecto Xcode (ausencia de CocoaPods por Ruby 2.6 del sistema; no requiere sudo). App Apple Watch Series 7 ejecutándose en vivo con universal slice x86_64+arm64, 4 pestañas operativas (HUD de olas, biometría BPM/SpO2/Kcal, historial y Water Lock), emparejada con iPhone 12 Pro Max. Capturas visuales verificadas en /brain | fix-xcode-sim-watch-live | Apple Watch Series 7 corriendo en vivo con tracking iniciado; capturas watch_live_running_clean, watch_session_active, watch_tab2_biometrics, watch_tab3_waves y watch_tab4_controls generadas |
 | 2026-11-13 | Apertura y ejecución en vivo de MeteoSurf en iPhone virtual y Apple Watch Series 7 enlazados: servidor Metro activo (1.543 módulos empaquetados), interfaz nativa cargada en pantalla con spots de Castellón (Planetario por defecto), previsiones a 7 días, oleaje, viento terral, vigía, mapa 3D y tracking en agua con Water Lock | app-live-iphone-watch | iPhone y Apple Watch Series 7 activos y visibles en Simulator; app corriendo en vivo; capturas generadas y verificadas en /brain |
 | 2026-11-13 | Apertura visual de simuladores en macOS: Simulator.app enfocado en pantalla con iPhone 12 Pro Max y Apple Watch Series 7 simultáneos; servidor Metro arrancado en puerto 8081 y Expo Go enlazado con aviso de apertura en pantalla | sim-gui-iphone12-watch7 | Simuladores visibles en pantalla; servidor Metro activo en background; capturas verificadas en /brain |

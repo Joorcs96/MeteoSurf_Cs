@@ -1178,7 +1178,7 @@ h3 {
   font-size: 13px;
 }
 
-.jr-cam-poster span {
+.jr-cam-poster > span {
   color: rgba(255, 255, 255, .7);
   font-size: 10px;
 }

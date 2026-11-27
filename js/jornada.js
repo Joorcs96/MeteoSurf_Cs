@@ -352,7 +352,7 @@ export function createJornadaView(api) {
               <span>Lugar</span><span>Ola en playa</span><span>Periodo</span><span>Viento</span><span>Rachas</span><span>Calidad surf</span><span></span>
             </div>
             <div id="jr-compare-body" role="radiogroup" aria-label="Lugares comparados"></div>
-            <p class="jr-compare-note">Ola en playa = estimación de rompiente. Hs = altura significante mar adentro; la boya mide otra cosa. Viento y rachas son del modelo. Calidad de surf = mejor valoración de la franja (ola, periodo y viento, con el abrigo del spot). Deporte y nivel son contexto, no cambian el cálculo.</p>
+            <p class="jr-compare-note">La ola en playa y el periodo muestran el mínimo y máximo previstos en la franja. El viento es la media; su dirección corresponde a la hora central y las rachas muestran el máximo. Hs es la altura significante mar adentro: la boya mide otra cosa. Viento y rachas proceden del modelo. La calidad de surf es la mejor valoración de la franja (ola, periodo, viento y abrigo del spot). Deporte y nivel son contexto, no cambian el cálculo.</p>
           </section>
           <section class="jr-panel jr-chart-panel" aria-labelledby="jr-chart-title">
             <div class="jr-panel-head">
@@ -718,7 +718,7 @@ export function createJornadaView(api) {
         <div class="jr-kpis">
           <div><span>Ola en playa</span><b class="num">${fmtRangeM(sum.surfMin, sum.surfMax)}</b><small>estimación</small></div>
           <div><span>Periodo</span><b class="num">${period}</b></div>
-          <div><span>Viento</span><b class="num">${wind}</b>${sum.windLabel ? `<small>${esc(sum.windLabel)}</small>` : ''}</div>
+          <div><span>Viento</span><b class="num">${wind}</b>${sum.windAvg != null && sum.windLabel ? `<small>${esc(sum.windLabel)}</small>` : ''}</div>
           <div><span>Rachas</span><b class="num">${gust}</b></div>
         </div>
         ${coverage}
